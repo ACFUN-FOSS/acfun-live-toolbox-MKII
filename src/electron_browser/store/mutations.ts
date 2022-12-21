@@ -209,7 +209,8 @@ export const mutations: any = {
 	},
 	checkLikeStreaming(state: RootState) {
 		const tempLike = state.temp.likeList;
-		const likeList = state.danmakuProfile.common.likeList;
+		// const likeList = state.danmakuProfile.common.likeList;
+		const likeList: any = [];
 		if (!likeList || !likeList.length) {
 			return;
 		}
