@@ -9,11 +9,12 @@ export const dpiHandler = () => {
 	const dpi = window.devicePixelRatio;
 	for (const i of dpiOption.reverse()) {
 		if (dpi >= i[0]) {
-			document.body.style.zoom = i[1];
+			// TODO: Create a struct for document.body.style
+			(document.body.style as any).zoom = i[1];
 			return;
 		}
 	}
-	document.body.style.zoom = "100%";
+	(document.body.style as any).zoom = "100%";
 };
 export const logger = () => {
 	const ept = () => 1;
