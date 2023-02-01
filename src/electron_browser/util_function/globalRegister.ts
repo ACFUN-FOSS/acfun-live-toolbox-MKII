@@ -9,10 +9,13 @@ export const dpiHandler = () => {
 	const dpi = window.devicePixelRatio;
 	for (const i of dpiOption.reverse()) {
 		if (dpi >= i[0]) {
+			// @ts-ignore
 			document.body.style.zoom = i[1];
 			return;
 		}
 	}
+
+	// @ts-ignore
 	document.body.style.zoom = "100%";
 };
 export const logger = () => {
@@ -37,12 +40,12 @@ export const logger = () => {
 			lg(...e);
 			log(stringify(e));
 		};
-		window.addEventListener("unhandledrejection", e => {
+		window.addEventListener("unhandledrejection", (e) => {
 			if (e.reason instanceof Error) {
 				log(String(e.reason.stack) + `@${common().version}`);
 			}
 		});
-		window.addEventListener("error", e => {
+		window.addEventListener("error", (e) => {
 			log(String(e.error.stack) + `@${common().version}`);
 		});
 	}

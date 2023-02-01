@@ -127,7 +127,7 @@ export default defineComponent({
 			loginFailedText: "",
 			welcome: false,
 			welcomeLogoKey: "111"
-		};
+		} as Record<string, any>;
 	},
 	computed: {
 		loginTexts,
