@@ -14,6 +14,7 @@
 		"trace": "node tests/error/run.js",
 		"electron:build": "vue-cli-service electron:build",
 		"electron:build-mac": "vue-cli-service electron:build --macos",
+		"electron:build-mac-x64": "vue-cli-service electron:build --x64 --macos",
 		"electron:serve": "vue-cli-service electron:serve",
 		"postinstall": "electron-builder install-app-deps",
 		"postuninstall": "electron-builder install-app-deps"
