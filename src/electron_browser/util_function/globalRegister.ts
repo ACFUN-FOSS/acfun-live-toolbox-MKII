@@ -9,7 +9,7 @@ export const dpiHandler = () => {
 	const dpi = window.devicePixelRatio;
 	for (const i of dpiOption.reverse()) {
 		if (dpi >= i[0]) {
-			// TODO: Create a struct for document.body.style
+			// TODO: Use CSSStyleDeclaration.
 			(document.body.style as any).zoom = i[1];
 			return;
 		}
@@ -38,12 +38,12 @@ export const logger = () => {
 			lg(...e);
 			log(stringify(e));
 		};
-		window.addEventListener("unhandledrejection", e => {
+		window.addEventListener("unhandledrejection", (e) => {
 			if (e.reason instanceof Error) {
 				log(String(e.reason.stack) + `@${common().version}`);
 			}
 		});
-		window.addEventListener("error", e => {
+		window.addEventListener("error", (e) => {
 			log(String(e.error.stack) + `@${common().version}`);
 		});
 	}
