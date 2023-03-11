@@ -12,7 +12,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { wsevent } from "@front/api";
-import { commonSettings } from "@front/datas/danmaku";
+import { commonSettings } from "@/electron_browser/datas/aboutDanmaku";
 import { tempInfo } from "@front/datas/temp";
 import flow from "@front/components/danmakuFlow/index.vue";
 import { mapState, mapGetters } from "vuex";

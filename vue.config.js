@@ -63,7 +63,7 @@ module.exports = {
 				}
 			},
 			watchOptions: {
-				ignored: /public/
+				//ignored: /public/
 			},
 			after: function (devServer) {
 				const {

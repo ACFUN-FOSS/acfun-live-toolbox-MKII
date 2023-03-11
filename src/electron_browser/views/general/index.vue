@@ -60,7 +60,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { generalSettings } from "@front/datas/danmaku";
+import { generalSettings } from "@/electron_browser/datas/aboutDanmaku";
 import { mapState } from "vuex";
 import { load } from "@front/util_function/file";
 import {
