@@ -79,7 +79,7 @@ class File {
 	static loadFile(url: string) {
 		try {
 			const data = fs.readFileSync(url, "utf8");
-			console.log(data);
+			// console.log(data);
 			return data;
 		} catch (error) {
 			console.log(error);
