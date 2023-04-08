@@ -116,7 +116,10 @@ export default defineComponent({
 		},
 		async chechEveryThing() {
 			try {
-				await wsevent.register(this.appID);
+				await wsevent.register(
+					this.appID,
+					this.danmakuProfile?.general?.socket || 4396
+				);
 				this.subscribeData();
 			} catch (error) {
 				console.log(error);

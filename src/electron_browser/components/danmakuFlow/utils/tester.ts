@@ -16,7 +16,7 @@ import {
 import { RootState } from "@front/store/state";
 import { danmaku } from "@/electron_browser/datas";
 // tsdoc imports =====
-import * as AdvanceFunctions from "@front/components/danmakuFlow/danmakuRow/advanceFunctions"
+import * as AdvanceFunctions from "@front/components/danmakuFlow/danmakuRow/advanceFunctions";
 // ===================
 
 export const hasTime = function(danmaku: any) {

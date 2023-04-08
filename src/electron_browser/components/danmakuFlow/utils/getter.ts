@@ -8,9 +8,13 @@ import * as Lodash from "lodash";
 import { isElectron } from "@front/util_function/electron";
 import { escapeRegExp } from "@front/util_function/base";
 import store from "@front/store/index";
-import { BackendMsg, BackendMsgPushDanmakuData as BackendPushDanmakuMsgData, BackendMsgType } from "@/electron_browser/datas/dto/acfunlive-backend/msg";
+import {
+	BackendMsg,
+	BackendMsgPushDanmakuData as BackendPushDanmakuMsgData,
+	BackendMsgType
+} from "@/electron_browser/datas/dto/acfunlive-backend/msg";
 // tsdoc imports =====
-import * as AdvanceFunctions from "@front/components/danmakuFlow/danmakuRow/advanceFunctions"
+import * as AdvanceFunctions from "@front/components/danmakuFlow/danmakuRow/advanceFunctions";
 // ===================
 
 export const getDanmuInfo = function(danmaku: any) {
@@ -139,7 +143,9 @@ export const getContent = function(danmaku: any) {
  * 获取经过 unscaped 的推送弹幕消息的 content。
  * 例：传入推送弹幕消息，其 content 为 "You&#39;re beautiful"；返回 "You're beautiful"。
  */
-export function getUnscapedContent(danmakuMsg: BackendMsg<BackendPushDanmakuMsgData>) {
+export function getUnscapedContent(
+	danmakuMsg: BackendMsg<BackendPushDanmakuMsgData>
+) {
 	return Lodash.unescape(danmakuMsg.data.content);
 }
 
@@ -222,7 +228,9 @@ export const getRichText = function(danmaku: any) {
  * @returns MsgFromBackendType
  */
 // TODO: 根据所有后端的消息类型，完善该函数
-export function getBackendMsgType(resp: BackendMsg<any>): BackendMsgType | undefined {
+export function getBackendMsgType(
+	resp: BackendMsg<any>
+): BackendMsgType | undefined {
 	return new Map<number, BackendMsgType>([
 		[1000, BackendMsgType.PUSH_DANMAKU]
 	]).get(resp.type);
@@ -233,7 +241,9 @@ export function getBackendMsgType(resp: BackendMsg<any>): BackendMsgType | undef
  * 否则返回 null。
  * @param msg 传入的 acfunlive-backend websocket 消息
  */
-export function getBackendMsgDataAsBackendPushDanmakuMsgData(msg: BackendMsg<any>): BackendPushDanmakuMsgData | undefined {
+export function getBackendMsgDataAsBackendPushDanmakuMsgData(
+	msg: BackendMsg<any>
+): BackendPushDanmakuMsgData | undefined {
 	if (getBackendMsgType(msg) === BackendMsgType.PUSH_DANMAKU) {
 		return msg.data as BackendPushDanmakuMsgData;
 	}

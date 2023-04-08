@@ -163,7 +163,7 @@ class File {
 		}
 	}
 
-	static loadConfig(event: any) {
+	static loadConfig(event: any | null) {
 		// @ts-ignore
 		const url = path.join(configStatic, "config.json");
 		try {
@@ -172,7 +172,9 @@ class File {
 			// @ts-ignore
 			fs.copyFileSync(path.join(__static, "default.json"), url, 0);
 		}
-		event.reply("load_config_complete", File.loadFile(url));
+		const reply = File.loadFile(url);
+		event?.reply("load_config_complete", reply);
+		return reply;
 	}
 
 	static saveConfig(event: any, res: any) {

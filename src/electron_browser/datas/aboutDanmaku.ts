@@ -175,11 +175,15 @@ export const commonSettings = (): CommonSettings => {
 
 export interface GeneralSettings {
 	streamToolPath: string;
+	port: number;
+	socket: number;
 }
 
 export const generalSettings = (): GeneralSettings => {
 	return {
-		streamToolPath: ""
+		streamToolPath: "",
+		port: 1299,
+		socket: 4396
 	};
 };
 

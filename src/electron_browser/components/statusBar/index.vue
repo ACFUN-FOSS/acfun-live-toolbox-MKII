@@ -156,7 +156,10 @@ export default defineComponent({
 			});
 		},
 		registerWS() {
-			wsevent.register("server");
+			wsevent.register(
+				"server",
+				this.danmakuProfile?.general?.socket || 4396
+			);
 		},
 		sendApi({ sourceID, method }: any) {
 			const apis: any = allApi;

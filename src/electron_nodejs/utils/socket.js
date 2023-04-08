@@ -1,3 +1,4 @@
+import { port, socket } from "./http";
 const { Server } = require("socket.io");
 const ip = require("ip");
 const clients = {};
@@ -16,13 +17,13 @@ const isPortFree = port =>
 	});
 
 const startSocket = async server => {
-	if (!(await isPortFree(4396))) return;
+	if (!(await isPortFree(socket || 1299))) return;
 	const httpServe = require("http").createServer(server);
 	const address = ip.address();
 	const io = new Server(httpServe, {
 		cors: {
 			origin: [
-				`http://${address}:1299`,
+				`http://${address}:${port || 1299}`,
 				`http://${address}:8080`,
 				`http://${address}:8081`
 			]
@@ -52,7 +53,7 @@ const startSocket = async server => {
 			}
 		});
 	});
-	httpServe.listen(4396, () => {
+	httpServe.listen(socket || 4396, () => {
 		console.log("socket opened!");
 	});
 };

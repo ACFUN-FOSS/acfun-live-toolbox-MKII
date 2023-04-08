@@ -1,4 +1,9 @@
 import { appStatic, configStatic } from "./paths";
+import File from "./file";
+export const { port, socket } = File.loadConfig(null)?.general?.port || {
+	port: 1299,
+	socket: 4396
+};
 const express = require("express");
 const path = require("path");
 const his = require("connect-history-api-fallback");
@@ -6,7 +11,6 @@ const ip = require("ip");
 export const startHttp = () => {
 	return new Promise(resolve => {
 		const dirname = process.resourcesPath;
-		const port = 1299;
 
 		const server = express();
 
