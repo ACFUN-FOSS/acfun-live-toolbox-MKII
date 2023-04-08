@@ -173,7 +173,9 @@ class File {
 			fs.copyFileSync(path.join(__static, "default.json"), url, 0);
 		}
 		const reply = File.loadFile(url);
-		event?.reply("load_config_complete", reply);
+		if (event) {
+			event.reply("load_config_complete", reply);
+		}
 		return reply;
 	}
 
