@@ -38,7 +38,7 @@ import {
 	toRefs,
 	watch
 } from "vue";
-import "element-plus/lib/theme-chalk/index.css";
+
 import { ElColorPicker } from "element-plus";
 
 export default defineComponent({

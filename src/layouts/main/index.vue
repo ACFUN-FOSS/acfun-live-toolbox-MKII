@@ -19,16 +19,21 @@
 	</div>
 </template>
 
-<script>
+<script lang="ts">
 import { defineComponent } from "vue";
+import sidebarBase from "@front/components/base/sidebars/sidebarBase.vue";
+import titleFrame from "@front/components/base/frames/titleFrame.vue"
 import statusBar from "@front/components/statusBar/index.vue";
 import topbarAvatar from "@front/components/system/topbars/withAvatar.vue";
+
 import { mapState } from "vuex";
 export default defineComponent({
 	name: "home",
 	components: {
 		statusBar,
 		topbarAvatar,
+		sidebarBase,
+		titleFrame
 	},
 	mounted() {
 		this.$store.state.isLogined = true;
@@ -41,7 +46,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 #home {
 	font-family: Avenir, Helvetica, Arial, sans-serif;
 	-webkit-font-smoothing: antialiased;

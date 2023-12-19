@@ -97,7 +97,7 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .imgInput {
 	position: relative;
 	min-width: 60px;

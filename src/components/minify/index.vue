@@ -217,7 +217,7 @@ export default defineComponent({
 }
 </style>
 <style lang="scss">
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
 body.minify {
 	padding: 0px;

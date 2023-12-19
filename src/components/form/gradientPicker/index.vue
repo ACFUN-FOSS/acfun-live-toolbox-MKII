@@ -126,7 +126,7 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .gradient-picker {
 	width: 50px;
 	height: 28px;

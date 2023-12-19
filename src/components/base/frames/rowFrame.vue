@@ -36,7 +36,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .rowFrame {
 	position: relative;
 	flex-shrink: 0;

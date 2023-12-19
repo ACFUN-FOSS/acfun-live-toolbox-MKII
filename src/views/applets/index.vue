@@ -33,8 +33,9 @@ export default mixin;
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
+
 #applets {
 	display: flex;
 	flex-direction: column;
@@ -56,7 +57,7 @@ export default mixin;
 	display: flex;
 	&:hover {
 		color: $--color-primary;
-		box-shadow: $--box-shadow-light;
+		box-shadow: getCssVar("box-shadow", "light");
 	}
 }
 .block {
@@ -65,10 +66,10 @@ export default mixin;
 	border-radius: 4px;
 	margin: 5px;
 	display: flex;
-	font-size: getCssVar("font-size", "large");
+	font-size: getCssVar('font-size-large');
 	align-items: center;
 	justify-content: center;
-	border: getCssVar("border", "base") e;
+	border: getCssVar("border", "base");
 	color: getCssVar("text-color", "secondary");
 	flex-shrink: 0;
 }

@@ -35,7 +35,9 @@
 <script lang="ts">
 import { mapState, mapGetters } from "vuex";
 import { defineComponent } from "vue";
+import titleScrolling from "@front/components/base/texts/titleScrolling.vue";
 import flow from "@front/components/danmakuFlow/index.vue";
+import iconCounter from "@front/components/base/texts/iconCounter.vue";
 import { event } from "@front/util_function/eventBus";
 import { unixTimeFormatter, thousandFormatter } from "@front/util_function/formatter";
 import { common } from "@front/texts";
@@ -43,6 +45,8 @@ export default defineComponent({
 	name: "shrink",
 	components: {
 		flow,
+		titleScrolling,
+		iconCounter
 	},
 	data() {
 		return {
@@ -76,7 +80,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 #shrink {
 	position: absolute;
 	top: 0px;

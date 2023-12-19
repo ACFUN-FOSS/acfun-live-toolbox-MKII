@@ -1,23 +1,45 @@
 import { isElectron } from "@front/util_function/electron";
 import { removePunctuationSpace } from "@front/util_function/base";
 import { copy as copyText } from "./clipboard";
+import ElectronApi from "@back/preload/electron-api";
+
 export const path = isElectron() ? window.require("path") : {};
-const { remote, ipcRenderer }: any = isElectron()
+const { ipcRenderer }: any = isElectron()
 	? window.require("electron")
 	: {};
 export { ipcRenderer, copyText };
-export const win = remote?.getCurrentWindow();
+
 export const minimize = () => {
 	if (isElectron()) {
-		win?.minimize();
+		ipcRenderer?.send("win_minimize");
 	}
 };
 
 export const openConsole = () => {
 	if (isElectron()) {
-		win?.webContents.openDevTools();
+		ipcRenderer?.send("win_opendevtools");
 	}
 };
+
+// ElectronApi 是一个用于渲染器进程到主进程双向通信的函数的集合。
+export const getElectronApi = () => {
+	return (window as any).electronApi as ElectronApi;
+};
+
+export const getWinPos = async (): Promise<number[]> => {
+	if (isElectron()) {
+		return await getElectronApi().getWinPos();
+	} else {
+		return [0, 0];
+	}
+};
+
+export const setWinBounds = (bounds: Partial<Electron.Rectangle>) => {
+	if (isElectron()) {
+		ipcRenderer?.send("win_setBounds", bounds);
+		
+	}
+}
 
 export const startApplet = (appletConfig: any) => {
 	if (isElectron()) {
@@ -73,7 +95,7 @@ export const appletList = () => {
 
 export const close = () => {
 	if (isElectron()) {
-		win?.close();
+		ipcRenderer?.send("win_opendevtools");
 	}
 };
 export const log = (msg: any) => {
@@ -117,7 +139,7 @@ export const setResizeable = (isResizeable: boolean) => {
 
 export const restore = () => {
 	if (isElectron()) {
-		win?.restore();
+		ipcRenderer?.send("win_restore");
 	}
 };
 

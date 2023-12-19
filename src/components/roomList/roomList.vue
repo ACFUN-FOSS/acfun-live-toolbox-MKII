@@ -37,7 +37,7 @@ export default defineComponent({
 });
 </script>
 <style scoped lang='scss'>
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .tabs {
 	position: absolute;
 	top: -62px;

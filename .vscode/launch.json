@@ -8,8 +8,8 @@
       "name": "Debug App",
       "preLaunchTask": "Before Debug",
       "configurations": [
-        "Debug Main Process",
-        "Debug Renderer Process"
+        "Debug Main Process (launch)",
+        "Debug Renderer Process (attach)"
       ],
       "presentation": {
         "hidden": false,
@@ -21,7 +21,7 @@
   ],
   "configurations": [
     {
-      "name": "Debug Main Process",
+      "name": "Debug Main Process (launch)",
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron",
@@ -36,7 +36,7 @@
       "console": "integratedTerminal"
     },
     {
-      "name": "Debug Renderer Process",
+      "name": "Debug Renderer Process (attach)",
       "port": 9229,
       "request": "attach",
       "type": "chrome",

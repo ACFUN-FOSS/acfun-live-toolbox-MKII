@@ -75,6 +75,7 @@ export default defineConfig(({ command }) => {
 		resolve: {
 			alias: {
 				"@front": path.resolve(__dirname, "./src"),
+				"@back": path.resolve(__dirname, "./electron"),
 			},
 		},
 		server:

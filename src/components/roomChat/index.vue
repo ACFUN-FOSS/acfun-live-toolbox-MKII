@@ -134,7 +134,7 @@ export default defineComponent({
 </script>
 
 <style scoped lang='scss'>
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 :deep .el-input-group__append {
 	border: none;
 }

@@ -69,7 +69,7 @@ export default defineComponent({
 </script>
 
 <style scoped lang='scss'>
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .rule {
 	position: relative;
 	.remove {

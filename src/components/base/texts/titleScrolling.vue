@@ -82,7 +82,7 @@ export default defineComponent({
 </script>
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .title {
 	position: relative;
 	font-size: getCssVar("font-size", "base");
