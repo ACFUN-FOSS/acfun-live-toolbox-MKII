@@ -29,10 +29,10 @@ function retrieve2ndDirFromPath(path: string) {
 
 export let allDanmakuWidgets: { [key: string]: () => Promise<unknown> } = {};
 for(const vueFilePath in requireComponent) {
-	const console.log(await requireComponent[vueFilePath]());
+	//const console.log(await requireComponent[vueFilePath]());
 	//console.log(await import(vueFilePath));
 	const labelEn = retrieve2ndDirFromPath(vueFilePath);
-	allDanmakuWidgets[labelEn] = defineAsyncComponent(async () => requireComponent[vueFilePath]);
+	allDanmakuWidgets[labelEn] = defineAsyncComponent(requireComponent[vueFilePath]);
 }
 
 

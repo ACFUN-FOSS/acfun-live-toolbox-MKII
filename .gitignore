@@ -10,6 +10,7 @@ TellOrzogcWhatHappened
 TellOrzogcWhatHappened.panic
 
 # Compiled files
+BUILD
 node_modules
 .yarn
 dist
