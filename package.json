@@ -51,6 +51,7 @@
 		"fs": "^0.0.1-security",
 		"http": "^0.0.1-security",
 		"ip": "^1.1.8",
+		"obs-websocket-js": "^5.0.3",
 		"path": "^0.12.7",
 		"process": "^0.11.10",
 		"qs": "^6.11.2",
@@ -58,6 +59,7 @@
 		"socket.io": "^4.7.2",
 		"socket.io-client": "^4.7.2",
 		"unzipper": "^0.10.14",
+		"vue-cropperjs": "^5.0.0",
 		"vue-router": "4",
 		"vuex": "^4.1.0"
 	}

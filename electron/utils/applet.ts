@@ -42,7 +42,7 @@ class Applets {
 		const ip = require("ip");
 		let url: any = `${
 			isDev
-				? <string>process.env.WEBPACK_DEV_SERVER_URL
+				? <string>process.env.VITE_DEV_SERVER_URL
 				: `http://${ip.address()}:${port}`
 		}/applets`;
 		url = new URL(url);

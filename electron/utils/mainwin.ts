@@ -45,14 +45,15 @@ class MainWin {
 		});
 	}
 
-	static getPos(event: IpcMainInvokeEvent): number[] {
-		(wins.find((wn: any) => wn.id === event.sender.id).win as BrowserWindow).getPosition();
+	static getPos(event: IpcMainInvokeEvent) {
+		event.sender.send("win_getPos_ack", (wins.find((wn: any) => wn.id === event.sender.id).win as BrowserWindow).getPosition());
 	}
 
 	static setBounds(event: any, bounds: Partial<Electron.Rectangle>) {
 		(wins.find((wn: any) => wn.id === event.sender.id).win as BrowserWindow).setBounds(bounds);
 	}
 
+	// TODO: REFACTOR: 名字改成 getEventWin
 	static selectWindow(event: any) {
 		return wins.find((win: any) => win.id === event.sender.id);
 	}

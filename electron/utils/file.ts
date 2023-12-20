@@ -354,6 +354,7 @@ class File {
 		if (!url || !fs.existsSync(url)) {
 			return;
 		}
+		// TODO: 这玩意只在 Windows 下有用
 		require("child_process").exec(`start "" "${url}"`);
 	}
 	static openCache() {

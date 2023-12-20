@@ -92,6 +92,27 @@ export default defineComponent({
 				});
 			}
 		}, 100),
+		
+		// TODO: REFACTOR: 用接口定义返回值数据结构，重命名函数名
+		/**
+		 * return example:
+		 * 
+		 * {
+		 * 	code: 1000,
+		 * 	name: "评论",
+		 * 	type: "text",
+		 * 
+		 * 	// 显示该弹幕所用的 widgets（牌子、身份、用户名、弹幕文字……）
+		 *	// 用来指定该弹幕的显示外观
+		 * 	widgets: [
+		 * 		{
+		 * 			id: "171739",
+		 * 			label: "身份",
+		 * 			labelEn: "role"
+		 * 		}
+		 * 	];	
+		 * }
+		 */
 		getSetting(danmaku: any) {
 			// @ts-ignore
 			const setting = this.settings?.settingOfType[danmaku.type];

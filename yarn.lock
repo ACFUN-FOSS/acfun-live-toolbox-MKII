@@ -378,6 +378,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@msgpack/msgpack@npm:^2.7.1":
+  version: 2.8.0
+  resolution: "@msgpack/msgpack@npm:2.8.0"
+  checksum: bead9393f57239007a2fe455df5277cbc03b125f14f310162a652b81471dcf3ab6780eaa24b36e20aa742998910a6840147d08b7267063b8e2de5d40c624360e
+  languageName: node
+  linkType: hard
+
 "@npmcli/agent@npm:^2.0.0":
   version: 2.2.0
   resolution: "@npmcli/agent@npm:2.2.0"
@@ -1604,6 +1611,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"cropperjs@npm:^1.5.6":
+  version: 1.6.1
+  resolution: "cropperjs@npm:1.6.1"
+  checksum: 951ec5e6786dabac70b02d7aa909d115c7f2652dfaab3e2bcc65c0bf8d329acec875b1f5ff5f3004abf9511686ccb2aa2765718c3176e74cc8e92ec78a42e7a7
+  languageName: node
+  linkType: hard
+
 "cross-spawn@npm:^7.0.0, cross-spawn@npm:^7.0.1, cross-spawn@npm:^7.0.3":
   version: 7.0.3
   resolution: "cross-spawn@npm:7.0.3"
@@ -1612,6 +1626,13 @@ __metadata:
     shebang-command: ^2.0.0
     which: ^2.0.1
   checksum: 671cc7c7288c3a8406f3c69a3ae2fc85555c04169e9d611def9a675635472614f1c0ed0ef80955d5b6d4e724f6ced67f0ad1bb006c2ea643488fcfef994d7f52
+  languageName: node
+  linkType: hard
+
+"crypto-js@npm:^4.1.1":
+  version: 4.2.0
+  resolution: "crypto-js@npm:4.2.0"
+  checksum: f051666dbc077c8324777f44fbd3aaea2986f198fe85092535130d17026c7c2ccf2d23ee5b29b36f7a4a07312db2fae23c9094b644cc35f7858b1b4fcaf27774
   languageName: node
   linkType: hard
 
@@ -1661,7 +1682,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.4, debug@npm:~4.3.1, debug@npm:~4.3.2":
+"debug@npm:4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:~4.3.1, debug@npm:~4.3.2":
   version: 4.3.4
   resolution: "debug@npm:4.3.4"
   dependencies:
@@ -1899,6 +1920,7 @@ __metadata:
     fs: ^0.0.1-security
     http: ^0.0.1-security
     ip: ^1.1.8
+    obs-websocket-js: ^5.0.3
     path: ^0.12.7
     process: ^0.11.10
     qs: ^6.11.2
@@ -1912,6 +1934,7 @@ __metadata:
     vite-plugin-electron: ^0.15.3
     vite-plugin-electron-renderer: ^0.14.5
     vue: ^3.3.4
+    vue-cropperjs: ^5.0.0
     vue-router: 4
     vue-tsc: ^1.8.8
     vuex: ^4.1.0
@@ -2163,6 +2186,13 @@ __metadata:
   version: 1.8.1
   resolution: "etag@npm:1.8.1"
   checksum: 571aeb3dbe0f2bbd4e4fadbdb44f325fc75335cd5f6f6b6a091e6a06a9f25ed5392f0863c5442acb0646787446e816f13cbfc6edce5b07658541dff573cab1ff
+  languageName: node
+  linkType: hard
+
+"eventemitter3@npm:^5.0.1":
+  version: 5.0.1
+  resolution: "eventemitter3@npm:5.0.1"
+  checksum: 543d6c858ab699303c3c32e0f0f47fc64d360bf73c3daf0ac0b5079710e340d6fe9f15487f94e66c629f5f82cd1a8678d692f3dbb6f6fcd1190e1b97fcad36f8
   languageName: node
   linkType: hard
 
@@ -2933,6 +2963,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"isomorphic-ws@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "isomorphic-ws@npm:5.0.0"
+  peerDependencies:
+    ws: "*"
+  checksum: e20eb2aee09ba96247465fda40c6d22c1153394c0144fa34fe6609f341af4c8c564f60ea3ba762335a7a9c306809349f9b863c8beedf2beea09b299834ad5398
+  languageName: node
+  linkType: hard
+
 "jackspeak@npm:^2.3.5":
   version: 2.3.6
   resolution: "jackspeak@npm:2.3.6"
@@ -3480,6 +3519,21 @@ __metadata:
   version: 1.1.1
   resolution: "object-keys@npm:1.1.1"
   checksum: b363c5e7644b1e1b04aa507e88dcb8e3a2f52b6ffd0ea801e4c7a62d5aa559affe21c55a07fd4b1fd55fc03a33c610d73426664b20032405d7b92a1414c34d6a
+  languageName: node
+  linkType: hard
+
+"obs-websocket-js@npm:^5.0.3":
+  version: 5.0.3
+  resolution: "obs-websocket-js@npm:5.0.3"
+  dependencies:
+    "@msgpack/msgpack": ^2.7.1
+    crypto-js: ^4.1.1
+    debug: ^4.3.2
+    eventemitter3: ^5.0.1
+    isomorphic-ws: ^5.0.0
+    type-fest: ^3.11.0
+    ws: ^8.13.0
+  checksum: 5941dacae236c1e9a302da92277a2cfbd48231bb31c98abdc02ea0ee0687097e51e417850ded0625e996b7ef09a4f01e504f99387e4f70f325b985ad696155ee
   languageName: node
   linkType: hard
 
@@ -4404,6 +4458,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"type-fest@npm:^3.11.0":
+  version: 3.13.1
+  resolution: "type-fest@npm:3.13.1"
+  checksum: c06b0901d54391dc46de3802375f5579868949d71f93b425ce564e19a428a0d411ae8d8cb0e300d330071d86152c3ea86e744c3f2860a42a79585b6ec2fdae8e
+  languageName: node
+  linkType: hard
+
 "type-is@npm:~1.6.18":
   version: 1.6.18
   resolution: "type-is@npm:1.6.18"
@@ -4637,6 +4698,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"vue-cropperjs@npm:^5.0.0":
+  version: 5.0.0
+  resolution: "vue-cropperjs@npm:5.0.0"
+  dependencies:
+    cropperjs: ^1.5.6
+  peerDependencies:
+    vue: ">=3.0.0"
+  checksum: 392d2b617201dbb2765f27fbe7854dbea05b8d7e195257c67deebddc577c6e45c6e4fedb8256da30724d930b4f96a6cb0b3c328efe3e869519f513db1b57536c
+  languageName: node
+  linkType: hard
+
 "vue-demi@npm:*":
   version: 0.14.6
   resolution: "vue-demi@npm:0.14.6"
@@ -4766,6 +4838,21 @@ __metadata:
   version: 1.0.2
   resolution: "wrappy@npm:1.0.2"
   checksum: 159da4805f7e84a3d003d8841557196034155008f817172d4e986bd591f74aa82aa7db55929a54222309e01079a65a92a9e6414da5a6aa4b01ee44a511ac3ee5
+  languageName: node
+  linkType: hard
+
+"ws@npm:^8.13.0":
+  version: 8.15.1
+  resolution: "ws@npm:8.15.1"
+  peerDependencies:
+    bufferutil: ^4.0.1
+    utf-8-validate: ">=5.0.2"
+  peerDependenciesMeta:
+    bufferutil:
+      optional: true
+    utf-8-validate:
+      optional: true
+  checksum: 8c67365f6e6134278ad635d558bfce466d7ef7543a043baea333aaa430429f0af8a130c0c36e7dd78f918d68167a659ba9b5067330b77c4b279e91533395952b
   languageName: node
   linkType: hard
 

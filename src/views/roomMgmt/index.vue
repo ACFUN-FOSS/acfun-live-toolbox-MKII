@@ -113,10 +113,23 @@ import { sleep, isUrl } from "@front/util_function/base";
 import { copy } from "@front/util_function/clipboard";
 import OBSWebSocket from "obs-websocket-js";
 import { getCutStatus, setCutStatus } from "@front/api/room";
-let OBS: any = null;
+
+import imgInputClip from "@front/components/base/imgInput/imgInpuClip.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+
+
+let OBS: any | null = null;
 export default defineComponent({
 	name: "roomMgmt",
 	mixins: [closeStream],
+	components: {
+		imgInputClip,
+		rowSpan,
+		rowFrame,
+		contentFrame,
+	},
 	data() {
 		const roomProfile: room.ProfileDetail = cloneDeep(this.$store.state.roomProfile);
 		if (roomProfile.liveType.categoryID === 0) {
@@ -173,7 +186,7 @@ export default defineComponent({
 	},
 	beforeUnmount() {
 		this.saveCache();
-		OBS.disconnect();
+		OBS?.disconnect();
 		event.off("openStream", this.openStream);
 		event.emit("openStreamEnd");
 		clearInterval(this.timer);

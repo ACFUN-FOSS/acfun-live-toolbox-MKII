@@ -1,12 +1,18 @@
 import { isElectron } from "@front/util_function/electron";
 import { removePunctuationSpace } from "@front/util_function/base";
 import { copy as copyText } from "./clipboard";
-import ElectronApi from "@back/preload/electron-api";
+
+// TODO: REFACTOR: move to electron.ts
+// REFACTOR: 为必须使用 Electroon 的场合 提供一个 `requireElectron`
+// 函数，检测到不是 Electron 就抛出异常，否则返回 Electron。
+let ipcRenderer = await (async () => {
+	if(isElectron())
+		return (await import("electron")).ipcRenderer;
+	else
+		return null;
+})();
 
 export const path = isElectron() ? window.require("path") : {};
-const { ipcRenderer }: any = isElectron()
-	? window.require("electron")
-	: {};
 export { ipcRenderer, copyText };
 
 export const minimize = () => {
@@ -21,23 +27,23 @@ export const openConsole = () => {
 	}
 };
 
-// ElectronApi 是一个用于渲染器进程到主进程双向通信的函数的集合。
-export const getElectronApi = () => {
-	return (window as any).electronApi as ElectronApi;
-};
 
-export const getWinPos = async (): Promise<number[]> => {
-	if (isElectron()) {
-		return await getElectronApi().getWinPos();
-	} else {
-		return [0, 0];
-	}
+export const getWinPos = (): Promise<number[]> => {
+	return new Promise((resolve) => {
+		if (isElectron()) {
+			ipcRenderer?.send("win_getPos");
+			ipcRenderer?.once("win_getPos_ack", (event, pos: number[]) => {
+				resolve(pos);
+			});
+		} else {
+			resolve([0, 0]);
+		}
+	});
 };
 
 export const setWinBounds = (bounds: Partial<Electron.Rectangle>) => {
 	if (isElectron()) {
 		ipcRenderer?.send("win_setBounds", bounds);
-		
 	}
 }
 

@@ -120,7 +120,7 @@ export default defineComponent({
 		align-items: center;
 		justify-content: center;
 		.icon {
-			font-size: $--font-size-extra-large;
+			font-size: getCssVar("font-size", "extra-large");
 			padding: 8px;
 		}
 	}
