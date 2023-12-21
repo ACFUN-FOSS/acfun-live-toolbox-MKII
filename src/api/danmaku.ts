@@ -1,3 +1,9 @@
+/**
+ * FILENAME: danmaku.ts
+ * 
+ * DESC: 与后端通讯的函数
+ */
+
 import { session, requestT, login } from "@front/api/user";
 import { setHeartBeat } from "@front/api/utils/websocket";
 import { user } from "@front/datas";

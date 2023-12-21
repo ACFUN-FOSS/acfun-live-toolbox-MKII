@@ -45,7 +45,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { setResizeable, win, setTop, setIgnoreMouseEvent, minimize, ipcRenderer } from "@front/util_function/system";
+import { setResizeable, setTop, setIgnoreMouseEvent, minimize, ipcRenderer, getWinPos, setWinBounds } from "@front/util_function/system";
 import { ElMessage } from "element-plus";
 import throttle from "lodash/throttle";
 import { event } from "@front/util_function/eventBus";
@@ -161,7 +161,7 @@ export default defineComponent({
 			}
 		},
 		toPosition(save: string, load: string) {
-			const winPosition = win.getPosition();
+			const winPosition = getWinPos();
 			const saveData = {
 				width: parseInt(`${window.innerWidth}`),
 				height: parseInt(`${window.innerHeight}`),
@@ -174,7 +174,7 @@ export default defineComponent({
 			}
 			localStorage.setItem(save, JSON.stringify(saveData));
 			const position: any = localStorage.getItem(load);
-			if (position) win.setBounds(JSON.parse(position));
+			if (position) setWinBounds(JSON.parse(position));
 		},
 		applySetting: throttle(function (setting: any) {
 			document.body.style.setProperty("--bgColor", setting.color);

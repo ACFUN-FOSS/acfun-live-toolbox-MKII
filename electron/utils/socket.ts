@@ -1,7 +1,15 @@
-const { Server } = require("socket.io");
-const ip = require("ip");
+/**
+ * FILENAME: socket.ts
+ * 
+ * DESC: 在不同工具箱实例之间（各个 electron 窗口、浏览器打开的弹幕视图……）
+ * 通讯的 ws 服务器的启动、查看端口占用等操作。
+ */
+
+import { Server } from "socket.io";
+import ip from "ip";
+import { port, socket } from "./http";
+
 const clients = {};
-const { port, socket } = import("./http.ts");
 const isPortFree = (port) =>
 	new Promise((resolve) => {
 		const server = require("http")

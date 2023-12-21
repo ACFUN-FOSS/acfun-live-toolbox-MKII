@@ -48,10 +48,12 @@ export default defineComponent({
 			return this.isUnfold ? mainPanel : shrink;
 		},
 	},
+	
 	methods: {
 		registerEvents() {
 			event.on("routeChange", this.unfold);
 			event.on("streamStatusChanged", this.handleStatusChange);
+			// TODO: REFACTOR: 为什么这些逻辑是由 statusBar 组件负责的？
 			wsevent.on("send-chat", this.sendChat);
 			wsevent.on("register-client", this.setWSClient);
 			wsevent.on("acfun-api-get", this.sendApi);
@@ -72,6 +74,7 @@ export default defineComponent({
 		},
 		dispatchWSClient() {
 			if (!wsevent.registered) {
+				// TODO: REFACTOR: 应该在更外层的文件中初始化 ws bus。
 				this.registerWS();
 				return;
 			}

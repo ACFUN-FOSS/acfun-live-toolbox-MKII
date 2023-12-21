@@ -46,6 +46,10 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { mapGetters, mapState } from "vuex";
+import titleFrame from "@front/components/base/frames/titleFrame.vue";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
 import roomInfo from "./roomInfo.vue";
 import danmakuFlow from "@front/components/danmakuFlow/index.vue";
 import superChatList from "@front/components/superChat/index.vue";
@@ -57,6 +61,10 @@ import appletList from "@front/views/applets/widget.vue";
 export default defineComponent({
 	name: "streamMonitor",
 	components: {
+		titleFrame,
+		contentFrame,
+		rowFrame,
+		rowSpan,
 		roomInfo,
 		danmakuFlow,
 		shotcut,

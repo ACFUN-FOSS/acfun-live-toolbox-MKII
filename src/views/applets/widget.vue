@@ -29,12 +29,12 @@
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
-	border: getCssVar("border", "base") e;
+	border: getCssVar("border", "base");
 	box-shadow: getCssVar("box-shadow", "base");
 	color: getCssVar("text-color", "secondary");
 	&:hover {
 		color: $--color-primary;
-		box-shadow: $--box-shadow-light;
+		box-shadow: getCssVar("box-shadow", "light");
 	}
 }
 </style>

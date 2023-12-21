@@ -1,7 +1,7 @@
 import { randomId } from "@front/util_function/base";
 import { defineAsyncComponent, markRaw } from "vue";
 
-const requireComponent = import.meta.glob("@front/components/danmakuFlow/widgets/*/index.vue");
+const requireComponent: { [T: string]: () => Promise<any> } = import.meta.glob("@front/components/danmakuFlow/widgets/*/index.vue");
 
 const output: any = {};
 //debugger;

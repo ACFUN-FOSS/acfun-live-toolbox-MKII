@@ -1,3 +1,4 @@
+// TODO: REFACTOR: 名称不当。
 export class Event {
 	events: any = {};
 	constructor() {

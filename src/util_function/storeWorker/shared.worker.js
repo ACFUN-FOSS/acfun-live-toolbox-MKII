@@ -12,12 +12,14 @@ const randomId = (length = 6) => {
 	return Num;
 };
 
+// TODO: REFACTOR: ?
 const startTimer = () => {
 	clearTimeout(timer);
 	requestDatas();
 	timer = setTimeout(startTimer, 2000);
 };
 
+// TODO: REFACTOR: Rename to `sendHostStateToClients`.
 const requestDatas = () => {
 	if (!hostPort) return;
 	for (const id in clients) {
