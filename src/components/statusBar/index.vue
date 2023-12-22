@@ -54,6 +54,9 @@ export default defineComponent({
 			event.on("routeChange", this.unfold);
 			event.on("streamStatusChanged", this.handleStatusChange);
 			// TODO: REFACTOR: 为什么这些逻辑是由 statusBar 组件负责的？
+			// 因为 statusBar 只在主窗口显示，而这些逻辑应该仅仅在主窗口中运行。将
+			// 这些逻辑放到 statusBar 实现了只在主窗口中运行的目的。
+			// TODO: REFACTOR: 应该放到更外层的组件中。
 			wsevent.on("send-chat", this.sendChat);
 			wsevent.on("register-client", this.setWSClient);
 			wsevent.on("acfun-api-get", this.sendApi);

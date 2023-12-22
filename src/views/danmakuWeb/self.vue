@@ -74,6 +74,7 @@ export default defineComponent({
 			for (const key in e) this.$store.state[key] = e[key];
 			loginSession(e.userSession || {});
 		},
+		// TODO: REFACTOR: ??
 		async chechEveryThing() {
 			try {
 				if (!wsevent.registered) {
