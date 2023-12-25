@@ -20,8 +20,17 @@
 </template>
 
 <script lang="ts">
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+
 import { defineComponent } from "vue";
 export default defineComponent({
+	components: {
+		contentFrame,
+		rowFrame,
+		rowSpan
+	},
 	props: {
 		settings: {
 			required: true

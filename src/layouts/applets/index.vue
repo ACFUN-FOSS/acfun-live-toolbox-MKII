@@ -31,6 +31,8 @@ import * as system from "@front/util_function/system";
 import HandlerMoving from "@front/components/system/HandlerMoving.vue";
 import { loadComponent } from "./httpVue";
 import * as lodash from "lodash";
+import titleScrolling from "@front/components/base/texts/titleScrolling.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
 import { danmakuTesters, danmakuGetters } from "@front/components/danmakuFlow/danmakuRow/advanceFunctions";
 import { wsevent } from "@front/api/wsbus";
 import { registerRole } from "@front/util_function/base";
@@ -38,7 +40,11 @@ import { registerClient, closeWorker } from "@front/util_function/storeWorker";
 
 export default defineComponent({
 	name: "home",
-	components: { HandlerMoving },
+	components: {
+		HandlerMoving,
+		titleScrolling,
+		rowFrame
+	},
 	methods: {
 		openConsole,
 		setTop,
@@ -105,6 +111,10 @@ export default defineComponent({
 					data() {
 						return data;
 					},
+					components: {
+						titleScrolling,
+						rowFrame
+					}
 				});
 			});
 		});

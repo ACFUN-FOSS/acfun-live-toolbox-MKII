@@ -43,10 +43,20 @@ import { superChat } from "@front/datas/aboutDanmaku";
 import { mapState } from "vuex";
 import { ElMessage } from "element-plus";
 import cloneDeep from "lodash/cloneDeep";
+
 import rule from "./rules.vue";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+
 export default defineComponent({
 	name: "superChat",
-	components: { rule },
+	components: {
+		contentFrame,
+		rowFrame,
+		rowSpan,
+		rule
+	},
 	data() {
 		return {
 			superChat: superChat(),

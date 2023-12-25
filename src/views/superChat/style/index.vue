@@ -80,14 +80,28 @@ import { getPaidGift } from "@front/views/danmakuSetting/mock";
 import { scFromDanmaku } from "@front/components/superChat/utils/getter";
 import VueForm from "@lljj/vue3-form-element";
 import rule from "@front/views/superChat/style/form";
+
 import listBlock from "@front/components/superChat/listBlock.vue";
 import listPanel from "@front/components/superChat/listPanel.vue";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+
+
 import { loadSuperChat, saveSuperChat } from "@front/util_function/system";
 import defaultTheme from "./default";
 import { ElMessage } from "element-plus";
 export default defineComponent({
 	name: "superChatStyleConfig",
-	components: { zoomFrame, VueForm, listBlock, listPanel },
+	components: {
+		zoomFrame,
+		VueForm,
+		listBlock,
+		listPanel,
+		contentFrame,
+		rowFrame,
+		rowSpan
+	},
 	data() {
 		const themes: any = [];
 		const theme: any = "";

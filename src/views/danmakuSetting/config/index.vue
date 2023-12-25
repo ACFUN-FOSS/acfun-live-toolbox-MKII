@@ -42,9 +42,19 @@ import { settings, commonSettings } from "@front/datas/aboutDanmaku";
 import { settingBlocks } from "./settingBlocks";
 import { Filter } from "@front/components/danmakuFlow/utils/common";
 import { ElMessage } from "element-plus";
+
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+
 export default defineComponent({
 	name: "danmakuSetting",
-	components: { flow },
+	components: {
+		flow,
+		contentFrame,
+		rowFrame,
+		rowSpan,
+	},
 	data() {
 		return {
 			mockTimer: toANY(null),

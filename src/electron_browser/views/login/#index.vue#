@@ -276,7 +276,7 @@ export default defineComponent({
 		.welcomeText {
 			text-align: center;
 			padding: 24px 0px;
-			font-size: $--font-size-extra-large;
+			font-size: getCssVar("font-size", "extra-large");
 		}
 	}
 	.panel {
@@ -302,7 +302,7 @@ export default defineComponent({
 				.logBtn {
 					width: 300px;
 					height: 42px;
-					background-color: $--color-primary-light-3;
+					background-color: getCssVar("color-primary", "light-3");
 					&:hover {
 						background-color: $--color-primary-light-5;
 					}
@@ -322,7 +322,7 @@ export default defineComponent({
 			}
 
 			.buttonText {
-				color: $--color-primary-light-3 !important;
+				color: getCssVar("color-primary", "light-3") !important;
 			}
 		}
 	}

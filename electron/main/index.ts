@@ -105,6 +105,8 @@ async function createWindow() {
 	globalShortcut.register("CommandOrControl+F3", () => {
 		win.webContents.send("resize");
 	});
+
+	// TODO: REFACTOR: 这种玩意一律以 subsystem 命名，别放到 utils 里
 	Backend.registerEvents();
 	File.registerEvents();
 	MainWin.registerEvents(win);

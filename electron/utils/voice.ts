@@ -19,14 +19,14 @@ class Voice {
 				`powershell.exe Add-Type -AssemblyName System.speech; $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer; $speak.SetOutputToDefaultAudioDevice();  $speak.Rate = ${speed}; $speak.Volume = ${volume};  $speak.Speak('${text}'); exit`,
 				(e: any) => {
 					if (e) {
-						event.reply("voice_complete", "#error");
+						event.reply("voice_ack", "#error");
 						return;
 					}
-					event.reply("voice_complete");
+					event.reply("voice_ack");
 				}
 			);
 		} catch (error) {
-			event.reply("voice_complete");
+			event.reply("voice_ack");
 		}
 	}
 
@@ -101,7 +101,7 @@ class Voice {
 						);
 						client.close();
 						event.reply(
-							"xfvoice_complete",
+							"xfvoice_ack",
 							`/configFiles/voice${count}.mp3`
 						);
 					}
@@ -109,11 +109,11 @@ class Voice {
 			};
 			client.onerror = (e: Error) => {
 				log.error(e);
-				event.reply("xfvoice_complete", `#error`);
+				event.reply("xfvoice_ack", `#error`);
 			};
 		} catch (error) {
 			log.error(error);
-			event.reply("xfvoice_complete", `#error`);
+			event.reply("xfvoice_ack", `#error`);
 		}
 	}
 }

@@ -65,7 +65,7 @@ export default defineComponent({
 		flex-shrink: 0;
 		width: 40px;
 		height: 40px;
-		font-size: $--font-size-extra-large;
+		font-size: getCssVar("font-size", "extra-large");
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -76,7 +76,7 @@ export default defineComponent({
 		transform: all 0.25s;
 		&:hover,
 		&.active {
-			background-color: $--color-primary-light-4;
+			background-color: getCssVar("color-primary", "light-4");
 			box-shadow: getCssVar("box-shadow", "base");
 			z-index: 1000;
 			transform: scaleX(1.1) scaleY(1.1);

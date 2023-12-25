@@ -79,7 +79,7 @@ export default defineComponent({
 		.remove {
 			display: block;
 			color: $--color-danger;
-			font-size: $--font-size-extra-large;
+			font-size: getCssVar("font-size", "extra-large");
 			position: absolute;
 			top: 0px;
 			right: 0px;

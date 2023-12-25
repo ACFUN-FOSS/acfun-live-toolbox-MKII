@@ -101,7 +101,17 @@
 import { typeOptions } from "@front/components/danmakuFlow/utils/data";
 import { defineComponent } from "vue";
 import { wsevent } from "@front/api";
+
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+
 export default defineComponent({
+	components: {
+		contentFrame,
+		rowFrame,
+		rowSpan
+	},
 	props: {
 		settings: {
 			required: true

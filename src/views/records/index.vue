@@ -86,7 +86,7 @@ export default defineComponent({
 	display: flex;
 	&:hover {
 		color: $--color-primary;
-		box-shadow: $--box-shadow-light;
+		box-shadow: getCssVar("box-shadow", "light");
 	}
 }
 .title {

@@ -107,7 +107,7 @@
 						</el-button>
 					</div>
 					<div class="content" style="height: 290px; overflow-y: auto">
-						<vue-form :form-footer="{ show: false }" v-model="currentWidget.value" v-if="widgets[currentWidget.labelEn]" :schema="widgets[currentWidget.labelEn].styleForm" />
+						<vue-form :form-footer="{ show: false }" v-model="currentWidget.value" v-if="widgetsSettings[currentWidget.labelEn]" :schema="widgetsSettings[currentWidget.labelEn].styleForm" />
 						<div style="position: absolute; left: 50%; top: 50%; transform: translateX(-50%)" v-else>右方选择组件</div>
 					</div>
 				</row-frame>
@@ -129,7 +129,7 @@ import { mapGetters } from "vuex";
 import { randomId } from "@front/util_function/base";
 import { loadAsText } from "@front/util_function/file";
 import { toJSON } from "@front/util_function/exportTo";
-import widgets from "@front/components/danmakuFlow/widgets";
+import { widgetsSettings } from "@front/components/danmakuFlow/widgets";
 import danmakuRow from "@front/components/danmakuFlow/danmakuRow/index.vue";
 import { getMockByType } from "@front/views/danmakuSetting/mock";
 import VueForm from "@lljj/vue3-form-element";
@@ -150,7 +150,7 @@ export default defineComponent({
 			styleOptionValue, // 拉取样式缓存用
 			styleType: "",
 			styles: "",
-			widgets,
+			widgetsSettings,
 			currentWidgets, // 当前弹幕类型里的组件列表
 			currentStyle: false, // 当前弹幕类型设置
 			currentWidget: {}, // 当前编辑的组件
@@ -203,7 +203,7 @@ export default defineComponent({
 		},
 		currentStyle: {
 			handler(n, o) {
-				this.currentWidgets = n?.widgets || [];
+				this.currentWidgets = n?.widgetsSettings || [];
 			},
 			deep: true,
 		},
@@ -211,7 +211,7 @@ export default defineComponent({
 			handler(n, o) {
 				try {
 					// @ts-ignore
-					this.currentStyle.widgets = n;
+					this.currentStyle.widgetsSettings = n;
 				} catch (error) {}
 			},
 			deep: true,
@@ -358,12 +358,12 @@ export default defineComponent({
 				const output = [];
 				for (const option of this.typeOptions) {
 					const styleOfType: any = style[option.value];
-					if (!styleOfType?.widgets.length) {
+					if (!styleOfType?.widgetsSettings.length) {
 						continue;
 					}
 					output.push({
 						label: styleOfType.label || styleOfType.name,
-						children: styleOfType.widgets.map((widget: any) => {
+						children: styleOfType.widgetsSettings.map((widget: any) => {
 							return {
 								label: widget.label,
 								value: widget.value,
@@ -408,10 +408,10 @@ export default defineComponent({
 			try {
 				Object.keys(newStyle).forEach((key: any) => {
 					try {
-						if (!newStyle[key].widgets) {
+						if (!newStyle[key].widgetsSettings) {
 							return;
 						}
-						newStyle[key].widgets.forEach((widget: any) => {
+						newStyle[key].widgetsSettings.forEach((widget: any) => {
 							try {
 								delete widget.styleForm;
 							} catch (error) {}

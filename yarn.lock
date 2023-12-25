@@ -357,6 +357,34 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@lljj/vjsf-utils@npm:1.19.0":
+  version: 1.19.0
+  resolution: "@lljj/vjsf-utils@npm:1.19.0"
+  dependencies:
+    ajv: ^6.10.2
+  checksum: dcdd23c4d7a93dd938ac269a48ad8abfdce117420f7f4971ce234dcc923ea7d5052d936599083887538d2d0ff11b39b2639c10b071da9ee5ebf462140cc4a5ec
+  languageName: node
+  linkType: hard
+
+"@lljj/vue3-form-core@npm:1.19.0":
+  version: 1.19.0
+  resolution: "@lljj/vue3-form-core@npm:1.19.0"
+  dependencies:
+    "@lljj/vjsf-utils": 1.19.0
+  checksum: dc6919376aac9e6f31228e9defc267902f24e1ccb5cc7cce1845b7887264698285338964d6e8857f8beb1dd4fbf6ab1cbe9ada466519e11ba13f72928e228c66
+  languageName: node
+  linkType: hard
+
+"@lljj/vue3-form-element@npm:^1.19.0":
+  version: 1.19.0
+  resolution: "@lljj/vue3-form-element@npm:1.19.0"
+  dependencies:
+    "@lljj/vjsf-utils": 1.19.0
+    "@lljj/vue3-form-core": 1.19.0
+  checksum: e538cbc0fc402f95ac8a9008a6f579fe4dc3fe4d50bad4fe8ad58c807e54026db9d39741fcd0e5aab0d554134cd2f875ae21897f07131f5e8cb47a60d3a263f3
+  languageName: node
+  linkType: hard
+
 "@malept/cross-spawn-promise@npm:^1.1.0":
   version: 1.1.1
   resolution: "@malept/cross-spawn-promise@npm:1.1.1"
@@ -864,7 +892,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv@npm:^6.10.0, ajv@npm:^6.12.0":
+"ajv@npm:^6.10.0, ajv@npm:^6.10.2, ajv@npm:^6.12.0":
   version: 6.12.6
   resolution: "ajv@npm:6.12.6"
   dependencies:
@@ -1903,6 +1931,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "electron-vue-vite@workspace:."
   dependencies:
+    "@lljj/vue3-form-element": ^1.19.0
     "@vitejs/plugin-vue": ^4.3.3
     archiver: ^6.0.1
     axios: ^1.6.2
@@ -1916,6 +1945,7 @@ __metadata:
     electron-log: ^5.0.0
     element-plus: ^2.4.2
     express: ^4.18.2
+    file-saver: ^2.0.5
     find-process: ^1.4.7
     flatted: ^3.2.9
     fs: ^0.0.1-security
@@ -2294,6 +2324,13 @@ __metadata:
   dependencies:
     pend: ~1.2.0
   checksum: c8585fd5713f4476eb8261150900d2cb7f6ff2d87f8feb306ccc8a1122efd152f1783bdb2b8dc891395744583436bfd8081d8e63ece0ec8687eeefea394d4ff2
+  languageName: node
+  linkType: hard
+
+"file-saver@npm:^2.0.5":
+  version: 2.0.5
+  resolution: "file-saver@npm:2.0.5"
+  checksum: c62d96e5cebc58b4bdf3ae8a60d5cf9607ad82f75f798c33a4ee63435ac2203002584d5256a2a780eda7feb5e19dc3b6351c2212e58b3f529e63d265a7cc79f7
   languageName: node
   linkType: hard
 

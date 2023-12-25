@@ -37,9 +37,17 @@ import clone from "lodash/clone";
 import { backgroundType } from "./data";
 import { superChatBlockSetting } from "@front/components/superChat/utils/data";
 import { loadSuperChat } from "@front/util_function/system";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
 import defaultTheme from "./../style/default";
 export default defineComponent({
 	name: "superChatRule",
+	components: {
+		contentFrame,
+		rowFrame,
+		rowSpan
+	},
 	props: {
 		modelValue: {
 			default: () => {

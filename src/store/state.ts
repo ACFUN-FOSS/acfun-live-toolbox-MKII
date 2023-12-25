@@ -44,7 +44,7 @@ export function stateFunc(): RootState {
 		streamEncodec: stream.encodec(),
 		streamSession: stream.session(),
 		danmakuSession: danmaku.session(),
-		danmakuProfile: danmaku.profile(),
+		danmakuProfile: danmaku.profile(),	// src\views\login\index.vue 中最先赋值
 		filter: new Filter(),
 		temp: temp.tempInfo(),
 		changedDanmaku: []

@@ -46,17 +46,17 @@ class Backend {
 	}
 	static async restart(event: any) {
 		if (restarting) {
-			event.reply("restart_complete", "#error");
+			event.reply("restart_ack", "#error");
 			return;
 		}
 		restarting = true;
 		Backend.kill()
 			.then((list: any) => {
 				Backend.init();
-				event.reply("restart_complete");
+				event.reply("restart_ack");
 			})
 			.catch((e: any) => {
-				event.reply("restart_complete", "#error");
+				event.reply("restart_ack", "#error");
 				console.log(e);
 			})
 			.finally(() => {

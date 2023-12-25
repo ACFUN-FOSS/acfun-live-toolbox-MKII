@@ -60,7 +60,7 @@ export const loadApplet = (name: any) => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("load_applet", JSON.stringify({ name }));
-			ipcRenderer?.once("load_applet_complete", (e: any, args: any) => {
+			ipcRenderer?.once("load_applet_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
@@ -86,7 +86,7 @@ export const appletList = () => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("appletList");
-			ipcRenderer?.once("applet_list_complete", (e: any, args: any) => {
+			ipcRenderer?.once("applet_list_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
@@ -162,7 +162,7 @@ export const backendRestart = () => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("backend_restart");
-			ipcRenderer?.once("restart_complete", (e: any, args: any) => {
+			ipcRenderer?.once("restart_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -207,7 +207,7 @@ export const load = (data: any) => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("backend_load", JSON.stringify(data));
-			ipcRenderer?.once("load_complete", (e: any, args: any) => {
+			ipcRenderer?.once("load_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -233,7 +233,7 @@ export const copy = ({ srcUrl, distUrl }: any) => {
 					distUrl
 				})
 			);
-			ipcRenderer?.once("copy_file_complete", (e: any, args: any) => {
+			ipcRenderer?.once("copy_file_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -259,7 +259,7 @@ export const uploadImage = (imageUrl: string) =>
 					distUrl: "./images"
 				})
 			);
-			ipcRenderer?.once("save_with_md5_complete", (e: any, res: any) => {
+			ipcRenderer?.once("save_with_md5_ack", (e: any, res: any) => {
 				if (res !== "#error") {
 					resolve(res);
 				} else {
@@ -284,7 +284,7 @@ export const uploadBase64Image = (b64: string) => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("backend_save_b64", b64);
-			ipcRenderer?.once("save_b64_complete", (e: any, args: any) => {
+			ipcRenderer?.once("save_b64_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -311,7 +311,7 @@ export const loadConfig = () => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("backend_load_config");
-			ipcRenderer?.once("load_config_complete", (e: any, args: any) => {
+			ipcRenderer?.once("load_config_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
@@ -331,7 +331,7 @@ export const restoreConfig = (path: string) => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("load_backup", path);
-			ipcRenderer?.once("load_backup_complete", (e: any, args: any) => {
+			ipcRenderer?.once("load_backup_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
@@ -350,7 +350,7 @@ export const backupConfig = () => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("save_backup");
-			ipcRenderer?.once("save_backup_complete", (e: any, args: any) => {
+			ipcRenderer?.once("save_backup_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -370,7 +370,7 @@ export const removeCache = (data: any = []) => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("remove_cache", JSON.stringify(data));
-			ipcRenderer?.once("remove_cache_complete", (e: any, args: any) => {
+			ipcRenderer?.once("remove_cache_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -390,7 +390,7 @@ export const getCacheSize = () => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("size_cache");
-			ipcRenderer?.once("size_cache_complete", (e: any, args: any) => {
+			ipcRenderer?.once("size_cache_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -440,7 +440,7 @@ export const loadSuperChat = () => {
 			}
 			ipcRenderer?.send("backend_load_superchat");
 			ipcRenderer?.once(
-				"load_superchat_complete",
+				"load_superchat_ack",
 				(e: any, args: any) => {
 					if (args !== "#error") {
 						resolve(JSON.parse(args));
@@ -462,7 +462,7 @@ export const getFontList = () => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("backend_font_list");
-			ipcRenderer?.once("font_list_complete", (e: any, args: any) => {
+			ipcRenderer?.once("font_list_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
@@ -482,7 +482,7 @@ export const getVoiceList = () => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("backend_voice_list");
-			ipcRenderer?.once("voice_list_complete", (e: any, args: any) => {
+			ipcRenderer?.once("voice_list_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
@@ -509,7 +509,7 @@ export const sendChat = (data: any) => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("send_chat", JSON.stringify(data));
-			ipcRenderer?.once("send_chat_complete", (e: any, args: any) => {
+			ipcRenderer?.once("send_chat_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -536,7 +536,7 @@ export const windowsRead = ({ speed, text, volume }: any) => {
 					text: removePunctuationSpace(text)
 				})
 			);
-			ipcRenderer?.once("voice_complete", (e: any, args: any) => {
+			ipcRenderer?.once("voice_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -567,7 +567,7 @@ export const xfRead = ({ api, speed, text, volume }: any) => {
 			const timeout = setTimeout(() => {
 				reject(new Error("send chat failed!"));
 			}, 5000);
-			ipcRenderer?.once("xfvoice_complete", (e: any, args: any) => {
+			ipcRenderer?.once("xfvoice_ack", (e: any, args: any) => {
 				clearTimeout(timeout);
 				if (args !== "#error") {
 					resolve(`${args}?cb=${Date.now()}`);

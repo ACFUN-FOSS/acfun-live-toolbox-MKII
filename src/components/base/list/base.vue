@@ -56,14 +56,14 @@ export default defineComponent({
 		padding: 5px;
 		&.selected,
 		&:hover {
-			color: map.get('$--color-primary");
+			color: $--color-primary;
 			box-shadow: 0 2px 4px rgba($--color-primary, 0.12), 0 0 6px rgba($--color-primary, 0.04);
 		}
 		.list-item-icon > span {
 			color: getCssVar("text-color", "secondary");
 			cursor: pointer;
 			&:hover {
-				color: map.get('$--color-primary");
+				color: $--color-primary;
 			}
 		}
 	}
