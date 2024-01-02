@@ -26,10 +26,15 @@ yarn run dev
 ![electron-vite-react-debug.gif](https://github.com/electron-vite/electron-vite-react/blob/main/electron-vite-react-debug.gif?raw=true)
 
 ### Debug in other editors
+*Windows:*
 ```sh
-node_modules/.bin/electron.cmd --remote-debugging-port=9229 .
+node_modules\.bin\electron --remote-debugging-port=9229 .
 ```
-Then attach your debugger of your editor to port 9229.
+*Unix:*
+```sh
+node_modules/.bin/electron --remote-debugging-port=9229 .
+```
+Then attach your debugger to port 9229.
 
 ## Directory
 
