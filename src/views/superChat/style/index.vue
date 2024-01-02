@@ -19,7 +19,7 @@
 		<row-frame style="height: 100%" :flex="true">
 			<row-span :span="10">
 				<row-frame width="100%" title="选择主题编辑">
-					<el-select v-model="themeID" @change="selectTheme" size="mini">
+					<el-select v-model="themeID" @change="selectTheme" >
 						<el-option key="0" label="默认" :value="0" />
 						<el-option class="option" v-for="theme in themes" :key="theme.id" :label="theme.label" :value="theme.id">
 							<span class="label">{{ theme.label }}</span>
@@ -31,7 +31,7 @@
 			<row-span :span="2">
 				<row-frame width="100%" title=" ">
 					<el-dropdown @command="saveCommand" type="primary" trigger="click" style="line-height: 28px" max-height="200px">
-						<el-button size="mini" type="primary" :disabled="!theme"> 保存 </el-button>
+						<el-button  type="primary" :disabled="!theme"> 保存 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="save">保存</el-dropdown-item>
@@ -54,18 +54,17 @@
 	</content-frame>
 	<el-dialog title="新建主题" v-model="saveAsDialog" :show-close="false" :close-on-click-modal="false">
 		主题名称：
-		<el-input size="mini" v-model="newName" />
+		<el-input  v-model="newName" />
 		<template #footer>
 			<span class="dialog-footer">
 				<el-button
-					size="mini"
 					@click="
 						saveAsDialog = false;
 						newName = '新主题';
 					"
 					>取消</el-button
 				>
-				<el-button size="mini" type="primary" @click="saveThemeAs">好的</el-button>
+				<el-button  type="primary" @click="saveThemeAs">好的</el-button>
 			</span>
 		</template>
 	</el-dialog>

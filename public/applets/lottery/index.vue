@@ -15,7 +15,6 @@
 			<div class="row">
 				<span class="shadow">奖品</span>
 				<el-input
-					size="mini"
 					v-model="settings.title"
 					style="margin-left: 8px"
 				/>
@@ -23,7 +22,6 @@
 			<div class="row">
 				<span class="shadow">选择抽奖类型</span>
 				<el-select
-					size="mini"
 					v-model="settings.lotteryType"
 					max-height="100px"
 				>
@@ -46,7 +44,6 @@
 			<div class="row">
 				<span class="shadow">抽奖倒计时(分钟)</span>
 				<el-input-number
-					size="mini"
 					v-model="settings.countDown"
 					:precision="1"
 					step="1"
@@ -55,7 +52,6 @@
 			<div class="row" v-if="settings.lotteryType === 'gift'">
 				<span class="shadow">选择礼物</span>
 				<el-select
-					size="mini"
 					v-model="settings.giftName"
 					class="drop-down-maxHeight"
 				>
@@ -70,7 +66,6 @@
 			<div class="row" v-if="settings.lotteryType === 'keyword'">
 				<span class="shadow">输入关键词</span>
 				<el-input
-					size="mini"
 					v-model="settings.keyword"
 					:maxlength="10"
 					placeholder="不要输入标点符号,最多10字"
@@ -79,14 +74,14 @@
 			</div>
 			<div class="row">
 				<span class="shadow">输入奖品数量</span>
-				<el-input-number size="mini" v-model="lotteryNum" :min="1" />
+				<el-input-number  v-model="lotteryNum" :min="1" />
 			</div>
 			<div class="row">
 				<span class="shadow">是否需要大逃杀</span>
-				<el-switch size="mini" v-model="settings.enableBattleRoyale" />
+				<el-switch  v-model="settings.enableBattleRoyale" />
 			</div>
 			<div class="row">
-				<el-button size="mini" type="primary" @click="start"
+				<el-button  type="primary" @click="start"
 					>开始抽奖</el-button
 				>
 			</div>
@@ -128,7 +123,6 @@
 			></div>
 			<div class="row">
 				<el-button
-					size="mini"
 					type="primary"
 					@click="getLucky()"
 					style="width: 100%"
@@ -152,7 +146,6 @@
 					>
 						<span class="shadow">{{ user.nickName }}</span>
 						<el-button
-							size="mini"
 							type="primary"
 							v-show="!user.pending"
 							@click="open(user.userID)"
@@ -163,7 +156,6 @@
 			</div>
 			<div class="row">
 				<el-button
-					size="mini"
 					type="primary"
 					@click="reset"
 					:disabled="status == 'Resulting'"
@@ -172,7 +164,6 @@
 					{{ status == "Resulting" ? "开奖中" : "重新抽" }}</el-button
 				>
 				<el-button
-					size="mini"
 					type="primary"
 					@click="save(luckyPool)"
 					:disabled="status == 'Resulting'"
@@ -181,7 +172,6 @@
 					保存结果</el-button
 				>
 				<el-button
-					size="mini"
 					type="danger"
 					@click="startBattleRoyale()"
 					v-show="settings.enableBattleRoyale"
@@ -192,14 +182,12 @@
 		<div class="votePanel" v-show="status === 'battleRoyale'">
 			<div class="row">
 				<el-button
-					size="mini"
 					type="danger"
 					@click="kill(1)"
 					style="flex: 1"
 					>杀一个</el-button
 				>
 				<el-button
-					size="mini"
 					type="danger"
 					@click="
 						kill(Math.floor(battleRoyaleSettings.list.length / 2))
@@ -208,7 +196,6 @@
 					>杀一半</el-button
 				>
 				<el-button
-					size="mini"
 					type="danger"
 					@click="kill(battleRoyaleSettings.list.length - 1)"
 					style="flex: 1"
@@ -232,7 +219,7 @@
 							user.nickName
 						}}</span>
 						<el-button
-							size="mini"
+
 							type="primary"
 							@click="open(user.userID)"
 							>个人主页</el-button
@@ -242,14 +229,14 @@
 			</div>
 			<div class="row">
 				<el-button
-					size="mini"
+
 					type="primary"
 					@click="reset"
 					style="width: 100%"
 					>重新抽</el-button
 				>
 				<el-button
-					size="mini"
+
 					type="primary"
 					@click="save(battleRoyaleSettings.list)"
 					style="width: 100%"

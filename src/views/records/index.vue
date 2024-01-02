@@ -3,12 +3,12 @@
 		<div class="recordList">
 			<div style="display: flex; justify-content: space-between">
 				<div class="hint">点击按钮下载录像，只有使用工具箱进行过直播的记录才会显示在这里</div>
-				<el-button style="margin-top: 8px" size="mini" type="primary" @click="openDocument">说明文档</el-button>
+				<el-button style="margin-top: 8px"  type="primary" @click="openDocument">说明文档</el-button>
 			</div>
 			<div v-for="(record, index) in records" class="recordRow" :key="index">
 				<div class="title">{{ record.time }}</div>
 				<div class="btn-group">
-					<el-button class="btn" type="primary" size="mini" @click="copyRecord(record.liveID)">复制下载链接 </el-button>
+					<el-button class="btn" type="primary"  @click="copyRecord(record.liveID)">复制下载链接 </el-button>
 				</div>
 			</div>
 		</div>

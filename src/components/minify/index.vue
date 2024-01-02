@@ -14,7 +14,7 @@
 		<div class="button el-icon-minus" @click="minimize()" />
 		<div class="button el-icon-full-screen" @click="$store.commit('minify')" title="完整化" />
 	</div>
-	<el-dialog custom-class="setting" v-model="setting" :close-on-click-modal="false">
+	<el-dialog class="setting" v-model="setting" :close-on-click-modal="false">
 		<div class="block">
 			<span class="label">背景颜色</span>
 			<el-color-picker show-alpha v-model="settings.color" />
@@ -24,13 +24,12 @@
 			<el-slider :min="10" :max="200" v-model="settings.zoom" />
 		</div>
 	</el-dialog>
-	<el-dialog custom-class="blurConfirm" title="重要提示" v-model="blurConfirm" :show-close="false" :close-on-click-modal="false">
+	<el-dialog class="blurConfirm" title="重要提示" v-model="blurConfirm" :show-close="false" :close-on-click-modal="false">
 		背景模式下窗口将会置顶，并且鼠标操作会穿透，ctrl+F1退出,CTRL+F2回消息。确认进入？
 		<template #footer>
 			<span class="dialog-footer">
-				<el-button size="mini" @click="blurConfirm = false">我不</el-button>
+				<el-button  @click="blurConfirm = false">我不</el-button>
 				<el-button
-					size="mini"
 					type="primary"
 					@click="
 						setIgnore();

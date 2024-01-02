@@ -2,19 +2,19 @@
 	<span>
 		<span class="rule" v-for="(rule,index) in value" :key="index">
 			<span class="el-icon-error remove" @click="value = value.filter(i=>i!=rule)" />
-			<el-input style="width:150px;margin-right:8px;margin-top:8px" v-model="rule.value" size="mini"
+			<el-input style="width:150px;margin-right:8px;margin-top:8px" v-model="rule.value" 
 				v-if="rule.type=='text'" />
-			<el-select style="width:150px;margin-right:8px;margin-top:8px" v-model="rule.value" size="mini"
+			<el-select style="width:150px;margin-right:8px;margin-top:8px" v-model="rule.value" 
 				v-else-if="rule.type=='variable'">
 				<el-option v-for="getterOption in getterOptions" v-show="getterOption.avaliable.includes(allow)"
 					:label="getterOption.label" :key="getterOption.value" :value="getterOption.value" />
 			</el-select>
-			<el-select style="width:150px;margin-right:8px;margin-top:8px" v-model="rule.value" size="mini" v-else>
+			<el-select style="width:150px;margin-right:8px;margin-top:8px" v-model="rule.value"  v-else>
 				<el-option v-for="(voice,index) in voiceList" :label="voice.label" :key="index" :value="voice.value" />
 			</el-select>
 		</span>
 		<el-dropdown @command="addCommand" type="primary" trigger="click" style="line-height:28px">
-			<el-button size="mini" type="primary" style="margin-right:8px;margin-top:8px">添加</el-button>
+			<el-button  type="primary" style="margin-right:8px;margin-top:8px">添加</el-button>
 			<template #dropdown>
 				<el-dropdown-menu>
 					<el-dropdown-item command="text">文本</el-dropdown-item>

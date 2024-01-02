@@ -10,11 +10,11 @@
 			</template>
 		</el-image>
 	</div>
-	<el-dialog custom-class="dialogBase" title="图片剪裁" v-model="clipDialog" @close="editImg = ''">
+	<el-dialog class="dialogBase" title="图片剪裁" v-model="clipDialog" @close="editImg = ''">
 		<vue-cropper v-if="clipDialog" style="max-height: 300px" ref="cropper" :aspect-ratio="16 / 10" :src="editImg" alt="Source Image" />
 		<span class="hint">鼠标滚轮进行缩放</span>
 		<template #footer>
-			<el-button type="primary" size="mini" @click="crop">确定</el-button>
+			<el-button type="primary"  @click="crop">确定</el-button>
 		</template>
 	</el-dialog>
 </template>

@@ -26,7 +26,7 @@
 			</row-span>
 			<row-span :span="3">
 				<el-input-number :disabled="!(setting.filter.open)" style="margin-left:8px" v-model="setting.clubLevel"
-					:min="0" :step="1" size="mini" />
+					:min="0" :step="1"  />
 			</row-span>
 			<div class="hint">牌子过滤：只显示挂主播牌子的弹幕（主播没牌子则不生效）；<br>
 				等级过滤：只显示大于一定等级的牌子的弹幕</div>
@@ -50,7 +50,7 @@
 				弹幕显示
 			</row-span>
 			<row-span :span="9" v-show="setting.filter.blackList">
-				<el-select :disabled="!setting.filter.open" v-model="setting.filter.types" multiple size="mini"
+				<el-select :disabled="!setting.filter.open" v-model="setting.filter.types" multiple 
 					style="width:100%" placeholder="多选显示弹幕类型">
 					<el-option v-for="type in typeOptions" :label="type.label" :key="type.value" :value="type.value" />
 				</el-select>
@@ -64,7 +64,7 @@
 		</row-frame>
 		<row-frame title="发送弹幕测试" :flex="true">
 			<el-button-group>
-				<el-button size="mini" v-for="type in typeOptions" :label="type.value" :key="type.value"
+				<el-button  v-for="type in typeOptions" :label="type.value" :key="type.value"
 					@click="sendDanmaku(type.value)">{{type.label}}
 				</el-button>
 			</el-button-group>
