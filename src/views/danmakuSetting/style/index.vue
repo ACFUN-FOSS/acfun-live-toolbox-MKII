@@ -15,7 +15,7 @@
 			<row-span :span="2">
 				<row-frame width="100%" title="step1:导入">
 					<el-dropdown @command="loadCommand" type="primary" trigger="click" style="line-height: 28px">
-						<el-button size="mini" type="primary"> 导入样式，从 </el-button>
+						<el-button  type="primary"> 导入样式，从 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="toolBox">当前主播样式</el-dropdown-item>
@@ -30,7 +30,7 @@
 			</row-span>
 			<row-span :span="8.5">
 				<row-frame width="100%" title="step2:选择类型编辑">
-					<el-radio-group @change="currentWidget = {}" :disabled="!enable" size="mini" v-model="styleType" class="setting-bar">
+					<el-radio-group @change="currentWidget = {}" :disabled="!enable"  v-model="styleType" class="setting-bar">
 						<el-radio-button v-for="type in typeOptions" :label="type.value" :key="type.value">
 							{{ type.label }}
 						</el-radio-button>
@@ -40,7 +40,7 @@
 			<row-span :span="1.5">
 				<row-frame width="100%" title="step3:保存">
 					<el-dropdown @command="saveCommand" type="primary" trigger="click" style="line-height: 28px">
-						<el-button size="mini" type="primary" :disabled="!enable"> 保存到 </el-button>
+						<el-button  type="primary" :disabled="!enable"> 保存到 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="toolBox">主播端</el-dropdown-item>
@@ -107,7 +107,7 @@
 						</el-button>
 					</div>
 					<div class="content" style="height: 290px; overflow-y: auto">
-						<vue-form :form-footer="{ show: false }" v-model="currentWidget.value" v-if="widgets[currentWidget.labelEn]" :schema="widgets[currentWidget.labelEn].styleForm" />
+						<vue-form :form-footer="{ show: false }" v-model="currentWidget.value" v-if="widgetsSettings[currentWidget.labelEn]" :schema="widgetsSettings[currentWidget.labelEn].styleForm" />
 						<div style="position: absolute; left: 50%; top: 50%; transform: translateX(-50%)" v-else>右方选择组件</div>
 					</div>
 				</row-frame>
@@ -129,7 +129,7 @@ import { mapGetters } from "vuex";
 import { randomId } from "@front/util_function/base";
 import { loadAsText } from "@front/util_function/file";
 import { toJSON } from "@front/util_function/exportTo";
-import widgets from "@front/components/danmakuFlow/widgets";
+import { widgetsSettings } from "@front/components/danmakuFlow/widgets";
 import danmakuRow from "@front/components/danmakuFlow/danmakuRow/index.vue";
 import { getMockByType } from "@front/views/danmakuSetting/mock";
 import VueForm from "@lljj/vue3-form-element";
@@ -150,7 +150,7 @@ export default defineComponent({
 			styleOptionValue, // 拉取样式缓存用
 			styleType: "",
 			styles: "",
-			widgets,
+			widgetsSettings,
 			currentWidgets, // 当前弹幕类型里的组件列表
 			currentStyle: false, // 当前弹幕类型设置
 			currentWidget: {}, // 当前编辑的组件
@@ -203,7 +203,7 @@ export default defineComponent({
 		},
 		currentStyle: {
 			handler(n, o) {
-				this.currentWidgets = n?.widgets || [];
+				this.currentWidgets = n?.widgetsSettings || [];
 			},
 			deep: true,
 		},
@@ -211,7 +211,7 @@ export default defineComponent({
 			handler(n, o) {
 				try {
 					// @ts-ignore
-					this.currentStyle.widgets = n;
+					this.currentStyle.widgetsSettings = n;
 				} catch (error) {}
 			},
 			deep: true,
@@ -358,12 +358,12 @@ export default defineComponent({
 				const output = [];
 				for (const option of this.typeOptions) {
 					const styleOfType: any = style[option.value];
-					if (!styleOfType?.widgets.length) {
+					if (!styleOfType?.widgetsSettings.length) {
 						continue;
 					}
 					output.push({
 						label: styleOfType.label || styleOfType.name,
-						children: styleOfType.widgets.map((widget: any) => {
+						children: styleOfType.widgetsSettings.map((widget: any) => {
 							return {
 								label: widget.label,
 								value: widget.value,
@@ -408,10 +408,10 @@ export default defineComponent({
 			try {
 				Object.keys(newStyle).forEach((key: any) => {
 					try {
-						if (!newStyle[key].widgets) {
+						if (!newStyle[key].widgetsSettings) {
 							return;
 						}
-						newStyle[key].widgets.forEach((widget: any) => {
+						newStyle[key].widgetsSettings.forEach((widget: any) => {
 							try {
 								delete widget.styleForm;
 							} catch (error) {}
@@ -427,7 +427,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
 @import "@front/styles/backgrounds.scss";
 .setting-bar {

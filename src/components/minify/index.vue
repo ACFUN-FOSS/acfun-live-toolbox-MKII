@@ -14,7 +14,7 @@
 		<div class="button el-icon-minus" @click="minimize()" />
 		<div class="button el-icon-full-screen" @click="$store.commit('minify')" title="完整化" />
 	</div>
-	<el-dialog custom-class="setting" v-model="setting" :close-on-click-modal="false">
+	<el-dialog class="setting" v-model="setting" :close-on-click-modal="false">
 		<div class="block">
 			<span class="label">背景颜色</span>
 			<el-color-picker show-alpha v-model="settings.color" />
@@ -24,13 +24,12 @@
 			<el-slider :min="10" :max="200" v-model="settings.zoom" />
 		</div>
 	</el-dialog>
-	<el-dialog custom-class="blurConfirm" title="重要提示" v-model="blurConfirm" :show-close="false" :close-on-click-modal="false">
+	<el-dialog class="blurConfirm" title="重要提示" v-model="blurConfirm" :show-close="false" :close-on-click-modal="false">
 		背景模式下窗口将会置顶，并且鼠标操作会穿透，ctrl+F1退出,CTRL+F2回消息。确认进入？
 		<template #footer>
 			<span class="dialog-footer">
-				<el-button size="mini" @click="blurConfirm = false">我不</el-button>
+				<el-button  @click="blurConfirm = false">我不</el-button>
 				<el-button
-					size="mini"
 					type="primary"
 					@click="
 						setIgnore();
@@ -45,7 +44,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { setResizeable, win, setTop, setIgnoreMouseEvent, minimize, ipcRenderer } from "@front/util_function/system";
+import { setResizeable, setTop, setIgnoreMouseEvent, minimize, ipcRenderer, getWinPos, setWinBounds } from "@front/util_function/system";
 import { ElMessage } from "element-plus";
 import throttle from "lodash/throttle";
 import { event } from "@front/util_function/eventBus";
@@ -161,7 +160,7 @@ export default defineComponent({
 			}
 		},
 		toPosition(save: string, load: string) {
-			const winPosition = win.getPosition();
+			const winPosition = getWinPos();
 			const saveData = {
 				width: parseInt(`${window.innerWidth}`),
 				height: parseInt(`${window.innerHeight}`),
@@ -174,7 +173,7 @@ export default defineComponent({
 			}
 			localStorage.setItem(save, JSON.stringify(saveData));
 			const position: any = localStorage.getItem(load);
-			if (position) win.setBounds(JSON.parse(position));
+			if (position) setWinBounds(JSON.parse(position));
 		},
 		applySetting: throttle(function (setting: any) {
 			document.body.style.setProperty("--bgColor", setting.color);
@@ -217,7 +216,7 @@ export default defineComponent({
 }
 </style>
 <style lang="scss">
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
 body.minify {
 	padding: 0px;

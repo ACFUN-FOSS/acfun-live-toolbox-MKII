@@ -15,7 +15,7 @@
 			<row-span :span="2">
 				<row-frame width="100%" title="step1:导入">
 					<el-dropdown @command="loadCommand" type="primary" trigger="click" style="line-height: 28px">
-						<el-button size="mini" type="primary"> 导入样式，从 </el-button>
+						<el-button  type="primary"> 导入样式，从 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="toolBox">当前主播样式</el-dropdown-item>
@@ -30,7 +30,7 @@
 			</row-span>
 			<row-span :span="8.5">
 				<row-frame width="100%" title="step2:选择类型编辑">
-					<el-radio-group @change="currentWidget = {}" :disabled="!enable" size="mini" v-model="styleType" class="setting-bar">
+					<el-radio-group @change="currentWidget = {}" :disabled="!enable"  v-model="styleType" class="setting-bar">
 						<el-radio-button v-for="type in typeOptions" :label="type.value" :key="type.value">
 							{{ type.label }}
 						</el-radio-button>
@@ -40,7 +40,7 @@
 			<row-span :span="1.5">
 				<row-frame width="100%" title="step3:保存">
 					<el-dropdown @command="saveCommand" type="primary" trigger="click" style="line-height: 28px">
-						<el-button size="mini" type="primary" :disabled="!enable"> 保存到 </el-button>
+						<el-button  type="primary" :disabled="!enable"> 保存到 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="toolBox">主播端</el-dropdown-item>
@@ -81,8 +81,8 @@
 			<row-span :span="4">
 				<row-frame width="100%" title="函数列表">
 					<base-list style="height: 240px" :list="functionList" :action="action" />
-					<el-button style="margin-top: 8px" size="mini" type="primary" @click="openDocument">说明文档</el-button>
-					<el-button style="margin-top: 8px" size="mini" type="primary" @click="openResources">素材文件夹 </el-button>
+					<el-button style="margin-top: 8px"  type="primary" @click="openDocument">说明文档</el-button>
+					<el-button style="margin-top: 8px"  type="primary" @click="openResources">素材文件夹 </el-button>
 				</row-frame>
 			</row-span>
 		</row-frame>
@@ -295,7 +295,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
 @import "@front/styles/backgrounds.scss";
 .setting-bar {

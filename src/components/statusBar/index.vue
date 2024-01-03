@@ -48,10 +48,15 @@ export default defineComponent({
 			return this.isUnfold ? mainPanel : shrink;
 		},
 	},
+	
 	methods: {
 		registerEvents() {
 			event.on("routeChange", this.unfold);
 			event.on("streamStatusChanged", this.handleStatusChange);
+			// TODO: REFACTOR: 为什么这些逻辑是由 statusBar 组件负责的？
+			// 因为 statusBar 只在主窗口显示，而这些逻辑应该仅仅在主窗口中运行。将
+			// 这些逻辑放到 statusBar 实现了只在主窗口中运行的目的。
+			// TODO: REFACTOR: 应该放到更外层的组件中。
 			wsevent.on("send-chat", this.sendChat);
 			wsevent.on("register-client", this.setWSClient);
 			wsevent.on("acfun-api-get", this.sendApi);
@@ -72,6 +77,7 @@ export default defineComponent({
 		},
 		dispatchWSClient() {
 			if (!wsevent.registered) {
+				// TODO: REFACTOR: 应该在更外层的文件中初始化 ws bus。
 				this.registerWS();
 				return;
 			}
@@ -177,7 +183,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 #statusBar {
 	width: 100%;
 	height: 100%;

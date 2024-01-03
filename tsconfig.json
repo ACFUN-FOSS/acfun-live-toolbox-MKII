@@ -7,6 +7,7 @@
 		"strict": true,
 		"jsx": "preserve",
 		"resolveJsonModule": true,
+		"sourceMap": true,
 		"isolatedModules": true,
 		"esModuleInterop": true,
 		"lib": ["ESNext", "DOM"],
@@ -14,7 +15,8 @@
 		"noEmit": true,
 		"baseUrl": ".",
 		"paths": {
-			"@front/*": ["src/*"]
+			"@front/*": ["src/*"],
+			"@back/*": ["electron/*"]
 		}
 	},
 	"include": ["src"],

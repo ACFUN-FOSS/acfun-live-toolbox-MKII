@@ -35,7 +35,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
 .list {
 	border: getCssVar("border","base");
@@ -56,14 +56,14 @@ export default defineComponent({
 		padding: 5px;
 		&.selected,
 		&:hover {
-			color: map.get('$--color-primary");
+			color: $--color-primary;
 			box-shadow: 0 2px 4px rgba($--color-primary, 0.12), 0 0 6px rgba($--color-primary, 0.04);
 		}
 		.list-item-icon > span {
 			color: getCssVar("text-color", "secondary");
 			cursor: pointer;
 			&:hover {
-				color: map.get('$--color-primary");
+				color: $--color-primary;
 			}
 		}
 	}

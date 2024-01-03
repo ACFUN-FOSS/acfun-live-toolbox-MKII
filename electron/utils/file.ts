@@ -54,9 +54,9 @@ class File {
 		const zipDir = path.join(appStatic, "backup.zip");
 		try {
 			await zipTo(configStatic, zipDir);
-			event.reply("save_backup_complete", "/backup.zip");
+			event.reply("save_backup_ack", "/backup.zip");
 		} catch (error) {
-			event.reply("save_backup_complete", "#error");
+			event.reply("save_backup_ack", "#error");
 		}
 	}
 
@@ -64,9 +64,9 @@ class File {
 		try {
 			await zipFrom(p, configStatic);
 			const config = File.loadFile(path.join(configStatic, "./config.json"));
-			event.reply("load_backup_complete", config);
+			event.reply("load_backup_ack", config);
 		} catch (error) {
-			event.reply("load_backup_complete", "#error");
+			event.reply("load_backup_ack", "#error");
 		}
 	}
 
@@ -113,7 +113,7 @@ class File {
 		} catch (e) {
 			result = "#error";
 		} finally {
-			event.reply("save_with_md5_complete", result);
+			event.reply("save_with_md5_ack", result);
 		}
 	}
 
@@ -133,7 +133,7 @@ class File {
 		}
 		fs.mkdirSync(path.dirname(distUrl), { recursive: true });
 		fs.copyFile(srcUrl, distUrl, 0, (err: any) => {
-			event.reply("copy_file_complete", err ? "#error" : distUrl);
+			event.reply("copy_file_ack", err ? "#error" : distUrl);
 		});
 	}
 
@@ -147,9 +147,9 @@ class File {
 		}
 		try {
 			ba64.writeImageSync(imgPath + imgName, b64);
-			event.reply("save_b64_complete", imgPath + imgName + ".png");
+			event.reply("save_b64_ack", imgPath + imgName + ".png");
 		} catch (error) {
-			event.reply("save_b64_complete", "#error");
+			event.reply("save_b64_ack", "#error");
 		}
 	}
 
@@ -164,7 +164,7 @@ class File {
 		}
 		const reply = File.loadFile(url);
 		if (event) {
-			event.reply("load_config_complete", reply);
+			event.reply("load_config_ack", reply);
 		}
 		return reply;
 	}
@@ -181,10 +181,10 @@ class File {
 		const url = path.join(configStatic, "superchat.json");
 		try {
 			fs.accessSync(url);
-			event.reply("load_superchat_complete", File.loadFile(url));
+			event.reply("load_superchat_ack", File.loadFile(url));
 		} catch (error) {
 			// @ts-ignore
-			event.reply("load_superchat_complete", "#error");
+			event.reply("load_superchat_ack", "#error");
 		}
 	}
 
@@ -200,7 +200,7 @@ class File {
 		if (!path.isAbsolute(url)) {
 			url = path.join(process.resourcesPath, url);
 		}
-		event.reply("load_complete", File.loadFile(url));
+		event.reply("load_ack", File.loadFile(url));
 	}
 
 	static savePath(event: any, res: any) {
@@ -213,7 +213,7 @@ class File {
 
 	static loadApplet(event: any, res: any) {
 		const { name } = JSON.parse(res);
-		event.reply("load_applet_complete", File.loadFile(path.join(configStatic, `${name}.json`)));
+		event.reply("load_applet_ack", File.loadFile(path.join(configStatic, `${name}.json`)));
 	}
 
 	static saveApplet(event: any, res: any) {
@@ -234,14 +234,14 @@ class File {
 		}
 		if (!url || !fs.existsSync(url)) {
 			if (event.reply) {
-				event.reply("get_file_list_complete", JSON.stringify([]));
+				event.reply("get_file_list_ack", JSON.stringify([]));
 			}
 
 			return [];
 		}
 		const files = fs.readdirSync(url);
 		if (event.reply) {
-			event.reply("get_file_list_complete", JSON.stringify(files));
+			event.reply("get_file_list_ack", JSON.stringify(files));
 		}
 		return files;
 	}
@@ -261,7 +261,7 @@ class File {
 			}),
 		];
 		event.reply(
-			"voice_list_complete",
+			"voice_list_ack",
 			JSON.stringify({
 				list: result,
 			})
@@ -295,7 +295,7 @@ class File {
 			}),
 		];
 		event.reply(
-			"font_list_complete",
+			"font_list_ack",
 			JSON.stringify({
 				list: result,
 			})
@@ -308,7 +308,7 @@ class File {
 		fileList.forEach((file: any) => {
 			size += fs.lstatSync(file).size;
 		});
-		event.reply("size_cache_complete", String(size));
+		event.reply("size_cache_ack", String(size));
 	}
 	static walkDir(filePath: string): Array<any> {
 		const output: Array<any> = [];
@@ -341,7 +341,7 @@ class File {
 			if (whiteList.includes(basename)) return;
 			fs.unlinkSync(filePath);
 		});
-		event.reply("remove_cache_complete");
+		event.reply("remove_cache_ack");
 	}
 	static openFolder(event: any, res: any) {
 		let { url, create } = JSON.parse(res);
@@ -354,6 +354,7 @@ class File {
 		if (!url || !fs.existsSync(url)) {
 			return;
 		}
+		// TODO: 这玩意只在 Windows 下有用
 		require("child_process").exec(`start "" "${url}"`);
 	}
 	static openCache() {

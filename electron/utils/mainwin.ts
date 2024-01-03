@@ -1,9 +1,17 @@
-import { ipcMain, BrowserWindow, screen } from "electron";
+// TODO: REFACTOR: 重命名 MainWin 字眼，实际上不管是主窗口还是小程序都是用的 MainWin 类来新建窗口。
+
+import { ipcMain, BrowserWindow, screen, IpcMainInvokeEvent } from "electron";
+import path, { join } from "path";
 import process from "process";
+
+const preload = join(__dirname, "../preload/index.js");
+
+// TODO: REFACTOR: 为 win 创建一个接口用于描述其数据结构
 let wins: any = [];
 let registered = false;
 class MainWin {
 	static registerEvents(mainWindow: BrowserWindow) {
+		// TODO: REFACTOR: 为 win 创建一个接口用于描述其数据结构
 		const win = {
 			id: mainWindow.webContents.id,
 			win: mainWindow,
@@ -11,15 +19,22 @@ class MainWin {
 		};
 		wins.push(win);
 		if (!registered) {
-			const methods = [
-				["mainwin_reload", MainWin.reload],
-				["mainwin_setTop", MainWin.setTop],
-				["mainwin_setResizeable", MainWin.setResizeable],
-				["mainwin_setIgnoreMouseEvent", MainWin.setIgnoreMouseEvent]
-			];
-			methods.forEach((method: Array<any>) => {
-				ipcMain.on(method[0], method[1]);
-			});
+			const methods = {
+				mainwin_reload: MainWin.reload,
+				mainwin_setTop: MainWin.setTop,
+				mainwin_setResizeable: MainWin.setResizeable,
+				mainwin_setIgnoreMouseEvent: MainWin.setIgnoreMouseEvent,
+
+				win_minimize: MainWin.minimize,
+				win_opendevtools: MainWin.openDevTools,
+				win_restore: MainWin.restore,
+				win_setBounds: MainWin.setBounds,
+				win_getPos: MainWin.getPos,
+			};
+			for (const eventName in methods) {
+				ipcMain.on(eventName, methods[eventName]);
+			}
+			
 			registered = true;
 		}
 		MainWin.startMouseDetector(win);
@@ -30,18 +45,45 @@ class MainWin {
 		});
 	}
 
+	static getPos(event: IpcMainInvokeEvent) {
+		event.sender.send("win_getPos_ack", (wins.find((wn: any) => wn.id === event.sender.id).win as BrowserWindow).getPosition());
+	}
+
+	static setBounds(event: any, bounds: Partial<Electron.Rectangle>) {
+		(wins.find((wn: any) => wn.id === event.sender.id).win as BrowserWindow).setBounds(bounds);
+	}
+
+	// TODO: REFACTOR: 名字改成 getEventWin
 	static selectWindow(event: any) {
 		return wins.find((win: any) => win.id === event.sender.id);
 	}
 
 	static reload(event: any) {
-		const win = MainWin.selectWindow(event).win;
+		const win = MainWin.selectWindow(event).win as BrowserWindow;
 		if (!win) return;
 		win.reload();
 	}
 
+	static restore(event: any) {
+		const win = MainWin.selectWindow(event).win as BrowserWindow;
+		if (!win) return;
+		win.restore();
+	}
+
+	static minimize(event: any) {
+		const win = MainWin.selectWindow(event).win as BrowserWindow;
+		if (!win) return;
+		win.minimize();
+	}
+
+	static openDevTools(event: any) {
+		const win = MainWin.selectWindow(event).win as BrowserWindow;
+		if (!win) return;
+		win.webContents.openDevTools();
+	}
+
 	static setTop(event: any, data: any) {
-		const win = MainWin.selectWindow(event).win;
+		const win = MainWin.selectWindow(event).win as BrowserWindow;
 		if (!win) return;
 		const { isTop } = JSON.parse(data);
 		win.setAlwaysOnTop(isTop, "screen-saver", 1);
@@ -50,7 +92,7 @@ class MainWin {
 	}
 
 	static setResizeable(event: any, data: any) {
-		const win = MainWin.selectWindow(event).win;
+		const win = MainWin.selectWindow(event).win as BrowserWindow;
 		if (!win) return;
 		const { isResizeable }: any = JSON.parse(data);
 		win.setResizable(isResizeable);
@@ -61,14 +103,14 @@ class MainWin {
 	}
 
 	static setFocusable(event: any, data: any) {
-		const win = MainWin.selectWindow(event).win;
+		const win = MainWin.selectWindow(event).win as BrowserWindow;
 		if (!win) return;
 		const { isFocusable }: any = JSON.parse(data);
 		win.setFocusable(isFocusable);
 	}
 
 	static setIgnoreMouseEvent(event: any, data: any) {
-		const win = MainWin.selectWindow(event).win;
+		const win = MainWin.selectWindow(event).win as BrowserWindow;
 		if (!win) return;
 		const { ignore }: any = JSON.parse(data);
 		win.setIgnoreMouseEvents(ignore, {
@@ -80,7 +122,8 @@ class MainWin {
 	}
 
 	static startMouseDetector(wi: any) {
-		const { timer, win, id }: any = wi;
+		const { timer, id }: any = wi;
+		const win = wi.win as BrowserWindow;
 		clearTimeout(timer);
 		try {
 			const { x, y } = screen.getCursorScreenPoint();
@@ -120,7 +163,8 @@ class MainWin {
 				allowRunningInsecureContent: true,
 				enableBlinkFeatures: "CSSVariables",
 				enableRemoteModule: true,
-				webviewTag: true
+				webviewTag: true,
+				preload
 			},
 			...options
 		});

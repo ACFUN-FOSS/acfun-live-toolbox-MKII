@@ -3,7 +3,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, defineAsyncComponent } from "vue";
 import { mapState } from "vuex";
 import { getContentWithEmoji as getContent } from "@front/components/danmakuFlow/utils/getter";
 import { padding, margin, border, outerBox, font, position, transform } from "../../utils/styleGetter";

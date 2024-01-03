@@ -18,7 +18,7 @@ export default {
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .contentTitle {
 	position: relative;
 	width: fit-content;

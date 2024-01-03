@@ -1,4 +1,14 @@
 // import { obsApplets } from "@front/applets";
+
+// ATTENTION: Don't use:
+// process
+// global
+// and any other node.js-specific global variables
+// in non-electron environment.
+
+// ATTENTION: Make sure browser (not electron) is able to
+// execute all code of this file.
+
 export default [
 	{
 		path: "/obs/danmaku",

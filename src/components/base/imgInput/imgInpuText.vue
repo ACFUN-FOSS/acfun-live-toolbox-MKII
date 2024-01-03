@@ -1,7 +1,7 @@
 <template>
 	<div class="img-input-text" :style="{'--fit':fit}">
 		<span class="hint" style="margin-right:8px">{{modelValue?getBaseName(modelValue):"未选择图片"}}</span>
-		<el-button @click="getFile" size="mini" type="primary">选择图片</el-button>
+		<el-button @click="getFile"  type="primary">选择图片</el-button>
 	</div>
 </template>
 

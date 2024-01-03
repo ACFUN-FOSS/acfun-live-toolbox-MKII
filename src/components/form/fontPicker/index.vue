@@ -1,5 +1,5 @@
 <template>
-	<el-select size="mini" v-model="value" placeholder="点击选择字体" :loading="loading">
+	<el-select  v-model="value" placeholder="点击选择字体" :loading="loading">
 		<el-option label="默认" value="" />
 		<el-option v-for="item in fonts" :key="item.value" :label="item.label" :value="item.value" />
 		<el-option label="点击上传" @click="uploadFont" />

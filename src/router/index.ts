@@ -4,10 +4,25 @@ import client from "./clientRouter";
 import web from "./webRouter";
 const routes: Array<RouteRecordRaw> = isElectron() ? client : web;
 console.log(routes);
-const router = createRouter({
-	history: createWebHistory(process.env.BASE_URL),
-	routes
-});
+
+// ATTENTION: Don't use:
+// process
+// global
+// and any other node.js-specific global variables
+// in non-electron environment.
+
+const router = (() => {
+	if(isElectron())
+		return createRouter({
+			history: createWebHistory(process.env.BASE_URL),
+			routes
+		});
+	else
+		return createRouter({
+			history: createWebHistory(),
+			routes
+		});
+})();
 if (!isElectron() || process.env.NODE_ENV === "production") {
 	router.beforeEach((to, from, next) => {
 		if (!isElectron()) {

@@ -15,7 +15,7 @@
 		</row-frame>
 		<row-frame title="设置对象">
 			<row-span>
-				<el-radio-group v-model="settingTarget" size="mini">
+				<el-radio-group v-model="settingTarget" >
 					<el-radio-button label="toolBox">主播版</el-radio-button>
 					<el-radio-button label="web">观众版</el-radio-button>
 				</el-radio-group>
@@ -23,8 +23,8 @@
 		</row-frame>
 		<div class="right-content">
 			<component v-model:settings="settings" v-model:mockData="mockData" v-for="(item, index) in settingBlocks" :key="index" :is="item" :setting-target="settingTarget" />
-			<el-button @click="save" size="mini" type="primary">保存（{{ { toolBox: "主播端", web: "观众端" }[settingTarget] }}设置）</el-button>
-			<el-button v-show="settingTarget === 'toolBox'" @click="saveSync" size="mini" type="primary">保存并同步到观众端</el-button>
+			<el-button @click="save"  type="primary">保存（{{ { toolBox: "主播端", web: "观众端" }[settingTarget] }}设置）</el-button>
+			<el-button v-show="settingTarget === 'toolBox'" @click="saveSync"  type="primary">保存并同步到观众端</el-button>
 		</div>
 	</content-frame>
 </template>
@@ -42,9 +42,19 @@ import { settings, commonSettings } from "@front/datas/aboutDanmaku";
 import { settingBlocks } from "./settingBlocks";
 import { Filter } from "@front/components/danmakuFlow/utils/common";
 import { ElMessage } from "element-plus";
+
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+
 export default defineComponent({
 	name: "danmakuSetting",
-	components: { flow },
+	components: {
+		flow,
+		contentFrame,
+		rowFrame,
+		rowSpan,
+	},
 	data() {
 		return {
 			mockTimer: toANY(null),
@@ -140,7 +150,7 @@ export default defineComponent({
 </script>
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
 @import "@front/styles/backgrounds.scss";
 .danmaku-setting {

@@ -11,10 +11,10 @@
 				<el-row>
 					<el-col :span="8">直播间ID</el-col>
 					<el-col :span="12" style="text-align:right">
-						<el-input size="mini" v-model="settings.liverUID" />
+						<el-input  v-model="settings.liverUID" />
 					</el-col>
 					<el-col :span="4">
-						<el-button @click="settings.liverUID = userSession.userID" size="mini" type="primary">自己的ID
+						<el-button @click="settings.liverUID = userSession.userID"  type="primary">自己的ID
 						</el-button>
 					</el-col>
 				</el-row>
@@ -33,7 +33,7 @@
 				<el-row>
 					<el-col :span="8">主题</el-col>
 					<el-col :span="16" style="text-align:right">
-						<el-select size="mini" v-model="settings.theme">
+						<el-select  v-model="settings.theme">
 							<el-option v-for="i in themes.length" :label="`主题${i}`" :key="i" :value="themes[i]" />
 						</el-select>
 					</el-col>

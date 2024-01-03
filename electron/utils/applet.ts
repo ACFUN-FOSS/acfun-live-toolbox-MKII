@@ -42,9 +42,9 @@ class Applets {
 		const ip = require("ip");
 		let url: any = `${
 			isDev
-				? <string>process.env.WEBPACK_DEV_SERVER_URL
-				: `http://${ip.address()}:${port}`
-		}/applets`;
+				? <string>process.env.VITE_DEV_SERVER_URL
+				: `http://${ip.address()}:${port}/`
+		}applets`;
 		url = new URL(url);
 		url += `?name=${encodeURIComponent(name)}&path=${encodeURIComponent(
 			path
@@ -80,6 +80,7 @@ class Applets {
 			const targetJson = path.join(rootPath, filePath, "config.json");
 			if (!fs.existsSync(target) || !fs.existsSync(targetJson)) continue;
 			const obs = path.join(rootPath, filePath, "obs.vue");
+			// TODO: REFACTOR: 使用接口定义 configurations 的数据结构
 			const configurations = JSON.parse(
 				fs.readFileSync(targetJson, "utf8")
 			);
@@ -95,7 +96,7 @@ class Applets {
 			configurations.path = path.join("/applets", filePath, "index.vue");
 			result.push(configurations);
 		}
-		event.reply("applet_list_complete", JSON.stringify(result));
+		event.reply("applet_list_ack", JSON.stringify(result));
 	}
 }
 

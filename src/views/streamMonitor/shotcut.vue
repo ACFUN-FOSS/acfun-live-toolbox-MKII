@@ -4,26 +4,26 @@
 			<row-span :span="2.5" style="margin-bottom:8px">
 				<a style="text-decoration:none;color:white" :href="`https://live.acfun.cn/live/${userSession.userID}`"
 					target="_blank">
-					<el-button type="primary" size="mini">直播间</el-button>
+					<el-button type="primary" >直播间</el-button>
 				</a>
 			</row-span>
 			<row-span :span="2" style="margin-bottom:8px">
-				<el-button type="primary" size="mini" @click="closeStream">下播</el-button>
+				<el-button type="primary"  @click="closeStream">下播</el-button>
 			</row-span>
 			<row-span :span="2.5" style="margin-bottom:8px">
-				<el-button type="primary" size="mini" @click="$store.commit('minify')">迷你化</el-button>
+				<el-button type="primary"  @click="$store.commit('minify')">迷你化</el-button>
 
 			</row-span>
 			<row-span :span="3" style="margin-bottom:8px">
-				<el-button type="primary" size="mini" @click="toCut">剪辑入口</el-button>
+				<el-button type="primary"  @click="toCut">剪辑入口</el-button>
 
 			</row-span>
 			<row-span :span="3" style="margin-bottom:8px">
-				<el-button type="primary" size="mini" @click="$store.dispatch('restartDanmaku')">重连弹幕</el-button>
+				<el-button type="primary"  @click="$store.dispatch('restartDanmaku')">重连弹幕</el-button>
 
 			</row-span>
 			<row-span :span="3" style="margin-bottom:8px">
-				<el-button type="primary" size="mini" @click="restartDanmakuWeb">重连网页弹幕</el-button>
+				<el-button type="primary"  @click="restartDanmakuWeb">重连网页弹幕</el-button>
 
 			</row-span>
 		</row-frame>

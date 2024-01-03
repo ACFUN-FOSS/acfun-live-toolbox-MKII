@@ -1,11 +1,11 @@
 <template>
 	<content-frame id="general" align="row">
 		<row-frame style="width: 100%" title="使用说明" flex>
-			<el-button @click="openDocuments" type="primary" size="mini">点击打开</el-button>
+			<el-button @click="openDocuments" type="primary" >点击打开</el-button>
 		</row-frame>
 		<row-frame style="width: 100%" title="系统" flex>
 			<row-span :span="2">
-				<el-button size="mini" type="primary" @click="openConsole">打开控制台</el-button>
+				<el-button  type="primary" @click="openConsole">打开控制台</el-button>
 			</row-span>
 		</row-frame>
 		<row-frame style="width: 100%" title="推流工具路径" flex>
@@ -14,9 +14,9 @@
 				<el-switch v-model="general.streamToolEnable" @change="save" />
 			</row-span>
 			<row-span :span="6">
-				<el-input size="mini" :model-value="general.streamToolPath" :disabled="general.streamToolEnable">
+				<el-input  :model-value="general.streamToolPath" :disabled="general.streamToolEnable">
 					<template #append>
-						<el-button type="primary" size="mini" class="attach" @click="loadStreamToolPath">点击选择 </el-button>
+						<el-button type="primary"  class="attach" @click="loadStreamToolPath">点击选择 </el-button>
 					</template>
 				</el-input>
 			</row-span>
@@ -25,30 +25,30 @@
 		<row-frame style="width: 100%" title="设置端口" flex>
 			<row-span :span="4"> 服务器端口 </row-span>
 			<row-span :span="2">
-				<el-input size="mini" type="number" v-model="general.port" @change="save" />
+				<el-input  type="number" v-model="general.port" @change="save" />
 			</row-span>
 			<row-span :span="4"> 信令端口 </row-span>
 			<row-span :span="2">
-				<el-input size="mini" type="number" v-model="general.socket" @change="save" />
+				<el-input  type="number" v-model="general.socket" @change="save" />
 			</row-span>
 			<row-span :span="12"><span class="hint">如果发现端口冲突可以更改数字尝试,重启生效</span></row-span>
 		</row-frame>
 		<row-frame style="width: 100%" title="配置文件" flex>
 			<row-span :span="2">
-				<el-button size="mini" type="primary" @click="openFolder">打开文件夹</el-button>
+				<el-button  type="primary" @click="openFolder">打开文件夹</el-button>
 			</row-span>
 			<row-span :span="2">
-				<el-button size="mini" type="primary" @click="backup">配置备份</el-button>
+				<el-button  type="primary" @click="backup">配置备份</el-button>
 			</row-span>
 			<row-span :span="2">
-				<el-button size="mini" type="primary" @click="restore">配置还原</el-button>
+				<el-button  type="primary" @click="restore">配置还原</el-button>
 			</row-span>
 			<row-span :span="12"><span class="hint">一般情况下不需要备份配置，除非重装系统</span></row-span>
 		</row-frame>
 
 		<row-frame style="width: 100%" title="" flex>
 			<row-span :span="2">
-				<el-button size="mini" type="primary" @click="clean" disabled>清理配置缓存</el-button>
+				<el-button  type="primary" @click="clean" disabled>清理配置缓存</el-button>
 			</row-span>
 			<row-span :span="4">
 				<span>当前配置缓存:{{ cacheSizeUnit }}</span>
@@ -57,7 +57,7 @@
 		</row-frame>
 		<row-frame style="width: 100%" title="" flex>
 			<row-span :span="2">
-				<el-button size="mini" type="primary" @click="clearStorage">清理账号缓存</el-button>
+				<el-button  type="primary" @click="clearStorage">清理账号缓存</el-button>
 			</row-span>
 			<row-span :span="12"><span class="hint">房间管理里的设置无法保存或出现混乱时试试清理账号缓存</span></row-span>
 		</row-frame>
@@ -193,7 +193,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 #general {
 	position: absolute;
 	width: 100%;

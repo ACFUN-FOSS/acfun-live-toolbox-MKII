@@ -1,14 +1,24 @@
 <template>
 	<div class="danmaku-row" :class="{config:configMode}" :style="style">
-		<component v-for="widget in setting.widgets" :is="widgets[widget.labelEn].component" :config-mode="configMode" :key="widget.id" :danmaku="danmaku" :setting="widget.value" :count="danmaku.count" />
+		 {{ JSON.stringify(setting) }}
+		<br><br>
+		<div v-for="widget in setting.widgets" :key="widget.id">
+			{{ widget.labelEn }}, 
+			{{ widget.component }}
+			<br><br>
+		</div>
+
+		<component v-for="widget in setting.widgets" :key="widget.id" :is="widget.labelEn" :config-mode="configMode" :danmaku="danmaku" :setting="widget.value" :count="danmaku.count" />
+		
 		<div v-if="danmaku.combineCount>1" class="combo" :key="danmaku.combineCount">x{{danmaku.combineCount}}</div>
 	</div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import widgets from "@front/components/danmakuFlow/widgets";
 import { getUserInfo } from "@front/components/danmakuFlow/utils/getter";
+import { allDanmakuWidgets } from "@front/components/danmakuFlow/widgets";
+import content from "@front/components/danmakuFlow/widgets/content/index.vue";
 import {
 	padding,
 	margin,
@@ -17,6 +27,13 @@ import {
 	transform
 } from "@front/components/danmakuFlow/utils/styleGetter";
 export default defineComponent({
+	components: {
+		...allDanmakuWidgets,
+		content
+	},
+	mounted() {
+		debugger;
+	},
 	name: "danmakuRow",
 	props: {
 		setting: {
@@ -31,7 +48,8 @@ export default defineComponent({
 	},
 	data() {
 		return {
-			widgets
+			content: "content",
+			...allDanmakuWidgets
 		};
 	},
 	computed: {

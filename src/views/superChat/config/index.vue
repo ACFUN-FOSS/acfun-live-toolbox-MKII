@@ -18,16 +18,16 @@
 				</row-span>
 				<row-span :span="1"> 单位 </row-span>
 				<row-span :span="1.7">
-					<el-select style="margin-top: -8px" size="mini" v-model="superChat.displayType">
+					<el-select style="margin-top: -8px"  v-model="superChat.displayType">
 						<el-option v-for="(item, index) in displayType" :key="index" :label="item.label" :value="item.value" />
 					</el-select>
 				</row-span>
 				<row-span style="text-align: right" :span="1">
-					<el-button size="mini" style="margin-top: -8px" type="primary" @click="sort">排序</el-button>
+					<el-button  style="margin-top: -8px" type="primary" @click="sort">排序</el-button>
 				</row-span>
 			</template>
 			<row-span style="text-align: right" :span="1">
-				<el-button size="mini" style="margin-top: -8px" type="primary" @click="save">保存</el-button>
+				<el-button  style="margin-top: -8px" type="primary" @click="save">保存</el-button>
 			</row-span>
 		</row-frame>
 		<row-frame v-show="superChat.enable" title="规则配置" style="width: 100%" :flex="true">
@@ -43,10 +43,20 @@ import { superChat } from "@front/datas/aboutDanmaku";
 import { mapState } from "vuex";
 import { ElMessage } from "element-plus";
 import cloneDeep from "lodash/cloneDeep";
+
 import rule from "./rules.vue";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+
 export default defineComponent({
 	name: "superChat",
-	components: { rule },
+	components: {
+		contentFrame,
+		rowFrame,
+		rowSpan,
+		rule
+	},
 	data() {
 		return {
 			superChat: superChat(),

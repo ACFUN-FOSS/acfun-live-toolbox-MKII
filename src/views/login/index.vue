@@ -37,12 +37,11 @@
 			</div>
 		</transition>
 		<footer-base class="foter right" />
-		<el-dialog custom-class="dialogBase" title="免责声明" v-model="disclaimerDialog">
+		<el-dialog class="dialogBase" title="免责声明" v-model="disclaimerDialog">
 			<div>{{ loginTexts.disclaimer }}</div>
 			<template #footer>
 				<el-button
 					type="primary"
-					size="mini"
 					@click="
 						userData.disclaimerCheck = true;
 						disclaimerDialog = false;
@@ -198,7 +197,7 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 #login {
 	width: 100%;
 	height: 100%;
@@ -226,7 +225,7 @@ export default defineComponent({
 		.welcomeText {
 			text-align: center;
 			padding: 24px 0px;
-			font-size: $--font-size-extra-large;
+			font-size: getCssVar(font-size, extra-large);
 		}
 	}
 	.panel {
@@ -254,7 +253,7 @@ export default defineComponent({
 					height: 42px;
 					background-color: getCssVar("$--color-primary");
 					&:hover {
-						background-color: $--color-primary-light-5;
+						background-color: getCssVar(color-primary, light-5);
 					}
 				}
 				&.sep {

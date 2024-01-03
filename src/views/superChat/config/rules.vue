@@ -7,27 +7,27 @@
 					<p>金额（AC币）</p>
 					<div class="number-input">
 						>=
-						<el-input-number :step="10" :min="0" size="mini" v-model="rule.triggerValue" />
+						<el-input-number :step="10" :min="0"  v-model="rule.triggerValue" />
 					</div>
 				</row-span>
 				<row-span :span="2">
 					<p>持续时间(秒)</p>
-					<el-input-number size="mini" :min="15" :modelValue="rule.listDuration/1000" @update:modelValue="rule.listDuration=$event*1000" />
+					<el-input-number  :min="15" :modelValue="rule.listDuration/1000" @update:modelValue="rule.listDuration=$event*1000" />
 				</row-span>
 				<row-span :span="3.5">
 					<p>选择主题</p>
-					<el-select placeholder="请选择主题面板" size="mini" v-model="rule.themeID" @change="applyTheme(rule,$event)">
+					<el-select placeholder="请选择主题面板"  v-model="rule.themeID" @change="applyTheme(rule,$event)">
 						<el-option label="默认" value="0" />
 						<el-option v-for="theme in themes" :key="theme.id" :label="theme.label" :value="theme.id" />
 					</el-select>
 				</row-span>
 				<row-span style="text-align:right" :span="3.5">
 					<p>&nbsp;</p>
-					<el-button size="mini" type="danger" @click="remove(rule)">删除</el-button>
+					<el-button  type="danger" @click="remove(rule)">删除</el-button>
 				</row-span>
 			</row-frame>
 		</div>
-		<el-button style="width:100%;text-align:center" size="mini" type="primary" @click="add">添加+</el-button>
+		<el-button style="width:100%;text-align:center"  type="primary" @click="add">添加+</el-button>
 	</div>
 </template>
 
@@ -37,9 +37,17 @@ import clone from "lodash/clone";
 import { backgroundType } from "./data";
 import { superChatBlockSetting } from "@front/components/superChat/utils/data";
 import { loadSuperChat } from "@front/util_function/system";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
 import defaultTheme from "./../style/default";
 export default defineComponent({
 	name: "superChatRule",
+	components: {
+		contentFrame,
+		rowFrame,
+		rowSpan
+	},
 	props: {
 		modelValue: {
 			default: () => {

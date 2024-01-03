@@ -128,7 +128,7 @@ export const clientSettings = (): clientSettings => {
 };
 
 export interface emoji {
-	pattern: string;
+	pattern: string;	
 	url: string;
 	scale: number;
 }

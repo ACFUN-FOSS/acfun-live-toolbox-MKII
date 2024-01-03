@@ -8,8 +8,8 @@
 		</div>
 		<div style="font-size: 12px; margin-top: 8px; width: 200px">点击横条增加颜色，左击标签改变颜色，右击标签删除</div>
 		<template #footer>
-			<el-button @click="dialog = false" size="mini">取消</el-button>
-			<el-button @click="close" size="mini" type="primary">确认</el-button>
+			<el-button @click="dialog = false" >取消</el-button>
+			<el-button @click="close"  type="primary">确认</el-button>
 		</template>
 	</el-dialog>
 </template>
@@ -126,7 +126,7 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .gradient-picker {
 	width: 50px;
 	height: 28px;

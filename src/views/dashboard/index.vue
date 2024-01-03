@@ -22,15 +22,22 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { welcome } from "@front/texts";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+
 export default defineComponent({
 	name: "dashboard",
 	computed: { welcome },
+	components: {
+		contentFrame,
+		rowFrame
+	}
 });
 </script>
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 #dashboard {
 	&::before {
 		content: "";

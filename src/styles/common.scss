@@ -1,0 +1,24 @@
+/**
+ * FILENAME: common.scss
+ *
+ * DESC: 提供一些公用的 scss 玩意。
+ *
+ *   - 定义公用的变量及函数。
+ *
+ *   - 传递 element-plus 的一些常用的变量和函数（如 `getCssVar`）。
+ */
+
+@use "element-plus/theme-chalk/src/common/var.scss" as *;
+$--font-size-logo: 30px !important;
+
+$--color-primary: rgb(102, 167, 218);
+$--color-success: #67c23a;
+$--color-warning: #e6a23c;
+$--color-danger: #f56c6c;
+// $--color-info: #f6f6f6;
+
+$--background-color-base: #fafafa;
+$--box-shadow-dark: 0 2px 12px 0 rgba(0, 0, 0, 0.2);
+$--font-path: "element-plus/theme-chalk/fonts";
+@import "element-plus/theme-chalk/src/index.scss";
+@import 'element-plus/theme-chalk/src/mixins/mixins.scss';

@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell, protocol, globalShortcut } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
 import { MainWin, startHttp, Backend, File, KsApi, Voice, AppTest, Applets } from "../utils";
+import { isRunningInDevServer as isRunningUnderDevServer } from "../utils/sys";
 
 // The built directory structure
 //
@@ -71,11 +72,24 @@ async function createWindow() {
 		shell.openExternal(url);
 		return { action: "deny" };
 	});
-	if (process.env.VITE_DEV_SERVER_URL) {
-		// electron-vite-vue#298
-		win.loadURL(url);
-		// Open devTool if the app is not packaged
-		win.webContents.openDevTools();
+	/**
+	 * 若于 DEV SERVER 中运行，则：
+	 *   - HTTP 服务器会成为「哑巴」，仅仅提供 ws 支持。
+	 *   - electron 浏览器载入 VITE DEV SERVER 所 serve 的 index.html。
+	 * 否则：
+	 * 	 - HTTP 服务器完整功能会发挥作用，除提供 ws 支持外也 serve
+	 *     静态文件（包括 index.html）。
+	 *   - electron 浏览器载入 HTTP SERVER 所 serve 的 index.html。
+	 * 
+	 * 上述 ws 指工具箱各个实例（electron 窗口、浏览器打开的工具箱界面……）
+	 * 之间通信所用的 websocket，并非工具箱与后端通信所用的 websocket。
+	 */
+	if (isRunningUnderDevServer()) {
+		startHttp().then((res: any) => {
+			win.loadURL(url);
+			// Open devTool if the app is not packaged
+			win.webContents.openDevTools();
+		});
 	} else {
 		startHttp().then((res: any) => {
 			win.loadURL(res);
@@ -91,6 +105,8 @@ async function createWindow() {
 	globalShortcut.register("CommandOrControl+F3", () => {
 		win.webContents.send("resize");
 	});
+
+	// TODO: REFACTOR: 这种玩意一律以 subsystem 命名，别放到 utils 里
 	Backend.registerEvents();
 	File.registerEvents();
 	MainWin.registerEvents(win);

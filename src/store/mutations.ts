@@ -306,6 +306,7 @@ export const mutations: any = {
 			const commonSettings =
 				state.danmakuProfile.common || danmaku.commonSettings();
 			const rank = state.rank;
+			// TODO: 下面的注释是啥意思？
 			// auto click
 			if (
 				state.danmakuProfile.common.blackList.find(

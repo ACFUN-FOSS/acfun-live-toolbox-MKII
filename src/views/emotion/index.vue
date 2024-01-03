@@ -7,17 +7,18 @@
 			</row-span>
 			<row-span :span="4"> 单条弹幕数量限制（防刷屏） </row-span>
 			<row-span :span="2">
-				<el-input-number size="mini" :min="1" v-model="emoMax" />
+				<el-input-number  :min="1" v-model="emoMax" />
 			</row-span>
 			<row-span style="text-align: right" :span="2">
-				<el-button size="mini" @click="save" type="primary" style="margin-top: -8px">保存</el-button>
+				<el-button  @click="save" type="primary" style="margin-top: -8px">保存</el-button>
 			</row-span>
 		</row-frame>
 		<row-frame width="100%" title="表情预览" v-show="emoOn">
 			<div class="list-add-btn">
 				<el-button
-					type="text"
-					style="padding: 0px !important; min-height: 0px !important"
+					text
+					type="primary"
+					style="padding: 0; height: auto"
 					@click="
 						danmaku = getMockByType(1000);
 						currentEmoji = { ...currentEmoji };
@@ -48,8 +49,8 @@
 							<div style="width: 35%">
 								大小<br />
 								<el-button-group>
-									<el-button class="btn" type="primary" icon="el-icon-plus" size="mini" @click="emoji.scale < 200 ? (emoji.scale += 2) : false" />
-									<el-button class="btn" type="primary" icon="el-icon-minus" size="mini" @click="emoji.scale > 0 ? (emoji.scale -= 2) : false" />
+									<el-button class="btn" type="primary" icon="el-icon-plus"  @click="emoji.scale < 200 ? (emoji.scale += 2) : false" />
+									<el-button class="btn" type="primary" icon="el-icon-minus"  @click="emoji.scale > 0 ? (emoji.scale -= 2) : false" />
 								</el-button-group>
 							</div>
 							<div style="width: 60%">
@@ -59,7 +60,6 @@
 								</emoji-picker>
 								<el-input
 									placeholder="关键词/emoji"
-									size="mini"
 									:modelValue="emoji.pattern.replaceAll('#', '')"
 									@update:modelValue="emoji.pattern = '#' + $event.replaceAll('#', '')"
 								/>
@@ -160,7 +160,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
 @import "@front/styles/backgrounds.scss";
 #emotion {
@@ -215,7 +215,7 @@ export default defineComponent({
 				bottom: 0px;
 				.remove {
 					color: $--color-danger;
-					font-size: $--font-size-extra-large;
+					font-size: getCssVar("font-size", "extra-large");
 					position: absolute;
 					top: 0px;
 					right: 0px;
@@ -226,7 +226,7 @@ export default defineComponent({
 			}
 			.add {
 				border-radius: 8px;
-				border: 5px dashed $--border-color-base;
+				border: 5px dashed getCssVar("border-color", "base");
 				cursor: pointer;
 				display: flex;
 				justify-content: center;

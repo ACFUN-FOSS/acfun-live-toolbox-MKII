@@ -10,18 +10,16 @@
 				<el-button-group>
 					<el-button
 						class="btn"
-						size="mini"
 						@click="copy(song.title)"
 						type="primary"
 						>复制</el-button
 					>
 					<el-button
 						class="btn"
-						size="mini"
 						@click="addToBlackList(song)"
 						>不想唱</el-button
 					>
-					<el-button class="btn" size="mini" @click="pass(song)"
+					<el-button class="btn"  @click="pass(song)"
 						>唱过了</el-button
 					>
 				</el-button-group>
@@ -36,7 +34,6 @@
 				<el-button-group>
 					<el-button
 						class="btn"
-						size="mini"
 						@click="sang = sang.filter(i => i !== song)"
 						>移出</el-button
 					>
@@ -51,7 +48,6 @@
 				<el-button-group>
 					<el-button
 						class="btn"
-						size="mini"
 						@click="
 							settings.nosing = settings.nosing.filter(
 								i => i !== song
@@ -67,14 +63,13 @@
 				<el-row>
 					<el-col :span="6">关键词</el-col>
 					<el-col :span="18" style="text-align:right">
-						<el-input size="mini" v-model="settings.keyWord" />
+						<el-input  v-model="settings.keyWord" />
 					</el-col>
 				</el-row>
 				<el-row>
 					<el-col :span="6">冷却时间</el-col>
 					<el-col :span="18" style="text-align:right">
 						<el-input-number
-							size="mini"
 							v-model="settings.coolingTime"
 							:min="0"
 						/>

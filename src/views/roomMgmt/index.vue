@@ -9,7 +9,7 @@
 		<row-frame :flex="true">
 			<row-span :span="6">
 				<row-frame title="房间标题" style="width: 100%; margin-bottom: 0px">
-					<el-input size="mini" placeholder="请输入房间名称" v-model="roomProfile.title" />
+					<el-input  placeholder="请输入房间名称" v-model="roomProfile.title" />
 				</row-frame>
 			</row-span>
 			<row-span :span="6">
@@ -22,20 +22,20 @@
 		<row-frame :flex="true">
 			<row-span :span="8">
 				<row-frame title="直播分区" :flex="true" style="width: 100%; margin-bottom: 0px">
-					<el-cascader size="mini" style="width: 100%" placeholder="请选择分区" v-model="categoryValue" :options="categoryCascade" />
+					<el-cascader  style="width: 100%" placeholder="请选择分区" v-model="categoryValue" :options="categoryCascade" />
 				</row-frame>
 			</row-span>
 			<row-span :span="4" v-if="isStreaming">
 				<row-frame title=" " style="width: 100%; margin-bottom: 0px; text-align: right">
-					<el-button type="primary" size="mini" class="btnBase" @click="setRoomProfile" :disabled="changed"> 修改标题封面 </el-button>
+					<el-button type="primary"  class="btnBase" @click="setRoomProfile" :disabled="changed"> 修改标题封面 </el-button>
 				</row-frame>
 			</row-span>
 		</row-frame>
 		<row-frame title="弹幕流链接" :flex="true">
 			<row-span :span="12">
-				<el-input size="mini" :model-value="danmakuStream">
+				<el-input  :model-value="danmakuStream">
 					<template #append>
-						<el-button type="primary" size="mini" class="btnBase attach" @click="copy(danmakuStream)">复制 </el-button>
+						<el-button type="primary"  class="btnBase attach" @click="copy(danmakuStream)">复制 </el-button>
 					</template>
 				</el-input>
 				<div class="hint">（将上访链接黏贴到推流软件内置浏览器中）</div>
@@ -43,9 +43,9 @@
 		</row-frame>
 		<row-frame title="弹幕流链接（官方）" :flex="true">
 			<row-span :span="12">
-				<el-input size="mini" :model-value="danmakuOfficial">
+				<el-input  :model-value="danmakuOfficial">
 					<template #append>
-						<el-button type="primary" size="mini" class="btnBase attach" @click="copy(danmakuOfficial)">复制 </el-button>
+						<el-button type="primary"  class="btnBase attach" @click="copy(danmakuOfficial)">复制 </el-button>
 					</template>
 				</el-input>
 			</row-span>
@@ -58,30 +58,30 @@
 				{{ obsOnline ? "OBS已连接" : "OBS未连接" }}
 			</row-span>
 			<row-span v-if="obsSync" :span="3">
-				<el-button type="primary" size="mini" class="btnBase" @click="connectOBS()">连接OBS </el-button>
+				<el-button type="primary"  class="btnBase" @click="connectOBS()">连接OBS </el-button>
 			</row-span>
 			<div v-if="obsOnline" class="hint">（如上方显示OBS未连接，请根据文件夹中的说明检查是否正确配置）</div>
 			<div v-else class="hint">（如需手动推流，请将下方直播地址和直播码配置到推流软件中，待下方推流状态成功后开启直播，acfun直播助手开播后工具箱会自动切换到直播状态）</div>
 		</row-frame>
 		<row-frame v-if="!obsSync" title="RTMP服务器(Server)" :flex="true">
 			<row-span :span="12">
-				<el-input size="mini" :model-value="streamSession.rtmpServer">
+				<el-input  :model-value="streamSession.rtmpServer">
 					<template #append>
-						<el-button type="primary" size="mini" class="btnBase attach" @click="copy(streamSession.rtmpServer)">复制 </el-button>
+						<el-button type="primary"  class="btnBase attach" @click="copy(streamSession.rtmpServer)">复制 </el-button>
 					</template>
 				</el-input>
 			</row-span>
 		</row-frame>
 		<row-frame v-if="!obsSync" title="直播码/串流密钥(Stream Key)" :flex="true">
 			<row-span :span="9.5">
-				<el-input size="mini" :model-value="streamSession.streamKey">
+				<el-input  :model-value="streamSession.streamKey">
 					<template #append>
-						<el-button type="primary" size="mini" class="btnBase attach" @click="copy(streamSession.streamKey)">复制 </el-button>
+						<el-button type="primary"  class="btnBase attach" @click="copy(streamSession.streamKey)">复制 </el-button>
 					</template>
 				</el-input>
 			</row-span>
 			<row-span :span="2">
-				<el-button type="primary" size="mini" @click="$store.commit('getStreamSession')">刷新</el-button>
+				<el-button type="primary"  @click="$store.commit('getStreamSession')">刷新</el-button>
 			</row-span>
 			<div class="hint">（考虑到用户隐私，直播码每次开播都会默认刷新）</div>
 		</row-frame>
@@ -90,12 +90,12 @@
 				{{ streamEncodec.resolution ? "推流成功" : "推流等待中" }}
 			</row-span>
 			<row-span :span="2">
-				<el-button type="primary" size="mini" @click="$store.commit('getStreamEncodec')">刷新</el-button>
+				<el-button type="primary"  @click="$store.commit('getStreamEncodec')">刷新</el-button>
 			</row-span>
 		</row-frame>
 		<row-frame title="下播" v-if="isStreaming" :flex="true">
 			<row-span :span="4">
-				<el-button type="primary" size="mini" class="btnBase" @click="closeStream">下播 </el-button>
+				<el-button type="primary"  class="btnBase" @click="closeStream">下播 </el-button>
 			</row-span>
 		</row-frame>
 	</content-frame>
@@ -113,10 +113,23 @@ import { sleep, isUrl } from "@front/util_function/base";
 import { copy } from "@front/util_function/clipboard";
 import OBSWebSocket from "obs-websocket-js";
 import { getCutStatus, setCutStatus } from "@front/api/room";
-let OBS: any = null;
+
+import imgInputClip from "@front/components/base/imgInput/imgInpuClip.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+
+
+let OBS: any | null = null;
 export default defineComponent({
 	name: "roomMgmt",
 	mixins: [closeStream],
+	components: {
+		imgInputClip,
+		rowSpan,
+		rowFrame,
+		contentFrame,
+	},
 	data() {
 		const roomProfile: room.ProfileDetail = cloneDeep(this.$store.state.roomProfile);
 		if (roomProfile.liveType.categoryID === 0) {
@@ -173,7 +186,7 @@ export default defineComponent({
 	},
 	beforeUnmount() {
 		this.saveCache();
-		OBS.disconnect();
+		OBS?.disconnect();
 		event.off("openStream", this.openStream);
 		event.emit("openStreamEnd");
 		clearInterval(this.timer);
@@ -369,7 +382,7 @@ export default defineComponent({
 
 <style scoped lang="scss">
 @use "sass:map";
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 #roomMgmt {
 	position: absolute;
 	width: 100%;

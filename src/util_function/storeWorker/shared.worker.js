@@ -12,12 +12,14 @@ const randomId = (length = 6) => {
 	return Num;
 };
 
+// TODO: REFACTOR: ?
 const startTimer = () => {
 	clearTimeout(timer);
 	requestDatas();
 	timer = setTimeout(startTimer, 2000);
 };
 
+// TODO: REFACTOR: Rename to `sendHostStateToClients`.
 const requestDatas = () => {
 	if (!hostPort) return;
 	for (const id in clients) {
@@ -26,7 +28,14 @@ const requestDatas = () => {
 	hostPort.postMessage(["sendUp"]);
 };
 
-var onconnect = function (e) {
+
+
+/**
+ * SharedWorker 的 onconnect 事件响应函数，用于：
+ *   - 维护一个当前在线的 Client 列表（响应每个 Client 的注册、close）。
+ *   - 维护对 Host 的 port 的引用（响应 Host 的注册）。
+ */
+self.onconnect = (e) => {
 	startTimer();
 	const port = e.ports[0];
 	const id = randomId();

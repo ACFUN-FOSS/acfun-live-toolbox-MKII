@@ -1,5 +1,12 @@
+/**
+ * FILENAME: wsbus.ts
+ * 
+ * DESC: 负责不同工具箱的实例（工具箱 electron 窗口、浏览器弹幕视图等）之间的通信。
+ */
 import { Event } from "@front/util_function/eventBus";
 import { io, Socket } from "socket.io-client";
+
+// TODO: REFACTOR: 名称不当。本类看起来更像是代表了一个通信的总线，而不是 Event。
 class WsEvent extends Event {
 	registered = false;
 	io: Socket | undefined;

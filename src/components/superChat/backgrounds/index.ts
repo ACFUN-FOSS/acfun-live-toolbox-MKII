@@ -15,6 +15,8 @@ Object.keys(requireComponent).forEach((fileName) => {
 	output[value] = {
 		label: fileName,
 		value,
+		// TODO: REFACTOR: 不要这样动态加载组件，仿照 `src\components\danmakuFlow\widgets\index.ts`，
+		// 把所有组件先缓存起来，然后按需取缓存。
 		component: markRaw(defineAsyncComponent(() => import(`@front/components/superChat/backgrounds/${value}.vue`))),
 	};
 });

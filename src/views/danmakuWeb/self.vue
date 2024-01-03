@@ -74,6 +74,7 @@ export default defineComponent({
 			for (const key in e) this.$store.state[key] = e[key];
 			loginSession(e.userSession || {});
 		},
+		// TODO: REFACTOR: ??
 		async chechEveryThing() {
 			try {
 				if (!wsevent.registered) {
@@ -132,7 +133,7 @@ export default defineComponent({
 });
 </script>
 <style lang="scss">
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 html,
 body,
 #app {

@@ -19,13 +19,21 @@ import App from "@front/App.vue";
 import { initGlobalComp } from "@front/components/injector";
 import { registerMethod } from "@front/util_function/globalRegister";
 import { createApp, h } from "vue";
+import contentFrame from "@front/components/base/frames/contentFrame.vue";
+import rowFrame from "@front/components/base/frames/rowFrame.vue";
+import rowSpan from "@front/components/base/frames/rowSpan.vue";
+import imgInputStatic from "@front/components/base/imgInput/imgInputStatic.vue"
 
 const app = createApp({
 	render: () => h(App),
 })
 	.use(ElementPlus)
 	.use(router)
-	.use(store);
+	.use(store) 
 initGlobalComp(app);
 registerMethod();
+app.component('contentFrame', contentFrame)
+app.component('rowFrame', rowFrame)
+app.component('rowSpan', rowSpan)
+app.component('imgInputStatic', imgInputStatic)
 app.mount("body");

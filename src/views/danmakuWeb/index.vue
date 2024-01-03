@@ -154,7 +154,7 @@ export default defineComponent({
 });
 </script>
 <style lang="scss">
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 html,
 body,
 #app {

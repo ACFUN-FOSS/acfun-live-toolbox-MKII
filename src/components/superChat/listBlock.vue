@@ -130,7 +130,7 @@ export default defineComponent({
 </script>
 
 <style scoped lang='scss'>
-@import "@front/styles/variables.scss";
+@import "@front/styles/common.scss";
 .super-chat-list-block {
 	height: 30px !important;
 	position: relative;

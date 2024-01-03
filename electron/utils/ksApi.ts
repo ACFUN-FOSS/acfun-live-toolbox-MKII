@@ -9,10 +9,10 @@ class KsApi {
 	static async sentChat(event: any, res: any) {
 		try {
 			await KsApi.sentChatMessage(res);
-			event.reply("send_chat_complete");
+			event.reply("send_chat_ack");
 		} catch (error) {
 			console.log(error);
-			event.reply("send_chat_complete", "#error");
+			event.reply("send_chat_ack", "#error");
 		}
 	}
 

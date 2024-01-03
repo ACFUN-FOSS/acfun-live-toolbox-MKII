@@ -6,7 +6,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { win, ipcRenderer } from "@front/util_function/system";
+import { getWinPos, ipcRenderer, setWinBounds } from "@front/util_function/system";
 export default defineComponent({
 	name: "handleMoving",
 	data() {
@@ -22,19 +22,19 @@ export default defineComponent({
 		ipcRenderer.off("resize", this.setResize);
 	},
 	methods: {
-		setResize() {
-			const winPosition = win.getPosition();
-			win.setBounds({
+		async setResize() {
+			const winPosition = await getWinPos();
+			setWinBounds({
 				width: 1048,
 				height: 724,
 				x: winPosition[0],
 				y: winPosition[1],
 			});
 		},
-		addMovingListener(e: MouseEvent): void {
+		async addMovingListener(e: MouseEvent): Promise<void> {
 			const startX = e.screenX;
 			const startY = e.screenY;
-			const winPosition = win.getPosition();
+			const winPosition = await getWinPos();
 			const setPosition = (evt: MouseEvent) => {
 				if (!this.size) {
 					this.size = {
@@ -42,7 +42,7 @@ export default defineComponent({
 						width: window.innerWidth,
 					};
 				}
-				win.setBounds({
+				setWinBounds({
 					...this.size,
 					x: winPosition[0] + (evt.screenX - startX),
 					y: winPosition[1] + (evt.screenY - startY),
