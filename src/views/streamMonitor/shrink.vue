@@ -3,10 +3,10 @@
 		<transition name="fade">
 			<div class="unstreamable" v-if="streamStatus.step === 'nostreamable'">
 				{{ common.unstreamable }}<br />
-				<el-button size="mini" type="primary" @click="$store.dispatch('nostreamable')">点击重试</el-button>
+				<el-button  type="primary" @click="$store.dispatch('nostreamable')">点击重试</el-button>
 			</div>
 			<div class="unstreamable" v-else-if="!isStreaming">
-				<el-button type="primary" :disabled="loading" class="logBtn" size="medium" @click="openStream">
+				<el-button type="primary" :disabled="loading" class="logBtn" size="large" @click="openStream">
 					{{ $route.name === "roomMgmt" ? "确认开播" : "点我开播" }}
 				</el-button>
 			</div>

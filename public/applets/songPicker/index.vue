@@ -47,7 +47,6 @@
 				<el-button-group>
 					<el-button
 						class="btn"
-						size="mini"
 						@click="
 							playing = null;
 							startSong();
@@ -62,12 +61,11 @@
 					<title-scrolling :label="song.nickName" />
 				</div>
 				<el-button-group>
-					<el-button class="btn" size="mini" @click="switchTo(song)"
+					<el-button class="btn"  @click="switchTo(song)"
 						>切歌</el-button
 					>
 					<el-button
 						class="btn"
-						size="mini"
 						@click="pending = pending.filter(i => i !== song)"
 						>移除</el-button
 					>
@@ -77,14 +75,12 @@
 		<div class="row">
 			<el-select
 				style="width:100px"
-				size="mini"
 				v-model="settings.addType"
 			>
 				<el-option label="编号" value="id" />
 				<el-option label="歌名" value="name" />
 			</el-select>
 			<el-input
-				size="mini"
 				v-model="search"
 				placeholder="输入歌名/编号，enter添加"
 				@keydown.enter="addSongSearch"
@@ -99,7 +95,6 @@
 				<span class="shadow">自动播放</span>
 				<el-switch
 					@change="upgradeSettings"
-					size="mini"
 					v-model="settings.autoplay"
 				/>
 			</div>
@@ -107,7 +102,6 @@
 				<span class="shadow">冷却时间</span>
 				<el-input-number
 					@change="upgradeSettings"
-					size="mini"
 					v-model="settings.coolingTime"
 					:min="0"
 				/>
@@ -118,7 +112,6 @@
 			<div class="row">
 				<span class="shadow">点歌反馈</span>
 				<el-switch
-					size="mini"
 					@change="upgradeSettings"
 					v-model="settings.feedback"
 				/>
@@ -131,7 +124,6 @@
 			<div class="row">
 				<span class="shadow">购买点歌券点歌</span>
 				<el-switch
-					size="mini"
 					@change="upgradeSettings"
 					v-model="settings.needGift"
 				/>
@@ -139,7 +131,6 @@
 			<div class="row">
 				<span class="shadow">允许切歌</span>
 				<el-switch
-					size="mini"
 					@change="upgradeSettings"
 					v-model="settings.allowSwitch"
 				/>
@@ -147,7 +138,6 @@
 			<div class="row" v-if="settings.allowSwitch">
 				<span class="shadow">冷却时间</span>
 				<el-input-number
-					size="mini"
 					@change="upgradeSettings"
 					v-model="settings.switchCooling"
 					:min="0"
@@ -161,7 +151,6 @@
 			<div class="row" v-if="settings.needGift || settings.allowSwitch">
 				<span class="shadow">点歌券价值(AC币)</span>
 				<el-input-number
-					size="mini"
 					v-model="settings.giftValue"
 					:min="0"
 				/>
@@ -177,7 +166,6 @@
 			<div class="row">
 				<el-select
 					style="width:100%"
-					size="mini"
 					@change="upgradeSettings"
 					v-model="settings.peopleBlackList"
 					multiple
@@ -200,7 +188,6 @@
 			<div class="row">
 				<el-select
 					style="width:100%"
-					size="mini"
 					@change="upgradeSettings"
 					v-model="settings.keywordBlackList"
 					multiple
@@ -220,17 +207,15 @@
 			<div class="row">
 				<span class="shadow">列表为空时随机播放歌单</span>
 				<el-switch
-					size="mini"
 					v-model="settings.playSongListWhenEmpty"
 				/>
 			</div>
 			<div class="row" v-if="settings.playSongListWhenEmpty">
 				<span class="shadow">网易云歌单导入</span>
-				<el-input size="mini" v-model="songListID" placeholder="歌单id">
+				<el-input  v-model="songListID" placeholder="歌单id">
 					<template #append>
 						<el-button
 							type="primary"
-							size="mini"
 							class="btnBase attach"
 							@click="getSongList()"
 							>获取
@@ -253,23 +238,21 @@
 			<div class="row">
 				<span class="shadow">歌名大小</span>
 				<el-input-number
-					size="mini"
 					v-model="settings.titleSize"
 					:min="1"
 				/>
 			</div>
 			<div class="row">
 				<span class="shadow">歌名颜色</span>
-				<el-color-picker size="mini" v-model="settings.titleColor" />
+				<el-color-picker  v-model="settings.titleColor" />
 			</div>
 			<div class="row">
 				<span class="shadow">歌名轮廓颜色</span>
-				<el-color-picker size="mini" v-model="settings.titleShadow" />
+				<el-color-picker  v-model="settings.titleShadow" />
 			</div>
 			<div class="row">
 				<span class="shadow">歌名轮廓大小</span>
 				<el-input-number
-					size="mini"
 					:step="0.1"
 					v-model="settings.titleOutline"
 					:min="0.1"
@@ -278,34 +261,31 @@
 			<div class="row">
 				<span class="shadow">歌词大小</span>
 				<el-input-number
-					size="mini"
 					v-model="settings.lyricSize"
 					:min="1"
 				/>
 			</div>
 			<div class="row">
 				<span class="shadow">歌词颜色</span>
-				<el-color-picker size="mini" v-model="settings.lyricColor" />
+				<el-color-picker  v-model="settings.lyricColor" />
 			</div>
 			<div class="row">
 				<span class="shadow">歌词轮廓颜色</span>
-				<el-color-picker size="mini" v-model="settings.lyricShadow" />
+				<el-color-picker  v-model="settings.lyricShadow" />
 			</div>
 			<div class="row">
 				<span class="shadow">歌词轮廓大小</span>
 				<el-input-number
-					size="mini"
 					:step="0.1"
 					v-model="settings.lyricOutline"
 					:min="0.1"
 				/>
 			</div>
 			<div class="row">
-				<el-input size="mini" :model-value="obsLink">
+				<el-input  :model-value="obsLink">
 					<template #append>
 						<el-button
 							type="primary"
-							size="mini"
 							class="btnBase attach"
 							@click="copy(obsLink)"
 							>复制
@@ -315,7 +295,7 @@
 			</div>
 			<div class="row">
 				<span class="shadow">优先显示翻译歌词</span>
-				<el-switch size="mini" v-model="settings.translateFirst" />
+				<el-switch  v-model="settings.translateFirst" />
 			</div>
 			<span class="hint">推荐尺寸：400px x 100px</span>
 		</el-dialog>

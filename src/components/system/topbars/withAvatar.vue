@@ -8,7 +8,7 @@
 			<el-avatar size="small" :src="$store.state.userProfile.avatar" />
 			<span class="username">{{ $store.state.userProfile.nickname }}</span>
 		</div>
-		<el-dropdown placement="bottom-start" size="mini">
+		<el-dropdown placement="bottom-start" >
 			<div class="buttonIcon"><span class="el-icon-menu" /></div>
 			<template #dropdown>
 				<el-dropdown-menu class="menu">

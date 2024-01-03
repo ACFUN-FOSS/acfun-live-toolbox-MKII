@@ -10,7 +10,7 @@
 			</div>
 			<div class="v3-gradient-picker-stop" v-for="(stop, index) in stops" :key="index" :style="stopStyle(index)" :class="{ active: index == currentStopIdx }" @mousedown.stop="handleMouseDown(index, $event)"
 				@contextmenu.stop="handleMouseRightCLick(index,$event)">
-				<el-color-picker show-alpha size="mini" :modelValue="stops[index][0]" @update:modelValue="stops[index][0] = $event.replaceAll(' ','')" />
+				<el-color-picker show-alpha  :modelValue="stops[index][0]" @update:modelValue="stops[index][0] = $event.replaceAll(' ','')" />
 			</div>
 		</div>
 

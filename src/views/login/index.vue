@@ -37,12 +37,11 @@
 			</div>
 		</transition>
 		<footer-base class="foter right" />
-		<el-dialog custom-class="dialogBase" title="免责声明" v-model="disclaimerDialog">
+		<el-dialog class="dialogBase" title="免责声明" v-model="disclaimerDialog">
 			<div>{{ loginTexts.disclaimer }}</div>
 			<template #footer>
 				<el-button
 					type="primary"
-					size="mini"
 					@click="
 						userData.disclaimerCheck = true;
 						disclaimerDialog = false;

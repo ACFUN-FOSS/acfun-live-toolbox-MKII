@@ -4,16 +4,16 @@
 		<div class="votePanel" v-show="status=='setting'">
 			<div class="row">
 				<span class="shadow">标题</span>
-				<el-input size="mini" v-model="settings.title" />
+				<el-input  v-model="settings.title" />
 			</div>
 			<div class="row" v-for="(item,index) in voteItem" :key="index">
 				<span class="shadow">选项{{index+1}}</span>
-				<el-input size="mini" v-model="item.keyword" :maxlength="10" placeholder="不要输入标点符号,最多10字" />
-				<el-button size="mini" @click="voteItem = voteItem.filter(i=>i!==item)">删除</el-button>
+				<el-input  v-model="item.keyword" :maxlength="10" placeholder="不要输入标点符号,最多10字" />
+				<el-button  @click="voteItem = voteItem.filter(i=>i!==item)">删除</el-button>
 			</div>
 			<div class="row">
 				<span class="shadow">选择礼物</span>
-				<el-select size="mini" v-model="giftName">
+				<el-select  v-model="giftName">
 					<el-option v-for="gift in gifts" :key="gift.giftID" :value="gift.giftName" :label="gift.giftName" />
 				</el-select>
 			</div>
@@ -21,10 +21,10 @@
 				<span class="shadow">去重默认开启,多次送礼不会重复获得投票机会</span>
 			</div>
 			<div class="row">
-				<el-button size="mini" v-if="voteItem.length<maxNum" type="primary" @click="addItem">
+				<el-button  v-if="voteItem.length<maxNum" type="primary" @click="addItem">
 					点击添加（剩余可添加{{maxNum-voteItem.length}}）</el-button>
 
-				<el-button size="mini" type="primary" @click="status='voting'" :disabled="voteItem.length<2||!giftName">
+				<el-button  type="primary" @click="status='voting'" :disabled="voteItem.length<2||!giftName">
 					开始投票</el-button>
 
 			</div>
@@ -40,10 +40,10 @@
 				</div>
 			</div>
 			<div class="row">
-				<el-button size="mini" type="primary" @click="status='voted'" v-show="status==='voting'">停止计票
+				<el-button  type="primary" @click="status='voted'" v-show="status==='voting'">停止计票
 				</el-button>
-				<el-button size="mini" type="primary" v-show="status=='voted'" disabled>点击柱形图查看投票人</el-button>
-				<el-button size="mini" type="primary" v-show="status=='voted'" @click="reset">重新投票</el-button>
+				<el-button  type="primary" v-show="status=='voted'" disabled>点击柱形图查看投票人</el-button>
+				<el-button  type="primary" v-show="status=='voted'" @click="reset">重新投票</el-button>
 			</div>
 		</div>
 		<el-dialog :title="`投${voteItem[showIndex]?voteItem[showIndex].keyword:''}的观众列表`" v-model="voterShow">

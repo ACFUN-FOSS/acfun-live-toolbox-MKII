@@ -18,11 +18,10 @@
 		</row-frame>
 		<row-frame style="width:100%" title="链接">
 			<span class="hint">配置完毕后，复制下方链接至obs即可</span>
-			<el-input size="mini" :model-value="url">
+			<el-input  :model-value="url">
 				<template #append>
 					<el-button
 						type="primary"
-						size="mini"
 						class="btnBase attach"
 						@click="copy(url)"
 						>复制

@@ -1,9 +1,9 @@
 <template>
 	<div id="room-chat" style="width:100%">
-		<el-input ref="input" size="mini" @keyup.enter="sendDanmaku" v-model="value" :placeholder="status.tips" :disabled="status.disabled">
+		<el-input ref="input"  @keyup.enter="sendDanmaku" v-model="value" :placeholder="status.tips" :disabled="status.disabled">
 			<template #append v-if="danmakuProfile.common.emotion&&danmakuProfile.common.emojis.length">
 				<el-dropdown @command="addEmotion" type="primary" trigger="hover" max-height="200px" style="line-height:28px" :hide-on-click="false">
-					<el-button type="primary" size="mini" class="btnBase attach">😀</el-button>
+					<el-button type="primary"  class="btnBase attach">😀</el-button>
 					<template #dropdown>
 						<el-dropdown-menu class="emotion-drop-down">
 							<el-dropdown-item v-for="(emoji,index) in danmakuProfile.common.emojis" :key="index" :command="emoji.pattern">

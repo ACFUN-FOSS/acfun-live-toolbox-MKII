@@ -4,13 +4,13 @@
 			最大回滚弹幕数量
 		</row-span>
 		<row-span :span="2">
-			<el-input-number size="mini" v-model="setting.maxNum" />
+			<el-input-number  v-model="setting.maxNum" />
 		</row-span>
 		<row-span :span="6">
 			弹幕方向
 		</row-span>
 		<row-span :span="6">
-			<el-select v-model="setting.direction" size="mini">
+			<el-select v-model="setting.direction" >
 				<el-option label="新弹幕在下" value="addToBottom" />
 				<el-option label="新弹幕在上" value="addToTop" />
 			</el-select>

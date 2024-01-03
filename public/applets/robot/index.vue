@@ -4,15 +4,15 @@
 		<div class="votePanel">
 			<div class="row">
 				<span class="shadow">公告内容</span>
-				<el-input size="mini" v-model="settings.content" :maxlength="45" />
+				<el-input  v-model="settings.content" :maxlength="45" />
 			</div>
 			<div class="row">
 				<span class="shadow">公告周期（秒）</span>
-				<el-input-number size="mini" v-model="settings.period" :min="10" />
+				<el-input-number  v-model="settings.period" :min="10" />
 			</div>
 			<div class="row">
-				<el-button type="primary" size="mini" @click="startRobot">启动</el-button>
-				<el-button type="danger" size="mini" @click="stopRobot">停止</el-button>
+				<el-button type="primary"  @click="startRobot">启动</el-button>
+				<el-button type="danger"  @click="stopRobot">停止</el-button>
 			</div>
 		</div>
 	</div>

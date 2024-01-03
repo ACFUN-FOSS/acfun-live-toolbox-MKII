@@ -4,7 +4,7 @@
 			特别关心
 		</row-span>
 		<row-span :span="3">
-			<el-select v-model="setting.hightLight.concerned" size="mini">
+			<el-select v-model="setting.hightLight.concerned" >
 				<el-option v-for="i in switchOptions" :key="i.value" :value="i.value" :label="i.label" />
 			</el-select>
 		</row-span>
@@ -12,7 +12,7 @@
 			榜单前三
 		</row-span>
 		<row-span :span="3">
-			<el-select v-model="setting.hightLight.boss" size="mini">
+			<el-select v-model="setting.hightLight.boss" >
 				<el-option v-for="i in switchOptions" :key="i.value" :value="i.value" :label="i.label" />
 			</el-select>
 		</row-span>
@@ -22,7 +22,7 @@
 			房管
 		</row-span>
 		<row-span :span="3">
-			<el-select v-model="setting.hightLight.manager" size="mini">
+			<el-select v-model="setting.hightLight.manager" >
 				<el-option v-for="i in switchOptions" :key="i.value" :value="i.value" :label="i.label" />
 			</el-select>
 		</row-span>

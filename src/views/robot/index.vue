@@ -7,12 +7,12 @@
 		<row-frame width="100%" title="通用设置">
 			<vue-form :form-footer="{ show: false }" v-model="robotSetting" :schema="schema" :ui-schema="uiSchema" />
 			<row-span :span="4">
-				<el-button size="mini" style="margin-top: -8px" type="primary" @click="save">保存</el-button>
+				<el-button  style="margin-top: -8px" type="primary" @click="save">保存</el-button>
 			</row-span>
 		</row-frame>
 		<row-frame width="100%" wi v-for="type in typeOptions" :title="type.label" :key="type.value">
 			<rule-chain v-if="robotSetting.enable.includes(type.value)" :allow="type.value" v-model="robotSetting.rules[type.value]" :voice-list="voices" />
-			<el-button v-if="robotSetting.enable.includes(type.value)" size="mini" :disabled="!robotSetting.rules[type.value].length" @click="preview(type.value)" style="margin-top: 8px">
+			<el-button v-if="robotSetting.enable.includes(type.value)"  :disabled="!robotSetting.rules[type.value].length" @click="preview(type.value)" style="margin-top: 8px">
 				点击试听</el-button
 			>
 			<el-checkbox style="margin-left: 8px" :model-value="robotSetting.enable.includes(type.value)" @update:model-value="switchType($event, type.value)">开启</el-checkbox>
