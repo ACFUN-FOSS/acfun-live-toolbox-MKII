@@ -5,7 +5,7 @@
 <div align="center">
   <span><img src="./readme_acfunlogo.svg" height="50px"></span>
   &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 
-  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 
+  &nbsp; &nbsp; &nbsp; 
   <span><img src="./readme_agpllogo1.png" height="50px"></span>
 </div>
 <div align="center">
@@ -21,11 +21,12 @@ Node.js LTS latest.
 ```sh
 # Please switch to node.js lts latest
 
+cd acfunlive-toolbox-client
 corepack enable
+yarn set version stable
 ```
 ### 2. Install dependencies
 ```sh
-cd acfunlive-toolbox-client
 yarn install
 ```
 
