@@ -36,6 +36,7 @@
 		"vue-tsc": "^1.8.8"
 	},
 	"dependencies": {
+		"@element-plus/icons-vue": "^2.3.1",
 		"@lljj/vue3-form-element": "^1.19.0",
 		"archiver": "^6.0.1",
 		"axios": "^1.6.2",

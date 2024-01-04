@@ -12,7 +12,8 @@
 					:class="{ active: $route.name == row.name, disabled: row.meta.disabled ? row.meta.disabled() : false }"
 					@click="route(row)"
 				>
-					<span class="rowIcon" :class="row.meta.icon" />{{ row.meta.label }}
+					<el-icon class="rowIcon"><component :is="row.meta.icon"></component></el-icon>{{ row.meta.label }}
+					<!-- <span class="rowIcon" :class="row.meta.icon" /> -->
 				</div>
 			</div>
 		</div>
@@ -29,7 +30,7 @@ export default defineComponent({
 	name: "sidebarBase",
 	data() {
 		return {
-			event,
+			event
 		};
 	},
 	computed: {
@@ -37,7 +38,7 @@ export default defineComponent({
 		common,
 		contents() {
 			return content.slice(2).filter((i) => !i.hidden);
-		},
+		}
 	},
 	methods: {
 		route(row: any) {
@@ -52,8 +53,8 @@ export default defineComponent({
 			if (typeof row.meta.action === "function") {
 				row.meta.action();
 			}
-		},
-	},
+		}
+	}
 });
 </script>
 

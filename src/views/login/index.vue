@@ -12,17 +12,19 @@
 						<el-input type="password" v-model="userData.password" :disabled="logining" @keypress.enter="login()" placeholder="A站密码" />
 					</div>
 					<div class="row sep">
-						<div>
+						<div class="sep-row">
 							<el-checkbox class="logCheck" v-model="userData.disclaimerCheck" :disabled="logining" />
-							同意 ><el-button type="text" class="buttonText" @click="disclaimerDialog = true" :disabled="logining">免责声明 </el-button>
+							<span class="sep-l-item">同意</span>
+							<el-icon class="sep-l-item" size="14"><ArrowRightBold /></el-icon>
+							<span class="sep-l-item buttonText" @click="disclaimerDialog = true">免责声明</span>
 						</div>
-						<div>
+						<div class="sep-row">
 							<el-checkbox class="logCheck" v-model="userData.keepLogined" :disabled="logining" />
-							保持登录
+							<span class="sep-l-item">保持登录</span>
 						</div>
 					</div>
 					<div class="row">
-						<el-button type="primary" :disabled="loginDisabled" class="logBtn" @click="login(true)">登陆 </el-button>
+						<el-button type="primary" :disabled="loginDisabled" class="logBtn" @click="login(true)">登录 </el-button>
 					</div>
 					<div class="row logText">
 						<transition name="fade" mode="out-in">
@@ -69,7 +71,7 @@ import { login as loginTexts, common } from "@front/texts";
 export default defineComponent({
 	name: "login",
 	components: {
-		topbarBase,
+		topbarBase
 	},
 	data() {
 		const checkTimer: any = null;
@@ -78,7 +80,7 @@ export default defineComponent({
 				account: "",
 				password: "",
 				keepLogined: false,
-				disclaimerCheck: false,
+				disclaimerCheck: false
 			},
 			common: common(),
 			disclaimerDialog: false,
@@ -87,7 +89,7 @@ export default defineComponent({
 			checkTimer,
 			loginFailedText: "",
 			welcome: false,
-			welcomeLogoKey: "111",
+			welcomeLogoKey: "111"
 		} as Record<string, any>;
 	},
 	computed: {
@@ -97,16 +99,16 @@ export default defineComponent({
 		},
 		loginText(): string {
 			if (this.logining) {
-				return "登陆中...";
+				return "登录中...";
 			}
 			if (this.loginFailedText) {
-				return `登陆失败： ${this.loginFailedText}`;
+				return `登录失败： ${this.loginFailedText}`;
 			}
 			if (this.serveOnline) {
 				return "服务端已连接";
 			}
 			return "服务端离线,请尝试关闭工具箱并右键以管理员权限打开";
-		},
+		}
 	},
 	mounted() {
 		this.getCookie();
@@ -191,8 +193,8 @@ export default defineComponent({
 			} else {
 				return true;
 			}
-		},
-	},
+		}
+	}
 });
 </script>
 
@@ -261,6 +263,14 @@ export default defineComponent({
 					justify-content: space-between;
 					align-items: center;
 					user-select: none;
+					.sep-row {
+						display: flex;
+						justify-content: space-between;
+						align-items: center;
+					}
+					.sep-l-item {
+						margin-left: 5px;
+					}
 				}
 			}
 			&.logText {
@@ -271,6 +281,7 @@ export default defineComponent({
 			}
 
 			.buttonText {
+				cursor: pointer;
 				color: getCssVar("color", "primary", "base") !important;
 			}
 		}

@@ -8,8 +8,10 @@
 			<el-avatar size="small" :src="$store.state.userProfile.avatar" />
 			<span class="username">{{ $store.state.userProfile.nickname }}</span>
 		</div>
-		<el-dropdown placement="bottom-start" >
-			<div class="buttonIcon"><span class="el-icon-menu" /></div>
+		<el-dropdown placement="bottom-start">
+			<div class="buttonIcon">
+				<el-icon> <Menu /></el-icon>
+			</div>
 			<template #dropdown>
 				<el-dropdown-menu class="menu">
 					<el-dropdown-item class="item" @click="logout()"> 切换账号{{ $store.state.streaming ? " （建议先结束直播）" : "" }}</el-dropdown-item>
@@ -33,13 +35,13 @@ export default defineComponent({
 	name: "topbarAvatar",
 	components: {
 		HandlerMoving,
-		HandlerWindow,
+		HandlerWindow
 	},
 	methods: {
 		logout() {
 			logout();
-		},
-	},
+		}
+	}
 });
 </script>
 <style scoped lang="scss">

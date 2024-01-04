@@ -29,7 +29,7 @@ export default [
 				name: "dashboard",
 				meta: {
 					label: "首页",
-					icon: "el-icon-monitor",
+					icon: "Monitor",
 					action: "router"
 				},
 				component: () => import("@front/views/dashboard/index.vue")
@@ -39,7 +39,7 @@ export default [
 				name: "roomMgmt",
 				meta: {
 					label: "房间管理",
-					icon: "el-icon-house",
+					icon: "House",
 					action: "router",
 					disabled: () => {
 						return store.state.streamStatus.step === "unstreamable";
@@ -52,7 +52,7 @@ export default [
 				name: "appletsList",
 				meta: {
 					label: "小程序",
-					icon: "el-icon-menu",
+					icon: "Menu",
 					action: "router"
 				},
 				component: () => import("@front/views/applets/index.vue")
@@ -62,7 +62,7 @@ export default [
 				name: "restart",
 				meta: {
 					label: "快速重启！",
-					icon: "el-icon-refresh-right",
+					icon: "RefreshRight",
 					action: restart
 				}
 			},
@@ -71,7 +71,7 @@ export default [
 				name: "magiScr",
 				meta: {
 					label: "魔法画屏",
-					icon: "el-icon-magic-stick",
+					icon: "MagicStick",
 					action: "router",
 					disabled: () => {
 						return true;
@@ -94,7 +94,7 @@ export default [
 				name: "streamRecord",
 				meta: {
 					label: "直播录制",
-					icon: "el-icon-video-camera",
+					icon: "VideoCamera",
 					action: "router",
 					disabled: () => {
 						return false;
@@ -117,12 +117,9 @@ export default [
 				name: "replay",
 				meta: {
 					label: "完播复盘",
-					icon: "el-icon-pie-chart",
+					icon: "PieChart",
 					action: () => {
-						window.open(
-							`http://ac.sizzwoo.cc/rank/u/${store.state.userProfile.userID}`,
-							"_blank"
-						);
+						window.open(`http://ac.sizzwoo.cc/rank/u/${store.state.userProfile.userID}`, "_blank");
 					},
 					disabled: () => {
 						return false;
@@ -146,7 +143,7 @@ export default [
 				component: () => import("@front/views/general/index.vue"),
 				meta: {
 					label: "通用",
-					icon: "el-icon-setting",
+					icon: "Setting",
 					action: "router"
 					// disabled: () => {
 					// 	return true;
@@ -160,7 +157,7 @@ export default [
 				component: () => import("@front/views/superChat/index.vue"),
 				meta: {
 					label: "超级聊",
-					icon: "el-icon-upload2",
+					icon: "Upload",
 					action: "router"
 				}
 			},
@@ -170,7 +167,7 @@ export default [
 				component: () => import("@front/views/emotion/index.vue"),
 				meta: {
 					label: "表情包",
-					icon: "el-icon-edit",
+					icon: "Edit",
 					action: "router"
 				}
 			},
@@ -180,7 +177,7 @@ export default [
 				component: () => import("@front/views/roomNameList/index.vue"),
 				meta: {
 					label: "小本本",
-					icon: "el-icon-tickets",
+					icon: "Tickets",
 					action: "router",
 					disabled: () => {
 						return false;
@@ -190,11 +187,10 @@ export default [
 			{
 				path: "/config/danmakuSetting",
 				name: "danmakuSetting",
-				component: () =>
-					import("@front/views/danmakuSetting/index.vue"),
+				component: () => import("@front/views/danmakuSetting/index.vue"),
 				meta: {
 					label: "弹幕流",
-					icon: "el-icon-chat-line-square",
+					icon: "ChatLineSquare",
 					action: "router",
 					disabled: () => {
 						return false;
@@ -207,7 +203,7 @@ export default [
 				component: () => import("@front/views/robot/index.vue"),
 				meta: {
 					label: "鸡鸡人",
-					icon: "el-icon-user",
+					icon: "User",
 					action: "router",
 					disabled: () => {
 						return false;

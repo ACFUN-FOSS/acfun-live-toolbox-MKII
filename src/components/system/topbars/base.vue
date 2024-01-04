@@ -5,17 +5,15 @@
 				<span class="el-icon-more-outline" />
 			</handler-moving>
 		</div>
-		<div class="button el-icon-minus" @click="minimize()" />
-		<div class="button el-icon-close" @click="close()" />
+		<el-icon @click="minimize()" class="button"><Minus /></el-icon>
+		<el-icon @click="close()" class="button"><Close /></el-icon>
 	</div>
 </template>
 
 <script lang="ts">
 import { defineComponent, defineAsyncComponent } from "vue";
 import { minimize, close } from "@front/util_function/system";
-const HandlerMoving = defineAsyncComponent(() =>
-	import("@front/components/system/HandlerMoving.vue")
-);
+const HandlerMoving = defineAsyncComponent(() => import("@front/components/system/HandlerMoving.vue"));
 export default defineComponent({
 	name: "topbarBase",
 	components: {
@@ -28,10 +26,10 @@ export default defineComponent({
 });
 </script>
 
-<style scoped lang='scss'>
+<style scoped lang="scss">
 #topbar {
 	width: 100%;
-	height: 24px;
+	height: 26px;
 	display: flex;
 	position: relative;
 	transition: background-color 0.25s;
@@ -53,7 +51,7 @@ export default defineComponent({
 		font-size: 14px;
 		color: white;
 		border-radius: 0px;
-		padding: 2px 8px;
+		padding: 6px 8px;
 		margin: 0px;
 		transition: background-color 0.25s;
 		&:hover {

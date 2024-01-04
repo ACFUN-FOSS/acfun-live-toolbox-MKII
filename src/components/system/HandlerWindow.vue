@@ -1,6 +1,10 @@
 <template>
-	<div class="buttonIcon" @click="minimize()"><span class="el-icon-minus" /></div>
-	<div class="buttonIcon" @click="closeConfirm()"><span class="el-icon-close" /></div>
+	<div class="buttonIcon el-icon" @click="minimize()">
+		<el-icon> <Minus /></el-icon>
+	</div>
+	<div class="buttonIcon" @click="closeConfirm()">
+		<el-icon> <Close /></el-icon>
+	</div>
 </template>
 
 <script>
