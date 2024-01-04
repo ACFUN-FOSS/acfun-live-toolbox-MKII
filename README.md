@@ -14,18 +14,30 @@
 </div>
 
 ## Prerequisite
-Node.js LTS latest.
+ * Node.js LTS latest.
+ * Yarn ≥ **3**.
 
 ## Setup
 ### 1. Setup yarn
 ```sh
 # Please switch to node.js lts latest
 
-cd acfunlive-toolbox-client
+cd acfun-live-toolbox-MKII
 corepack enable
 yarn set version stable
 ```
-### 2. Install dependencies
+### 2. Setup development environment variables
+⚠ ATTENTION: You should perform this step *every time* you download anything with yarn.
+
+*Windows:*
+```batch
+CALL dev-tools\setup_dev_envvars
+```
+*UNIX:*
+```sh
+source ./dev-tools/setup_dev_envvars.sh
+```
+### 3. Install dependencies
 ```sh
 yarn install
 ```
@@ -40,10 +52,10 @@ yarn run dev
 
 ### Debug in other editors
 *Windows:*
-```sh
+```batch
 node_modules\.bin\electron --remote-debugging-port=9229 .
 ```
-*Unix:*
+*UNIX:*
 ```sh
 node_modules/.bin/electron --remote-debugging-port=9229 .
 ```
