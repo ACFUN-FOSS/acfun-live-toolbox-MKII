@@ -93,6 +93,7 @@ async function createWindow() {
 	} else {
 		startHttp().then((res: any) => {
 			win.loadURL(res);
+			win.webContents.openDevTools();
 		});
 	}
 

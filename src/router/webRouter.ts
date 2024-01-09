@@ -1,5 +1,7 @@
 // import { obsApplets } from "@front/applets";
 
+import { RouteRecordRaw } from "vue-router";
+
 // ATTENTION: Don't use:
 // process
 // global
@@ -8,6 +10,8 @@
 
 // ATTENTION: Make sure browser (not electron) is able to
 // execute all code of this file.
+
+// TODO: REFACTOR: 重命名为 “externalBrowserRouting” 类似的字眼。
 
 export default [
 	{
@@ -48,4 +52,4 @@ export default [
 		name: "404",
 		component: () => import("@front/views/error-page/404.vue")
 	}
-];
+] as RouteRecordRaw[];

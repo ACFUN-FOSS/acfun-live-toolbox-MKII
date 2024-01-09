@@ -1,13 +1,21 @@
 import store from "@front/store";
-import testRouters from "@front/test";
+//import testRouters from "@front/test";
 import appletLayout from "@front/layouts/applets/index.vue";
 import { restart } from "@front/util_function/login";
+import { isDev } from "@front/util_function/base";
+import { RouteRecordRaw } from "vue-router";
 const main = () => import("@front/layouts/main/index.vue");
-export default [
+
+// TODO: REFACTOR: 重命名 “clientRouter” 为 “electronBrowserRouting” 类似的字眼。
+
+const clientRouter: RouteRecordRaw[] = [
 	{
 		name: "applets",
 		path: "/applets",
 		component: appletLayout,
+
+		// See: /src/components/base/sidebars/sidebarBase.vue
+		// TODO: REFACTOR:
 		hidden: true
 	},
 	{
@@ -211,6 +219,19 @@ export default [
 				}
 			}
 		]
-	},
-	...testRouters
+	}
 ];
+
+
+
+export async function getClientRouter(): Promise<RouteRecordRaw[]> {
+	if (isDev()) {
+		const testPagesRouting = (await import("@front/test")).default
+		return [
+			...clientRouter,
+			...testPagesRouting
+		];
+	} else {
+		return clientRouter;
+	}
+}

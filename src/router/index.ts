@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import { isElectron } from "@front/util_function/electron";
-import client from "./clientRouter";
-import web from "./webRouter";
-const routes: Array<RouteRecordRaw> = isElectron() ? client : web;
+const routes: Array<RouteRecordRaw> = isElectron() ?
+	await (await import("@front/router/clientRouter")).getClientRouter()
+	: (await import("@front/router/webRouter")).default;
+
 console.log(routes);
 
 // ATTENTION: Don't use:

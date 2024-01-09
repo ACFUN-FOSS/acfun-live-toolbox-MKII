@@ -88,5 +88,12 @@ export default defineConfig(({ command }) => {
 				};
 			})(),
 		clearScreen: false,
+		build: {
+			target: "esnext",
+			rollupOptions: {
+				// build 時候忽略 test 目录
+				external: new RegExp("/src/test/.*")
+			}
+		}
 	};
 });

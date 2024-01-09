@@ -3,7 +3,7 @@
 		<div class="mainTitle">{{ common.title + common.subTitle }}</div>
 		<div class="subTitle">版本：{{ common.version }}</div>
 		<div class="sidebarList">
-			<div class="listBlock" v-for="item in contents" :key="item.meta.label">
+			<div class="listBlock" v-for="item in routingToShow" :key="item.meta.label">
 				<div class="blockTitle">{{ item.meta.label }}</div>
 				<div
 					class="blockRow"
@@ -25,19 +25,31 @@
 import { defineComponent } from "vue";
 import { footer, common } from "@front/texts";
 import { event } from "@front/util_function/eventBus";
-import content from "@front/router/clientRouter";
+import { getClientRouter } from "@front/router/clientRouter";
+
+
 export default defineComponent({
 	name: "sidebarBase",
+	mounted() {
+		getClientRouter().then((routing) => {
+			// TODO: REFACTOR: ?????
+			this.routingToShow = routing.slice(2).filter((i) =>!i.hidden);
+		});
+	},
 	data() {
 		return {
-			event
+			event,
+			routingToShow: []
 		};
 	},
 	computed: {
 		footer,
 		common,
 		contents() {
-			return content.slice(2).filter((i) => !i.hidden);
+			// TODO: REFACTOR: 可见拓展了 RouteRecordRaw（hidden 是自定义字段），用
+			// 接口描述数据结构。
+			// TODO: Edit /src/router/clientRouter.ts.
+			
 		}
 	},
 	methods: {

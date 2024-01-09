@@ -1945,6 +1945,7 @@ __metadata:
     sass: ^1.69.5
     socket.io: ^4.7.2
     socket.io-client: ^4.7.2
+    tinycolor2: ^1.6.0
     tree-kill: ^1.2.2
     typescript: ^5.1.6
     unzipper: ^0.10.14
@@ -4414,6 +4415,13 @@ __metadata:
     async-exit-hook: ^2.0.1
     fs-extra: ^10.0.0
   checksum: 8e2b90321c9d865ad3e9e613cc524c9a9e22cd7820d3c8378840a01ab720116f4de4d340bbca6a50a9562b37f8ce614451fdb02dc2f993b4f9866cf81840b3cb
+  languageName: node
+  linkType: hard
+
+"tinycolor2@npm:^1.6.0":
+  version: 1.6.0
+  resolution: "tinycolor2@npm:1.6.0"
+  checksum: 6df4d07fceeedc0a878d7bac47e2cd47c1ceeb1078340a9eb8a295bc0651e17c750f73d47b3028d829f30b85c15e0572c0fd4142083e4c21a30a597e47f47230
   languageName: node
   linkType: hard
 

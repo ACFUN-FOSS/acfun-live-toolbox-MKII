@@ -1,6 +1,12 @@
+// TODO: REFACTOR: Rename `test` folder with a word like `testPage`.
+
+
 import component from "*.vue";
 import main from "@front/layouts/main/index.vue";
-let output: Array<any> = [];
+import { RouteRecordRaw } from "vue-router";
+
+let output: RouteRecordRaw[] = [];
+
 if (process.env.NODE_ENV !== "production") {
 	const children: Array<any> = [];
 	const requireComponent = import.meta.glob("./*.vue");

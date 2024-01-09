@@ -20,8 +20,9 @@
 	},
 	"scripts": {
 		"dev": "vite",
-		"build": "vue-tsc --noEmit && vite build && electron-builder",
-		"preview": "vite preview"
+		"build": "vite build && electron-builder",
+		"build-watch": "vite build --watch",
+		"electron-package": "electron-builder"
 	},
 	"devDependencies": {
 		"@vitejs/plugin-vue": "^4.3.3",
@@ -61,6 +62,7 @@
 		"sass": "^1.69.5",
 		"socket.io": "^4.7.2",
 		"socket.io-client": "^4.7.2",
+		"tinycolor2": "^1.6.0",
 		"unzipper": "^0.10.14",
 		"vue-cropperjs": "^5.0.0",
 		"vue-router": "4",
