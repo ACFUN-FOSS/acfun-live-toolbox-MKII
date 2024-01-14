@@ -24,7 +24,9 @@ export default defineConfig(({ command }) => {
 					entry: "electron/main/index.ts",
 					onstart({ startup }) {
 						if (process.env.VSCODE_DEBUG) {
-							console.log(/* For `.vscode/.debug.script.mjs` */ "[startup] Electron App");
+							console.log(
+								/* For `.vscode/.debug.script.mjs` */ "[startup] Electron App"
+							);
 						} else {
 							startup();
 						}
@@ -32,14 +34,18 @@ export default defineConfig(({ command }) => {
 					vite: {
 						build: {
 							sourcemap,
-							minify: isBuild,
+							minify: false,
 							outDir: "dist-electron/main",
 							rollupOptions: {
 								// Some third-party Node.js libraries may not be built correctly by Vite, especially `C/C++` addons,
 								// we can use `external` to exclude them to ensure they work correctly.
 								// Others need to put them in `dependencies` to ensure they are collected into `app.asar` after the app is built.
 								// Of course, this is not absolute, just this way is relatively simple. :)
-								external: Object.keys("dependencies" in pkg ? pkg.dependencies : {}),
+								external: Object.keys(
+									"dependencies" in pkg
+										? pkg.dependencies
+										: {}
+								),
 							},
 						},
 						plugins: [
@@ -62,7 +68,11 @@ export default defineConfig(({ command }) => {
 							minify: isBuild,
 							outDir: "dist-electron/preload",
 							rollupOptions: {
-								external: Object.keys("dependencies" in pkg ? pkg.dependencies : {}),
+								external: Object.keys(
+									"dependencies" in pkg
+										? pkg.dependencies
+										: {}
+								),
 							},
 						},
 						plugins: [isServe && notBundle()],
@@ -92,8 +102,8 @@ export default defineConfig(({ command }) => {
 			target: "esnext",
 			rollupOptions: {
 				// build 時候忽略 test 目录
-				external: new RegExp("/src/test/.*")
-			}
-		}
+				external: new RegExp("/src/test/.*"),
+			},
+		},
 	};
 });

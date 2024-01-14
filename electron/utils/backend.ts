@@ -1,68 +1,92 @@
-import { ipcMain } from "electron";
-import { appStatic, configStatic } from "./paths";
-const { spawn } = require("child_process");
-const path = require("path");
-const find = require("find-process");
-const process = require("process");
-const fs = require("fs");
-let restarting = false;
+import nodeSession from "./gcBackend/node";
+import { v4 as uuidv4 } from "uuid";
+import {} from "express";
+let session = null;
+let danmakuFlows = {};
+let online = false;
+
+const setResJson = (res) => {
+	res.setHeader("Content-Type", "text/json");
+	res.setHeader("Cache-Control", "no-cache");
+	res.flushHeaders();
+};
+const setResSSE = (res) => {
+	res.setHeader("Content-Type", "text/event-stream");
+	res.setHeader("Cache-Control", "no-cache");
+	res.setHeader("Connection", "keep-alive");
+	res.flushHeaders();
+};
+
 class Backend {
-	static file(): string {
-		const platform = process.platform === "linux" ? "linux" : process.platform === "darwin" ? "mac" : "win";
-		const filename = ["acbackend", platform, process.arch].join("-");
-		return process.platform === "win32" ? filename + ".exe" : filename;
-	}
-
-	static registerEvents() {
-		ipcMain.on("backend_init", Backend.init);
-		ipcMain.on("backend_kill", Backend.kill);
-		ipcMain.on("backend_restart", Backend.restart);
-	}
-
 	static init() {
-		const exepath = path.join(
-			// @ts-ignore
-			process.env.VITE_PUBLIC,
-			Backend.file()
-		);
-		if (process.platform !== "win32") {
-			fs.chmodSync(exepath, 0o755);
-		}
-		const logfile = process.platform === "win32" ? path.join(appStatic, "./../../TellOrzogcWhatHappened") : path.join(configStatic, "./TellOrzogcWhatHappened");
-		const backend = spawn(exepath, ["-logfile", logfile, "-logversions", "10", "-tcp"]);
-		process.on("exit", () => {
-			backend.kill();
-		});
+		this.closeDanmaku();
+		danmakuFlows = {};
+		online = false;
+		session = nodeSession();
+		session.connect();
+		session.on("websocketOpen", () => (online = true));
 	}
 
-	static kill() {
-		return find("name", "acbackend").then((list: any) => {
-			list.forEach((procs: any) => {
-				try {
-					process.kill(procs.pid);
-				} catch (error) {}
+	static addClient(uid, client) {
+		if (!danmakuFlows[uid]) danmakuFlows[uid] = new Map();
+		danmakuFlows[uid].set(uuidv4(), client);
+	}
+
+	static handleRequest({ method, params }) {
+		return session.asyncRequest(method, params);
+	}
+
+	static getDanmaku(uid) {
+		//ToDo 用Event_Stream 实现弹幕获取，需要考虑多房间弹幕的情况
+		session.on(
+			"comment",
+			({ data }) => {
+				this.saveDanmaku(data);
+				danmakuFlows[uid].forEach((client) => {
+					client.wirte(data);
+				});
+			},
+			uid
+		);
+	}
+
+	static saveDanmaku(danmaku) {
+		//ToDo sqlite
+	}
+
+	static closeDanmaku() {
+		//ToDo 服务端重启 应该没有会用到的地方
+		Object.values(danmakuFlows).forEach((danmakuFlow: Map<any, any>) => {
+			danmakuFlow.forEach((client) => {
+				client.wirte(`{ code: 999 }`);
 			});
 		});
-	}
-	static async restart(event: any) {
-		if (restarting) {
-			event.reply("restart_ack", "#error");
-			return;
-		}
-		restarting = true;
-		Backend.kill()
-			.then((list: any) => {
-				Backend.init();
-				event.reply("restart_ack");
-			})
-			.catch((e: any) => {
-				event.reply("restart_ack", "#error");
-				console.log(e);
-			})
-			.finally(() => {
-				restarting = false;
-			});
 	}
 }
 
+export const startBackend = (app) => {
+	Backend.init();
+
+	app.get("/online", (req, res) => {
+		setResJson(res);
+		res.json({ online });
+	});
+
+	app.post("/api", (req, res) => {
+		setResJson(res);
+		if (!req.body?.method) {
+			res.json("Request Failed!");
+			return;
+		}
+		Backend.handleRequest(req.body)
+			.then((revl) => {
+				res.json(revl);
+			})
+			.catch((e) => {
+				res.json(e);
+			});
+	});
+};
+
 export default Backend;
+export { session };

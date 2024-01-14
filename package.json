@@ -64,6 +64,7 @@
 		"socket.io-client": "^4.7.2",
 		"tinycolor2": "^1.6.0",
 		"unzipper": "^0.10.14",
+		"uuid": "^9.0.1",
 		"vue-cropperjs": "^5.0.0",
 		"vue-router": "4",
 		"vuex": "^4.1.0"
