@@ -11,10 +11,10 @@
 		</el-image>
 	</div>
 	<el-dialog class="dialogBase" title="图片剪裁" v-model="clipDialog" @close="editImg = ''">
-		<vue-cropper v-if="clipDialog" style="max-height: 300px" ref="cropper" :aspect-ratio="16 / 10" :src="editImg" alt="Source Image" />
+		<vue-cropper v-if="clipDialog" style="height: 300px" ref="cropper" :fixedNumber="['16', '10']" :autoCrop="true" :img="editImg" alt="Source Image" />
 		<span class="hint">鼠标滚轮进行缩放</span>
 		<template #footer>
-			<el-button type="primary"  @click="crop">确定</el-button>
+			<el-button type="primary" @click="crop">确定</el-button>
 		</template>
 	</el-dialog>
 </template>
@@ -25,32 +25,32 @@ import { load } from "@front/util_function/file";
 import { uploadBase64Image, path } from "@front/util_function/system";
 import { BlobtoB64 } from "@front/util_function/imgTool";
 import { ElMessage } from "element-plus";
-import VueCropper from "vue-cropperjs";
-import "cropperjs/dist/cropper.css";
+import "vue-cropper/dist/index.css";
+import { VueCropper } from "vue-cropper";
 export default defineComponent({
 	name: "imgInputClip",
 	components: { VueCropper },
 	props: {
 		modelValue: {
 			type: String,
-			default: "",
+			default: ""
 		},
 		fit: {
 			type: String,
-			default: "cover",
-		},
+			default: "cover"
+		}
 	},
 	data() {
 		const editImg: any = "";
 		return {
 			clipDialog: false,
-			editImg,
+			editImg
 		};
 	},
 	computed: {
 		src(): any {
 			return this.modelValue;
-		},
+		}
 	},
 	methods: {
 		async getFile() {
@@ -70,29 +70,30 @@ export default defineComponent({
 						message: "图片读取错误",
 						duration: 1500,
 						type: "error",
-						offset: 60,
+						offset: 60
 					});
 				});
 		},
 		crop() {
 			// @ts-ignore
-			const cropImg = this.$refs.cropper.getCroppedCanvas().toDataURL();
-			uploadBase64Image(cropImg)
-				.then((url) => {
-					this.$emit("update:modelValue", `/configFiles/images/${path.basename(url)}`);
-					this.editImg = "";
-					this.clipDialog = false;
-				})
-				.catch(() => {
-					ElMessage({
-						message: "图片保存失败",
-						duration: 1500,
-						type: "error",
-						offset: 60,
+			this.$refs.cropper.getCropData((cropImg) => {
+				uploadBase64Image(cropImg)
+					.then((url) => {
+						this.$emit("update:modelValue", `/configFiles/images/${path.basename(url)}`);
+						this.editImg = "";
+						this.clipDialog = false;
+					})
+					.catch(() => {
+						ElMessage({
+							message: "图片保存失败",
+							duration: 1500,
+							type: "error",
+							offset: 60
+						});
 					});
-				});
-		},
-	},
+			});
+		}
+	}
 });
 </script>
 
