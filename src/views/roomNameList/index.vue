@@ -1,13 +1,13 @@
 <template>
 	<content-frame id="roomNameList" v-loading="loading">
-		<row-frame title="怪人（黑名单）">
-			<row-span>
-				<el-input style="margin-bottom: 5px"  v-model="blackListToAdd" placeholder="点击输入UID,回车添加" @keypress.enter="addBlackList" />
+		<el-row :gutter="20">
+			<el-col :span="12">
+				<div class="room-name-list-title">怪人（黑名单）</div>
+				<el-input style="margin-bottom: 5px" v-model="blackListToAdd" placeholder="点击输入UID,回车添加" @keypress.enter="addBlackList" />
 				<base-list style="width: 100%; height: 180px" :list="blackList" :action="blackListAction()" />
-			</row-span>
-		</row-frame>
-		<row-frame title="屏蔽关键词">
-			<row-span>
+			</el-col>
+			<el-col :span="12">
+				<div class="room-name-list-title">屏蔽关键词</div>
 				<el-input
 					style="margin-bottom: 5px"
 					v-model="keywordToAdd"
@@ -17,22 +17,21 @@
 						keywordToAdd = '';
 					"
 				/>
-				<base-list style="width: 100%; height: 146px" :list="keywordList" :action="keywordAction()" />
-			</row-span>
-		</row-frame>
-		<row-frame title="房管">
-			<row-span>
-				<el-input style="margin-bottom: 5px"  v-model="managerToAdd" placeholder="点击输入UID,回车添加" @keypress.enter="addManager" />
+				<base-list style="width: 100%; height: 180px" :list="keywordList" :action="keywordAction()" />
+			</el-col>
+
+			<el-col :span="12">
+				<div class="room-name-list-title">房管</div>
+				<el-input style="margin-bottom: 5px" v-model="managerToAdd" placeholder="点击输入UID,回车添加" @keypress.enter="addManager" />
 				<base-list style="width: 100%; height: 180px" :list="managerL1st" :action="managerAction()" />
-			</row-span>
-		</row-frame>
-		<row-frame title="特别关心（暂时不可用）">
-			<row-span>
-				<el-input style="margin-bottom: 5px"  v-model="likeListToAdd" placeholder="点击输入UID,回车添加" @keypress.enter="addLikeList" />
+			</el-col>
+			<el-col :span="12">
+				<div class="room-name-list-title">特别关心（暂时不可用）</div>
+				<el-input style="margin-bottom: 5px" v-model="likeListToAdd" placeholder="点击输入UID,回车添加" @keypress.enter="addLikeList" />
 				<base-list style="width: 100%; height: 160px" :list="likeList" :action="likeListAction()" />
-			</row-span>
-			<span class="hint">特别关心：设置以后该用户首次进入直播间将会提醒</span>
-		</row-frame>
+				<span class="hint">特别关心：设置以后该用户首次进入直播间将会提醒</span>
+			</el-col>
+		</el-row>
 	</content-frame>
 </template>
 
@@ -51,7 +50,7 @@ export default defineComponent({
 			blackListToAdd: "",
 			managerToAdd: "",
 			likeListToAdd: "",
-			loading:false,
+			loading: false
 		};
 	},
 	mounted() {
@@ -63,7 +62,7 @@ export default defineComponent({
 			return this.danmakuProfile.common.blackList.map((i: any) => {
 				return {
 					label: i.nickname,
-					...i,
+					...i
 				};
 			});
 		},
@@ -72,7 +71,7 @@ export default defineComponent({
 				return this.danmakuProfile.common.likeList.map((i: any) => {
 					return {
 						label: i.nickname,
-						...i,
+						...i
 					};
 				});
 			} catch (error) {
@@ -83,7 +82,7 @@ export default defineComponent({
 		keywordList(): Array<any> {
 			return this.danmakuProfile.common.keywords.map((i: any) => {
 				return {
-					label: i,
+					label: i
 				};
 			});
 		},
@@ -91,10 +90,10 @@ export default defineComponent({
 			return this.managerList.map((manager: any) => {
 				return {
 					label: manager.userInfo.nickname,
-					...manager.userInfo,
+					...manager.userInfo
 				};
 			});
-		},
+		}
 	},
 	methods: {
 		blackListAction() {
@@ -103,8 +102,8 @@ export default defineComponent({
 					icon: "el-icon-delete",
 					action: (e: any) => {
 						this.$store.commit("removeBlackList", e);
-					},
-				},
+					}
+				}
 			];
 		},
 		likeListAction() {
@@ -113,8 +112,8 @@ export default defineComponent({
 					icon: "el-icon-delete",
 					action: (e: any) => {
 						this.$store.commit("removeLikeList", e);
-					},
-				},
+					}
+				}
 			];
 		},
 		keywordAction() {
@@ -123,8 +122,8 @@ export default defineComponent({
 					icon: "el-icon-delete",
 					action: (e: any) => {
 						this.$store.commit("removeKeyword", e.label);
-					},
-				},
+					}
+				}
 			];
 		},
 		managerAction() {
@@ -133,8 +132,8 @@ export default defineComponent({
 					icon: "el-icon-delete",
 					action: (e: any) => {
 						this.$store.commit("removeManager", e.userID);
-					},
-				},
+					}
+				}
 			];
 		},
 		addManager() {
@@ -169,7 +168,7 @@ export default defineComponent({
 			let errorMsg = "";
 			let userInfo: any = {};
 			let found = null;
-			this.loading=true
+			this.loading = true;
 			if (isNaN(uid)) {
 				errorMsg = "错误：只能输入用户数字uid";
 			} else if (max > 0 && list.length === max) {
@@ -183,7 +182,7 @@ export default defineComponent({
 					if (
 						!(userInfo = (
 							await streamInfo({
-								userID: uid,
+								userID: uid
 							})
 						).profile)
 					) {
@@ -194,22 +193,22 @@ export default defineComponent({
 					errorMsg = "错误：找不到该用户";
 				}
 			}
-			this.loading=false
+			this.loading = false;
 			if (errorMsg) {
 				ElMessage({
 					offset: 60,
 					type: "error",
 					message: errorMsg,
-					duration: 1500,
+					duration: 1500
 				});
 				return false;
 			}
 			return {
 				userID: userInfo.userID,
-				nickname: userInfo.nickname,
+				nickname: userInfo.nickname
 			};
-		},
-	},
+		}
+	}
 });
 </script>
 
@@ -223,5 +222,12 @@ export default defineComponent({
 	flex-wrap: wrap;
 	overflow: auto;
 	@include scrollbarDark();
+	.room-name-list-title {
+		position: relative;
+		font-weight: 700;
+		color: getCssVar("text-color", "primary");
+		height: 24px;
+		user-select: none;
+	}
 }
 </style>
