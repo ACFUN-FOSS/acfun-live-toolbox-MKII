@@ -15,7 +15,7 @@
 			<row-span :span="2">
 				<row-frame width="100%" title="step1:导入">
 					<el-dropdown @command="loadCommand" type="primary" trigger="click" style="line-height: 28px">
-						<el-button  type="primary"> 导入样式，从 </el-button>
+						<el-button type="primary"> 导入样式，从 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="toolBox">当前主播样式</el-dropdown-item>
@@ -30,7 +30,7 @@
 			</row-span>
 			<row-span :span="8.5">
 				<row-frame width="100%" title="step2:选择类型编辑">
-					<el-radio-group @change="currentWidget = {}" :disabled="!enable"  v-model="styleType" class="setting-bar">
+					<el-radio-group @change="currentWidget = {}" :disabled="!enable" v-model="styleType" class="setting-bar">
 						<el-radio-button v-for="type in typeOptions" :label="type.value" :key="type.value">
 							{{ type.label }}
 						</el-radio-button>
@@ -40,7 +40,7 @@
 			<row-span :span="1.5">
 				<row-frame width="100%" title="step3:保存">
 					<el-dropdown @command="saveCommand" type="primary" trigger="click" style="line-height: 28px">
-						<el-button  type="primary" :disabled="!enable"> 保存到 </el-button>
+						<el-button type="primary" :disabled="!enable"> 保存到 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="toolBox">主播端</el-dropdown-item>
@@ -107,7 +107,12 @@
 						</el-button>
 					</div>
 					<div class="content" style="height: 290px; overflow-y: auto">
-						<vue-form :form-footer="{ show: false }" v-model="currentWidget.value" v-if="widgetsSettings[currentWidget.labelEn]" :schema="widgetsSettings[currentWidget.labelEn].styleForm" />
+						<vue-form
+							:form-footer="{ show: false }"
+							v-model="currentWidget.value"
+							v-if="widgetsSettings[currentWidget.labelEn]"
+							:schema="widgetsSettings[currentWidget.labelEn].styleForm"
+						/>
 						<div style="position: absolute; left: 50%; top: 50%; transform: translateX(-50%)" v-else>右方选择组件</div>
 					</div>
 				</row-frame>
@@ -122,7 +127,7 @@
 <script lang="ts">
 import { typeOptions, styleConfig } from "@front/components/danmakuFlow/utils/data";
 import zoomFrame from "@front/util_component/frames/zoomFrame.vue";
-import baseList from "@front/components/base/list/base.vue";
+import baseList from "@front/components/base/list/baseList.vue";
 import cloneDeep from "lodash/cloneDeep";
 import { defineComponent } from "vue";
 import { mapGetters } from "vuex";
@@ -159,24 +164,24 @@ export default defineComponent({
 				{
 					icon: "el-icon-setting",
 					// @ts-ignore
-					action: this.selectWidget,
+					action: this.selectWidget
 				},
 				{
 					icon: "el-icon-top",
 					// @ts-ignore
-					action: this.moveWidget(-1),
+					action: this.moveWidget(-1)
 				},
 				{
 					icon: "el-icon-bottom",
 					// @ts-ignore
-					action: this.moveWidget(1),
+					action: this.moveWidget(1)
 				},
 				{
 					icon: "el-icon-close",
 					// @ts-ignore
-					action: this.removeWidget,
-				},
-			],
+					action: this.removeWidget
+				}
+			]
 		};
 	},
 	computed: {
@@ -192,7 +197,7 @@ export default defineComponent({
 		widgetSelected(): boolean {
 			// @ts-ignore
 			return Boolean(this.currentWidget?.id);
-		},
+		}
 	},
 	watch: {
 		styleType(n, o) {
@@ -205,7 +210,7 @@ export default defineComponent({
 			handler(n, o) {
 				this.currentWidgets = n?.widgetsSettings || [];
 			},
-			deep: true,
+			deep: true
 		},
 		currentWidgets: {
 			handler(n, o) {
@@ -214,8 +219,8 @@ export default defineComponent({
 					this.currentStyle.widgetsSettings = n;
 				} catch (error) {}
 			},
-			deep: true,
-		},
+			deep: true
+		}
 	},
 	methods: {
 		loadCommand(command: string) {
@@ -224,7 +229,7 @@ export default defineComponent({
 				ElMessage({
 					message: "读取成功",
 					duration: 1500,
-					type: "success",
+					type: "success"
 				});
 			};
 			const loadFromFile = async () => {
@@ -235,7 +240,7 @@ export default defineComponent({
 					ElMessage({
 						duration: 1500,
 						type: "error",
-						message: "读取失败",
+						message: "读取失败"
 					});
 				}
 			};
@@ -276,7 +281,7 @@ export default defineComponent({
 				case "web":
 					this.$store.commit("updateStyle", {
 						styleType: command,
-						style: this.removeStyleForm(this.styles),
+						style: this.removeStyleForm(this.styles)
 					});
 					break;
 				case "both":
@@ -292,7 +297,7 @@ export default defineComponent({
 			ElMessage({
 				message: "保存成功",
 				duration: 1500,
-				type: "success",
+				type: "success"
 			});
 		},
 		addWidget(widget: any) {
@@ -308,7 +313,7 @@ export default defineComponent({
 					message: `${widget.label} 在本类型弹幕中只能有${limit}个`,
 					duration: 1500,
 					type: "error",
-					offset: 60,
+					offset: 60
 				});
 				return;
 			}
@@ -318,8 +323,8 @@ export default defineComponent({
 					id: randomId(6),
 					label: widget.label,
 					labelEn: widget.labelEn,
-					value: cloneDeep(widget.styleValue),
-				},
+					value: cloneDeep(widget.styleValue)
+				}
 			];
 		},
 		removeWidget(i: any) {
@@ -366,9 +371,9 @@ export default defineComponent({
 						children: styleOfType.widgetsSettings.map((widget: any) => {
 							return {
 								label: widget.label,
-								value: widget.value,
+								value: widget.value
 							};
-						}),
+						})
 					});
 				}
 				return output;
@@ -376,16 +381,16 @@ export default defineComponent({
 			this.styleOption = [
 				{
 					label: "编辑中样式",
-					children: generateMenu(this.styles),
+					children: generateMenu(this.styles)
 				},
 				{
 					label: "主播弹幕样式",
-					children: generateMenu(this.danmakuProfile("toolBox").settingOfType),
+					children: generateMenu(this.danmakuProfile("toolBox").settingOfType)
 				},
 				{
 					label: "观众弹幕样式",
-					children: generateMenu(this.danmakuProfile("web").settingOfType),
-				},
+					children: generateMenu(this.danmakuProfile("web").settingOfType)
+				}
 			].filter((i) => i.children.length);
 		},
 		getStyle(e: any) {
@@ -420,8 +425,8 @@ export default defineComponent({
 				});
 			} catch (error) {}
 			return newStyle;
-		},
-	},
+		}
+	}
 });
 </script>
 
