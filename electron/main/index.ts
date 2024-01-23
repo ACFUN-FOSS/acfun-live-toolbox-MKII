@@ -36,7 +36,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: "app", privileges: { secure: tru
 // Remove electron security warnings
 // This warning only shows in development mode
 // Read more on https://www.electronjs.org/docs/latest/tutorial/security
-// process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true'
+process.env["ELECTRON_DISABLE_SECURITY_WARNINGS"] = "true";
 
 let win: BrowserWindow | null = null;
 
@@ -80,7 +80,7 @@ async function createWindow() {
 	 * 	 - HTTP 服务器完整功能会发挥作用，除提供 ws 支持外也 serve
 	 *     静态文件（包括 index.html）。
 	 *   - electron 浏览器载入 HTTP SERVER 所 serve 的 index.html。
-	 * 
+	 *
 	 * 上述 ws 指工具箱各个实例（electron 窗口、浏览器打开的工具箱界面……）
 	 * 之间通信所用的 websocket，并非工具箱与后端通信所用的 websocket。
 	 */
