@@ -1,7 +1,7 @@
 <template>
 	<div class="rowFrame" :style="{ width }">
 		<div class="title" v-if="title">{{ title }}</div>
-		<div :class="[{ content: contentDefaultClass, flex: flex }, contentClass]">
+		<div :class="[{ content: contentDefaultClass, flex: flex, 'align-center': alignCenter }, contentClass]">
 			<slot />
 		</div>
 	</div>
@@ -13,24 +13,28 @@ export default defineComponent({
 	name: "rowFrame",
 	props: {
 		title: {
-			type: String,
+			type: String
 		},
 		contentClass: {
-			type: String,
+			type: String
 		},
 		contentDefaultClass: {
 			type: Boolean,
-			default: false,
+			default: false
 		},
 		flex: {
 			type: Boolean,
-			default: false,
+			default: false
+		},
+		alignCenter: {
+			type: Boolean,
+			default: false
 		},
 		width: {
 			type: String,
-			default: "50%",
-		},
-	},
+			default: "50%"
+		}
+	}
 });
 </script>
 
@@ -45,6 +49,9 @@ export default defineComponent({
 	.flex {
 		display: flex;
 		flex-wrap: wrap;
+	}
+	.align-center {
+		align-items: center;
 	}
 	.title {
 		position: relative;
