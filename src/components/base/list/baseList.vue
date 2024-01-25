@@ -11,25 +11,25 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 export default defineComponent({
-	name: "list",
+	name: "baseList",
 	props: {
 		list: {
 			default: () => {
 				return [];
-			},
+			}
 		},
 		action: {
 			default: () => {
 				return [];
-			},
+			}
 		},
 		selected: {
-			default: "",
+			default: ""
 		},
 		emptytip: {
-			default: "空空如也",
-		},
-	},
+			default: "空空如也"
+		}
+	}
 });
 </script>
 
@@ -38,10 +38,10 @@ export default defineComponent({
 @import "@front/styles/common.scss";
 @import "@front/styles/scrollbar.scss";
 .list {
-	border: getCssVar("border","base");
-	border-radius: getCssVar("box-radius","base");
-	background-color: getCssVar("border-color","lighter");
-	color: getCssVar("text-color","regular");
+	border: getCssVar("border", "base");
+	border-radius: getCssVar("box-radius", "base");
+	background-color: getCssVar("border-color", "lighter");
+	color: getCssVar("text-color", "regular");
 	position: relative;
 	overflow-y: scroll;
 	box-sizing: border-box;
@@ -49,7 +49,7 @@ export default defineComponent({
 	.list-item {
 		margin: 5px 5px;
 		background-color: white;
-		box-shadow: getCssVar("box-shadow","base");
+		box-shadow: getCssVar("box-shadow", "base");
 		display: flex;
 		justify-content: space-between;
 		align-items: center;

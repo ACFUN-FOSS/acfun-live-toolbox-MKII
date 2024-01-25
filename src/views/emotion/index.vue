@@ -1,16 +1,16 @@
 <template>
 	<content-frame id="emotion">
-		<row-frame width="100%" flex>
+		<row-frame width="100%" flex alignCenter>
 			<row-span :span="2"> 开启表情 </row-span>
 			<row-span :span="2">
 				<el-switch v-model="emoOn" />
 			</row-span>
 			<row-span :span="4"> 单条弹幕数量限制（防刷屏） </row-span>
 			<row-span :span="2">
-				<el-input-number  :min="1" v-model="emoMax" />
+				<el-input-number :min="1" v-model="emoMax" />
 			</row-span>
 			<row-span style="text-align: right" :span="2">
-				<el-button  @click="save" type="primary" style="margin-top: -8px">保存</el-button>
+				<el-button @click="save" type="primary">保存</el-button>
 			</row-span>
 		</row-frame>
 		<row-frame width="100%" title="表情预览" v-show="emoOn">
@@ -49,8 +49,8 @@
 							<div style="width: 35%">
 								大小<br />
 								<el-button-group>
-									<el-button class="btn" type="primary" icon="el-icon-plus"  @click="emoji.scale < 200 ? (emoji.scale += 2) : false" />
-									<el-button class="btn" type="primary" icon="el-icon-minus"  @click="emoji.scale > 0 ? (emoji.scale -= 2) : false" />
+									<el-button class="btn" type="primary" icon="Plus" @click="emoji.scale < 200 ? (emoji.scale += 2) : false" />
+									<el-button class="btn" type="primary" icon="Minus" @click="emoji.scale > 0 ? (emoji.scale -= 2) : false" />
 								</el-button-group>
 							</div>
 							<div style="width: 60%">
@@ -96,7 +96,7 @@ export default defineComponent({
 			emoMax,
 			currentEmoji: false,
 			danmaku: getMockByType(1000),
-			danmakuWithEmoji,
+			danmakuWithEmoji
 		};
 	},
 	watch: {
@@ -112,13 +112,13 @@ export default defineComponent({
 					...danmaku,
 					data: {
 						...danmaku.data,
-						content: danmaku.data.content + `<img style="max-width:${n.scale}px;margin-left:8px;vertical-align:bottom" src="${n.url}"/>`,
-					},
+						content: danmaku.data.content + `<img style="max-width:${n.scale}px;margin-left:8px;vertical-align:bottom" src="${n.url}"/>`
+					}
 				};
 			},
 			deep: true,
-			immediate: true,
-		},
+			immediate: true
+		}
 	},
 	computed: {
 		setting() {
@@ -128,7 +128,7 @@ export default defineComponent({
 				console.error(error);
 				return false;
 			}
-		},
+		}
 	},
 	methods: {
 		getMockByType,
@@ -141,7 +141,7 @@ export default defineComponent({
 				message: "设置已保存",
 				duration: 1500,
 				type: "success",
-				offset: 60,
+				offset: 60
 			});
 		},
 		add() {
@@ -149,12 +149,12 @@ export default defineComponent({
 				{
 					pattern: "",
 					url: "",
-					scale: 100,
+					scale: 100
 				},
-				...this.emos,
+				...this.emos
 			];
-		},
-	},
+		}
+	}
 });
 </script>
 

@@ -1,5 +1,5 @@
 <template>
-	<div class="rowSpan" :style="{width:`${span*100/12}%`}">
+	<div class="rowSpan" :style="{ width: `${(span * 100) / 12}%` }">
 		<slot />
 	</div>
 </template>
@@ -22,5 +22,8 @@ export default defineComponent({
 	flex-shrink: 0;
 	padding-right: 16px;
 	box-sizing: border-box;
+	&:last-child {
+		padding-right: 0;
+	}
 }
 </style>

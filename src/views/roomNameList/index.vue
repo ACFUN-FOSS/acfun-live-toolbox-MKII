@@ -39,7 +39,7 @@
 import { defineComponent } from "vue";
 import { mapState } from "vuex";
 import { streamInfo } from "@front/api/user";
-import baseList from "@front/components/base/list/base.vue";
+import baseList from "@front/components/base/list/baseList.vue";
 import { ElMessage } from "element-plus";
 export default defineComponent({
 	name: "roomNameList",

@@ -1,66 +1,60 @@
 <template>
 	<content-frame id="general" align="row">
-		<row-frame style="width: 100%" title="使用说明" flex>
-			<el-button @click="openDocuments" type="primary" >点击打开</el-button>
-		</row-frame>
-		<row-frame style="width: 100%" title="系统" flex>
-			<row-span :span="2">
-				<el-button  type="primary" @click="openConsole">打开控制台</el-button>
-			</row-span>
-		</row-frame>
-		<row-frame style="width: 100%" title="推流工具路径" flex>
-			<row-span :span="4"> 同步启动推流工具 </row-span>
-			<row-span :span="2">
-				<el-switch v-model="general.streamToolEnable" @change="save" />
-			</row-span>
-			<row-span :span="6">
-				<el-input  :model-value="general.streamToolPath" :disabled="general.streamToolEnable">
-					<template #append>
-						<el-button type="primary"  class="attach" @click="loadStreamToolPath">点击选择 </el-button>
-					</template>
-				</el-input>
-			</row-span>
-			<row-span :span="12"><span class="hint">设置后工具箱启动时会同步打开推流工具(OBS或是直播助手</span></row-span>
-		</row-frame>
-		<row-frame style="width: 100%" title="设置端口" flex>
-			<row-span :span="4"> 服务器端口 </row-span>
-			<row-span :span="2">
-				<el-input  type="number" v-model="general.port" @change="save" />
-			</row-span>
-			<row-span :span="4"> 信令端口 </row-span>
-			<row-span :span="2">
-				<el-input  type="number" v-model="general.socket" @change="save" />
-			</row-span>
-			<row-span :span="12"><span class="hint">如果发现端口冲突可以更改数字尝试,重启生效</span></row-span>
-		</row-frame>
-		<row-frame style="width: 100%" title="配置文件" flex>
-			<row-span :span="2">
-				<el-button  type="primary" @click="openFolder">打开文件夹</el-button>
-			</row-span>
-			<row-span :span="2">
-				<el-button  type="primary" @click="backup">配置备份</el-button>
-			</row-span>
-			<row-span :span="2">
-				<el-button  type="primary" @click="restore">配置还原</el-button>
-			</row-span>
-			<row-span :span="12"><span class="hint">一般情况下不需要备份配置，除非重装系统</span></row-span>
-		</row-frame>
-
-		<row-frame style="width: 100%" title="" flex>
-			<row-span :span="2">
-				<el-button  type="primary" @click="clean" disabled>清理配置缓存</el-button>
-			</row-span>
-			<row-span :span="4">
-				<span>当前配置缓存:{{ cacheSizeUnit }}</span>
-			</row-span>
-			<row-span :span="12"><span class="hint">点击清理配置文件夹中不用的图片与文件</span></row-span>
-		</row-frame>
-		<row-frame style="width: 100%" title="" flex>
-			<row-span :span="2">
-				<el-button  type="primary" @click="clearStorage">清理账号缓存</el-button>
-			</row-span>
-			<row-span :span="12"><span class="hint">房间管理里的设置无法保存或出现混乱时试试清理账号缓存</span></row-span>
-		</row-frame>
+		<el-form label-width="130px" label-position="left">
+			<el-form-item label="使用说明">
+				<el-button @click="openDocuments" type="primary">点击打开</el-button>
+			</el-form-item>
+			<el-form-item label="系统">
+				<el-button type="primary" @click="openConsole">打开控制台</el-button>
+			</el-form-item>
+			<el-form-item label="同步启动推流工具">
+				<row-span :span="12"> <el-switch v-model="general.streamToolEnable" @change="save" /></row-span>
+				<span class="hint">设置后工具箱启动时会同步打开推流工具(OBS或是直播助手)</span>
+			</el-form-item>
+			<el-form-item label="推流工具路径">
+				<row-span :span="8">
+					<el-input :model-value="general.streamToolPath" :disabled="general.streamToolEnable">
+						<template #append>
+							<el-button type="primary" class="attach" :disabled="general.streamToolEnable" @click="loadStreamToolPath">点击选择 </el-button>
+						</template>
+					</el-input>
+				</row-span>
+			</el-form-item>
+			<el-form-item label="设置端口">
+				<row-span :span="4">
+					<el-input type="number" v-model="general.port" @change="save" class="general-number-input">
+						<template #prepend>
+							<span>服务器端口</span>
+						</template>
+					</el-input>
+				</row-span>
+				<row-span :span="4">
+					<el-input type="number" v-model="general.socket" @change="save" class="general-number-input">
+						<template #prepend>
+							<span>信令端口</span>
+						</template>
+					</el-input>
+				</row-span>
+				<row-span :span="12" class="hint">如果发现端口冲突可以更改数字尝试,重启生效</row-span>
+			</el-form-item>
+			<el-form-item label="配置文件">
+				<el-button type="primary" @click="openFolder">打开文件夹</el-button>
+				<el-button type="primary" @click="backup">配置备份</el-button>
+				<el-button type="primary" @click="restore">配置还原</el-button>
+				<row-span :span="12" class="hint">一般情况下不需要备份配置，除非重装系统</row-span>
+			</el-form-item>
+			<el-form-item label="配置缓存">
+				<el-button type="primary" @click="clean" disabled>清理配置缓存</el-button>
+				<span class="cache-text"
+					>当前配置缓存:<span>{{ cacheSizeUnit }}</span></span
+				>
+				<row-span :span="12" class="hint">点击清理配置文件夹中不用的图片与文件</row-span>
+			</el-form-item>
+			<el-form-item label="账号缓存">
+				<el-button type="primary" @click="clearStorage">清理账号缓存</el-button>
+				<row-span :span="12" class="hint">房间管理里的设置无法保存或出现混乱时试试清理账号缓存</row-span>
+			</el-form-item>
+		</el-form>
 	</content-frame>
 </template>
 
@@ -84,10 +78,10 @@ export default defineComponent({
 		return {
 			general: {
 				streamToolEnable: false,
-				streamToolPath: "",
+				streamToolPath: ""
 			},
 
-			cacheSize: 0,
+			cacheSize: 0
 		};
 	},
 	mounted() {
@@ -99,7 +93,7 @@ export default defineComponent({
 		cacheSizeUnit() {
 			const cacheSize: any = this.cacheSize;
 			return byteFormatter(cacheSize);
-		},
+		}
 	},
 	methods: {
 		openConsole,
@@ -117,14 +111,14 @@ export default defineComponent({
 		},
 		save() {
 			Object.assign(this.danmakuProfile, {
-				general: cloneDeep(this.general),
+				general: cloneDeep(this.general)
 			});
 			saveConfig(this.danmakuProfile);
 			ElMessage({
 				duration: 1500,
 				message: "保存成功",
 				offset: 60,
-				type: "success",
+				type: "success"
 			});
 		},
 		clearStorage() {
@@ -133,7 +127,7 @@ export default defineComponent({
 				type: "success",
 				message: "清理缓存成功！",
 				duration: 1500,
-				offset: 60,
+				offset: 60
 			});
 		},
 		async restore() {
@@ -147,14 +141,14 @@ export default defineComponent({
 					type: "success",
 					message: "配置还原成功！",
 					duration: 1500,
-					offset: 60,
+					offset: 60
 				});
 			} else {
 				ElMessage({
 					type: "error",
 					message: "配置还原失败",
 					duration: 1500,
-					offset: 60,
+					offset: 60
 				});
 			}
 		},
@@ -186,8 +180,8 @@ export default defineComponent({
 		},
 		openFolder() {
 			openCache();
-		},
-	},
+		}
+	}
 });
 </script>
 
@@ -198,5 +192,18 @@ export default defineComponent({
 	position: absolute;
 	width: 100%;
 	height: 100%;
+	overflow-y: auto;
+	.general-number-input {
+		min-width: 200px;
+	}
+	.cache-text {
+		margin-left: 10px;
+		& > span {
+			color: red;
+		}
+	}
+	.el-form-item{
+		margin-bottom: 10px !important;
+	}
 }
 </style>

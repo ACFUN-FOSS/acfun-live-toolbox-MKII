@@ -15,7 +15,7 @@
 			<row-span :span="2">
 				<row-frame width="100%" title="step1:导入">
 					<el-dropdown @command="loadCommand" type="primary" trigger="click" style="line-height: 28px">
-						<el-button  type="primary"> 导入样式，从 </el-button>
+						<el-button type="primary"> 导入样式，从 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="toolBox">当前主播样式</el-dropdown-item>
@@ -30,7 +30,7 @@
 			</row-span>
 			<row-span :span="8.5">
 				<row-frame width="100%" title="step2:选择类型编辑">
-					<el-radio-group @change="currentWidget = {}" :disabled="!enable"  v-model="styleType" class="setting-bar">
+					<el-radio-group @change="currentWidget = {}" :disabled="!enable" v-model="styleType" class="setting-bar">
 						<el-radio-button v-for="type in typeOptions" :label="type.value" :key="type.value">
 							{{ type.label }}
 						</el-radio-button>
@@ -40,7 +40,7 @@
 			<row-span :span="1.5">
 				<row-frame width="100%" title="step3:保存">
 					<el-dropdown @command="saveCommand" type="primary" trigger="click" style="line-height: 28px">
-						<el-button  type="primary" :disabled="!enable"> 保存到 </el-button>
+						<el-button type="primary" :disabled="!enable"> 保存到 </el-button>
 						<template #dropdown>
 							<el-dropdown-menu>
 								<el-dropdown-item command="toolBox">主播端</el-dropdown-item>
@@ -72,7 +72,14 @@
 		<row-frame :flex="true" width="100%" style="margin-bottom: 0px" v-if="currentStyle">
 			<row-span :span="8">
 				<row-frame width="100%" title="HTML(VUE模板语法，最外侧不需要template)">
-					<textarea ref="editor" v-model="currentStyle.advHtml" style="height: 110px; width: 450px; resize: none" @blur="recordSelection" @focus="recoverSelection" @change="getAdvId" />
+					<textarea
+						ref="editor"
+						v-model="currentStyle.advHtml"
+						style="height: 110px; width: 450px; resize: none"
+						@blur="recordSelection"
+						@focus="recoverSelection"
+						@change="getAdvId"
+					/>
 				</row-frame>
 				<row-frame width="100%" title="CSS">
 					<textarea v-model="currentStyle.advCss" style="height: 110px; width: 450px; resize: none" @change="getAdvId" />
@@ -81,8 +88,8 @@
 			<row-span :span="4">
 				<row-frame width="100%" title="函数列表">
 					<base-list style="height: 240px" :list="functionList" :action="action" />
-					<el-button style="margin-top: 8px"  type="primary" @click="openDocument">说明文档</el-button>
-					<el-button style="margin-top: 8px"  type="primary" @click="openResources">素材文件夹 </el-button>
+					<el-button style="margin-top: 8px" type="primary" @click="openDocument">说明文档</el-button>
+					<el-button style="margin-top: 8px" type="primary" @click="openResources">素材文件夹 </el-button>
 				</row-frame>
 			</row-span>
 		</row-frame>
@@ -92,7 +99,7 @@
 <script lang="ts">
 import { typeOptions, styleConfig } from "@front/components/danmakuFlow/utils/data";
 import zoomFrame from "@front/util_component/frames/zoomFrame.vue";
-import baseList from "@front/components/base/list/base.vue";
+import baseList from "@front/components/base/list/baseList.vue";
 import cloneDeep from "lodash/cloneDeep";
 import { defineComponent } from "vue";
 import { mapGetters } from "vuex";
@@ -135,9 +142,9 @@ export default defineComponent({
 						that.selectionStart += e.label.length;
 						that.selectionEnd = that.selectionStart;
 						editor.focus();
-					},
-				},
-			],
+					}
+				}
+			]
 		};
 	},
 	mounted() {
@@ -153,10 +160,10 @@ export default defineComponent({
 			return Object.keys(advFunctions).map((i) => {
 				return {
 					label: i,
-					value: i,
+					value: i
 				};
 			});
-		},
+		}
 	},
 	watch: {
 		styleType(n, o) {
@@ -165,7 +172,7 @@ export default defineComponent({
 			} // @ts-ignore
 			this.styles[n] = this.currentStyle = this.styles[n] || styleConfig(this.styleType);
 			this.changeDanmaku();
-		},
+		}
 	},
 	methods: {
 		openResources() {
@@ -174,7 +181,7 @@ export default defineComponent({
 		openDocument() {
 			openFile({
 				url: path.join(process.resourcesPath, "../使用说明/高级样式定制说明.txt"),
-				create: false,
+				create: false
 			});
 		},
 		getAdvId() {
@@ -202,7 +209,7 @@ export default defineComponent({
 				ElMessage({
 					message: "读取成功",
 					duration: 1500,
-					type: "success",
+					type: "success"
 				});
 			};
 			const loadFromFile = async () => {
@@ -213,7 +220,7 @@ export default defineComponent({
 					ElMessage({
 						duration: 1500,
 						type: "error",
-						message: "读取失败",
+						message: "读取失败"
 					});
 				}
 			};
@@ -252,7 +259,7 @@ export default defineComponent({
 				case "web":
 					this.$store.commit("updateStyle", {
 						styleType: command,
-						style: this.removeStyleForm(this.styles),
+						style: this.removeStyleForm(this.styles)
 					});
 					break;
 				case "both":
@@ -268,7 +275,7 @@ export default defineComponent({
 			ElMessage({
 				message: "保存成功",
 				duration: 1500,
-				type: "success",
+				type: "success"
 			});
 		},
 		removeStyleForm(style: any) {
@@ -288,8 +295,8 @@ export default defineComponent({
 				});
 			} catch (error) {}
 			return newStyle;
-		},
-	},
+		}
+	}
 });
 </script>
 
