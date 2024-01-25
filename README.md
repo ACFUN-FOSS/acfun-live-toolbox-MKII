@@ -1,4 +1,5 @@
 # AcFun Live ToolBox
+
 <div align="center">
   <img src="./工具箱构架说明.svg" height="450px">
 </div>
@@ -14,11 +15,14 @@
 </div>
 
 ## Prerequisite
- * Node.js LTS latest.
- * Yarn ≥ **3**.
+
+-   Node.js LTS latest.
+-   Yarn ≥ **3**.
 
 ## Setup
+
 ### 1. Setup yarn
+
 ```sh
 # Please switch to node.js lts latest
 
@@ -26,39 +30,57 @@ cd acfun-live-toolbox-MKII
 corepack enable
 yarn set version stable
 ```
-### 2. Setup development environment variables
-⚠ ATTENTION: You should perform this step *every time* you download anything with yarn.
 
-*Windows:*
+### 2. Setup development environment variables
+
+⚠ ATTENTION: You should perform this step _every time_ you download anything with yarn.
+
+_Windows:_
+
 ```batch
 CALL dev-tools\setup_dev_envvars
 ```
-*UNIX:*
+
+_UNIX:_
+
 ```sh
 source ./dev-tools/setup_dev_envvars.sh
 ```
+
 ### 3. Install dependencies
+
+⚠ ATTENTION: You must create a new terminal to run code otherwise electron may not be built successfully.
+
 ```sh
 yarn install
 ```
 
 ## Run & Debug
+
 ### Run the project directly
+
 ```sh
 yarn run dev
 ```
+
 ### Debug in VSCode or Emacs (dap-mode)
+
 ![electron-vite-react-debug.gif](https://github.com/electron-vite/electron-vite-react/blob/main/electron-vite-react-debug.gif?raw=true)
 
 ### Debug in other editors
-*Windows:*
+
+_Windows:_
+
 ```batch
 node_modules\.bin\electron --remote-debugging-port=9229 .
 ```
-*UNIX:*
+
+_UNIX:_
+
 ```sh
 node_modules/.bin/electron --remote-debugging-port=9229 .
 ```
+
 Then attach your debugger to port 9229.
 
 ## Directory
@@ -76,7 +98,7 @@ Then attach your debugger to port 9229.
   └── vite.config.ts
 ```
 
-
 ## FAQ
-- [C/C++ addons, Node.js modules - Pre-Bundling](https://github.com/electron-vite/vite-plugin-electron-renderer#dependency-pre-bundling)
-- [dependencies vs devDependencies](https://github.com/electron-vite/vite-plugin-electron-renderer#dependencies-vs-devdependencies)
+
+-   [C/C++ addons, Node.js modules - Pre-Bundling](https://github.com/electron-vite/vite-plugin-electron-renderer#dependency-pre-bundling)
+-   [dependencies vs devDependencies](https://github.com/electron-vite/vite-plugin-electron-renderer#dependencies-vs-devdependencies)
