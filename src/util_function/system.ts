@@ -6,10 +6,8 @@ import { copy as copyText } from "./clipboard";
 // REFACTOR: 为必须使用 Electroon 的场合 提供一个 `requireElectron`
 // 函数，检测到不是 Electron 就抛出异常，否则返回 Electron。
 let ipcRenderer = await (async () => {
-	if(isElectron())
-		return (await import("electron")).ipcRenderer;
-	else
-		return null;
+	if (isElectron()) return (await import("electron")).ipcRenderer;
+	else return null;
 })();
 
 export const path = isElectron() ? window.require("path") : {};
@@ -26,7 +24,6 @@ export const openConsole = () => {
 		ipcRenderer?.send("win_opendevtools");
 	}
 };
-
 
 export const getWinPos = (): Promise<number[]> => {
 	return new Promise((resolve) => {
@@ -45,7 +42,7 @@ export const setWinBounds = (bounds: Partial<Electron.Rectangle>) => {
 	if (isElectron()) {
 		ipcRenderer?.send("win_setBounds", bounds);
 	}
-}
+};
 
 export const startApplet = (appletConfig: any) => {
 	if (isElectron()) {
@@ -115,7 +112,7 @@ export const setTop = (isTop: boolean) => {
 		ipcRenderer?.send(
 			"mainwin_setTop",
 			JSON.stringify({
-				isTop
+				isTop,
 			})
 		);
 	}
@@ -126,7 +123,7 @@ export const setIgnoreMouseEvent = (ignore: boolean) => {
 		ipcRenderer?.send(
 			"mainwin_setIgnoreMouseEvent",
 			JSON.stringify({
-				ignore
+				ignore,
 			})
 		);
 	}
@@ -137,7 +134,7 @@ export const setResizeable = (isResizeable: boolean) => {
 		ipcRenderer?.send(
 			"mainwin_setResizeable",
 			JSON.stringify({
-				isResizeable
+				isResizeable,
 			})
 		);
 	}
@@ -230,7 +227,7 @@ export const copy = ({ srcUrl, distUrl }: any) => {
 				"backend_copy",
 				JSON.stringify({
 					srcUrl,
-					distUrl
+					distUrl,
 				})
 			);
 			ipcRenderer?.once("copy_file_ack", (e: any, args: any) => {
@@ -256,7 +253,7 @@ export const uploadImage = (imageUrl: string) =>
 				"backend_save_with_md5",
 				JSON.stringify({
 					srcUrl: imageUrl,
-					distUrl: "./images"
+					distUrl: "./images",
 				})
 			);
 			ipcRenderer?.once("save_with_md5_ack", (e: any, res: any) => {
@@ -403,11 +400,14 @@ export const getCacheSize = () => {
 	});
 };
 
-export const openFolder = (url: string) => {
+export const openFolder = (url: string, home = false) => {
 	if (!isElectron()) {
 		throw new Error("no electron!");
 	}
-	ipcRenderer?.send("open_folder", JSON.stringify({ url, create: true }));
+	ipcRenderer?.send(
+		"open_folder",
+		JSON.stringify({ url, create: true, home })
+	);
 };
 
 export const openFile = ({ url, create }: any) => {
@@ -439,16 +439,13 @@ export const loadSuperChat = () => {
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send("backend_load_superchat");
-			ipcRenderer?.once(
-				"load_superchat_ack",
-				(e: any, args: any) => {
-					if (args !== "#error") {
-						resolve(JSON.parse(args));
-					} else {
-						throw new Error("load file failed!");
-					}
+			ipcRenderer?.once("load_superchat_ack", (e: any, args: any) => {
+				if (args !== "#error") {
+					resolve(JSON.parse(args));
+				} else {
+					throw new Error("load file failed!");
 				}
-			);
+			});
 		} catch (error) {
 			reject(error);
 		}
@@ -498,7 +495,7 @@ export const getVoiceList = () => {
 export const uploadFont = (fontUrl: string) => {
 	return copy({
 		srcUrl: fontUrl,
-		distUrl: `./fonts/${path.basename(fontUrl)}`
+		distUrl: `./fonts/${path.basename(fontUrl)}`,
 	});
 };
 
@@ -533,7 +530,7 @@ export const windowsRead = ({ speed, text, volume }: any) => {
 				JSON.stringify({
 					volume,
 					speed,
-					text: removePunctuationSpace(text)
+					text: removePunctuationSpace(text),
 				})
 			);
 			ipcRenderer?.once("voice_ack", (e: any, args: any) => {
@@ -561,7 +558,7 @@ export const xfRead = ({ api, speed, text, volume }: any) => {
 					api,
 					volume: 100,
 					speed,
-					text: removePunctuationSpace(text)
+					text: removePunctuationSpace(text),
 				})
 			);
 			const timeout = setTimeout(() => {
@@ -595,5 +592,5 @@ export const urlRead = ({ url, volume }: any) => {
 export const robots = {
 	default: windowsRead,
 	kdxf: xfRead,
-	urlRead
+	urlRead,
 };
