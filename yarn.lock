@@ -582,6 +582,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/open-file-explorer@npm:^1":
+  version: 1.0.2
+  resolution: "@types/open-file-explorer@npm:1.0.2"
+  checksum: 4d6f416ef78c64c629cdfc782715a40a3164cdf73fc134d0ff4159c9c28bfb80947709f91418cf646a496222b2c91ff59604f380f57cd0ff0728fdc9399155a0
+  languageName: node
+  linkType: hard
+
 "@types/plist@npm:^3.0.1":
   version: 3.0.5
   resolution: "@types/plist@npm:3.0.5"
@@ -1912,6 +1919,7 @@ __metadata:
   dependencies:
     "@element-plus/icons-vue": "npm:^2.3.1"
     "@lljj/vue3-form-element": "npm:^1.19.0"
+    "@types/open-file-explorer": "npm:^1"
     "@vitejs/plugin-vue": "npm:^4.3.3"
     archiver: "npm:^6.0.1"
     axios: "npm:^1.6.2"
@@ -1932,6 +1940,7 @@ __metadata:
     http: "npm:^0.0.1-security"
     ip: "npm:^1.1.8"
     obs-websocket-js: "npm:^5.0.3"
+    open-file-explorer: "npm:^1.0.2"
     path: "npm:^0.12.7"
     process: "npm:^0.11.10"
     qs: "npm:^6.11.2"
@@ -3578,6 +3587,13 @@ __metadata:
   dependencies:
     wrappy: "npm:1"
   checksum: cd0a88501333edd640d95f0d2700fbde6bff20b3d4d9bdc521bdd31af0656b5706570d6c6afe532045a20bb8dc0849f8332d6f2a416e0ba6d3d3b98806c7db68
+  languageName: node
+  linkType: hard
+
+"open-file-explorer@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "open-file-explorer@npm:1.0.2"
+  checksum: a6e4e5944f12e3d5c6e883e3a9731a00687f9ca98821234a46f5f3e980f4f74748eedf4dcdaacfd02823f39ea4ab94fd9dddda1691f6e25c7c2098c687d3cd70
   languageName: node
   linkType: hard
 

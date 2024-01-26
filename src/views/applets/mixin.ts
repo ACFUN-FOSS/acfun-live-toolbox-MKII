@@ -3,13 +3,13 @@ import {
 	startApplet,
 	appletList,
 	openFolder,
-	openFile
+	openFile,
 } from "@front/util_function/system";
 import path from "path";
 export default defineComponent({
 	data() {
 		return {
-			applets: []
+			applets: [],
 		};
 	},
 	mounted() {
@@ -18,20 +18,20 @@ export default defineComponent({
 	methods: {
 		startApplet,
 		refreshList() {
-			appletList().then(res => {
+			appletList().then((res) => {
 				(this.applets as any) = res;
 			});
 		},
 		openFolder() {
-			openFolder(path.join(process.resourcesPath, "app/applets"));
+			openFolder("acfun-live-toolbox/applets", true);
 		},
 		openDocument() {
 			openFile({
 				url: path.join(
 					process.resourcesPath,
 					"../使用说明/小程序二次开发文档.md"
-				)
+				),
 			});
-		}
-	}
+		},
+	},
 });

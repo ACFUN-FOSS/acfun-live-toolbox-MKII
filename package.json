@@ -25,6 +25,7 @@
         "electron-package": "electron-builder"
     },
     "devDependencies": {
+        "@types/open-file-explorer": "^1",
         "@vitejs/plugin-vue": "^4.3.3",
         "electron": "^26.0.0",
         "electron-builder": "^24.6.3",
@@ -56,6 +57,7 @@
         "http": "^0.0.1-security",
         "ip": "^1.1.8",
         "obs-websocket-js": "^5.0.3",
+        "open-file-explorer": "^1.0.2",
         "path": "^0.12.7",
         "process": "^0.11.10",
         "qs": "^6.11.2",

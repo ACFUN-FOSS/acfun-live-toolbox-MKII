@@ -10,7 +10,10 @@ const fs = require("fs");
 const ba64 = require("ba64");
 const spawn = require("child_process").spawn;
 const crypto = require("crypto");
-log.transports.file.resolvePath = () => (process.platform === "win32" ? path.join(appStatic, "./../../TellFQZWhatHappened.log") : path.join(configStatic, "./TellFQZWhatHappened.log"));
+log.transports.file.resolvePath = () =>
+	process.platform === "win32"
+		? path.join(appStatic, "./../../TellFQZWhatHappened.log")
+		: path.join(configStatic, "./TellFQZWhatHappened.log");
 export { log };
 class File {
 	static registerEvents() {
@@ -63,7 +66,9 @@ class File {
 	static async loadBackup(event: any, p: any) {
 		try {
 			await zipFrom(p, configStatic);
-			const config = File.loadFile(path.join(configStatic, "./config.json"));
+			const config = File.loadFile(
+				path.join(configStatic, "./config.json")
+			);
 			event.reply("load_backup_ack", config);
 		} catch (error) {
 			event.reply("load_backup_ack", "#error");
@@ -97,13 +102,17 @@ class File {
 		let result;
 		try {
 			let { srcUrl, distUrl } = JSON.parse(res);
-			if (!path.isAbsolute(srcUrl)) srcUrl = path.join(configStatic, srcUrl);
+			if (!path.isAbsolute(srcUrl))
+				srcUrl = path.join(configStatic, srcUrl);
 			const md5 = File.getMd5(srcUrl);
 			if (!path.isAbsolute(distUrl)) {
 				distUrl = path.join(configStatic, distUrl);
 			}
 
-			const finalFilePath = path.join(distUrl, `${md5}${path.extname(srcUrl)}`);
+			const finalFilePath = path.join(
+				distUrl,
+				`${md5}${path.extname(srcUrl)}`
+			);
 
 			if (!fs.existsSync(finalFilePath)) {
 				fs.mkdirSync(path.dirname(finalFilePath), { recursive: true });
@@ -160,7 +169,11 @@ class File {
 			fs.accessSync(url);
 		} catch (error) {
 			// @ts-ignore
-			fs.copyFileSync(path.join(process.env.VITE_PUBLIC, "default.json"), url, 0);
+			fs.copyFileSync(
+				path.join(process.env.VITE_PUBLIC, "default.json"),
+				url,
+				0
+			);
 		}
 		const reply = File.loadFile(url);
 		if (event) {
@@ -213,7 +226,10 @@ class File {
 
 	static loadApplet(event: any, res: any) {
 		const { name } = JSON.parse(res);
-		event.reply("load_applet_ack", File.loadFile(path.join(configStatic, `${name}.json`)));
+		event.reply(
+			"load_applet_ack",
+			File.loadFile(path.join(configStatic, `${name}.json`))
+		);
 	}
 
 	static saveApplet(event: any, res: any) {
@@ -344,7 +360,11 @@ class File {
 		event.reply("remove_cache_ack");
 	}
 	static openFolder(event: any, res: any) {
-		let { url, create } = JSON.parse(res);
+		let { url, create, home } = JSON.parse(res);
+
+		if (home && !path.isAbsolute(url)) {
+			url = path.join(require("os").homedir(), url);
+		}
 		if (!path.isAbsolute(url)) {
 			url = path.join(configStatic, url);
 		}
@@ -354,11 +374,11 @@ class File {
 		if (!url || !fs.existsSync(url)) {
 			return;
 		}
-		// TODO: 这玩意只在 Windows 下有用
-		require("child_process").exec(`start "" "${url}"`);
+		const openExplorer = require("open-file-explorer");
+		openExplorer(url);
 	}
 	static openCache() {
-		File.openFolder({}, JSON.stringify({ url: "./" }));
+		File.openFolder({}, JSON.stringify({ url: "./", home: true }));
 	}
 }
 export default File;

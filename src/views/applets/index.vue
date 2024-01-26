@@ -4,23 +4,48 @@
 			<div style="display: flex; justify-content: space-between">
 				<div class="hint">为工具箱提供各种增强功能,不定时上新</div>
 				<div>
-					<el-button  type="primary" @click="refreshList">刷新列表</el-button>
-					<el-button  type="primary" @click="openFolder">打开存放文件夹</el-button>
-					<el-button  type="primary" @click="openDocument">二次开发文档</el-button>
+					<el-button type="primary" @click="refreshList"
+						>刷新列表</el-button
+					>
+					<el-button type="primary" @click="openFolder"
+						>打开存放文件夹</el-button
+					>
+					<el-button type="primary" @click="openDocument"
+						>二次开发点我</el-button
+					>
 				</div>
 			</div>
-			<div v-for="(applet, index) in applets" class="appletRow" :key="index">
+			<div
+				v-for="(applet, index) in applets"
+				class="appletRow"
+				:key="index"
+			>
 				<div class="block" :title="applet.name">
 					<div :class="applet.icon" />
 				</div>
 				<div class="desc">
 					<div class="title">{{ applet.name }}</div>
-					<div class="detail" :title="applet.description">{{ applet.description || "暂无描述" }}</div>
+					<div class="detail" :title="applet.description">
+						{{ applet.description || "暂无描述" }}
+					</div>
 					<div class="tags">
-						<el-tag  v-for="(tag, index) in applet.tags || []" :key="index">{{ tag }}</el-tag>
+						<el-tag
+							v-for="(tag, index) in applet.tags || []"
+							:key="index"
+							>{{ tag }}</el-tag
+						>
 					</div>
 				</div>
-				<el-button class="start" type="primary" @click="startApplet(applet)" :disabled="applet.configurations.liveOnly && $store.state.streamStatus.step !== 'danmakuing'">启动 </el-button>
+				<el-button
+					class="start"
+					type="primary"
+					@click="startApplet(applet)"
+					:disabled="
+						applet.configurations.liveOnly &&
+						$store.state.streamStatus.step !== 'danmakuing'
+					"
+					>启动
+				</el-button>
 			</div>
 		</div>
 	</content-frame>
@@ -66,7 +91,7 @@ export default mixin;
 	border-radius: 4px;
 	margin: 5px;
 	display: flex;
-	font-size: getCssVar('font-size-large');
+	font-size: getCssVar("font-size-large");
 	align-items: center;
 	justify-content: center;
 	border: getCssVar("border", "base");
