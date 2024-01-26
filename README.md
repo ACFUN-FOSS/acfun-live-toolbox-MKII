@@ -14,6 +14,8 @@
   *An AcFun-FOSS project.*
 </div>
 
+> 请参阅 [GIT 使用法](./readme_git_usage.md)。
+
 ## Prerequisite
 
 -   Node.js LTS latest.
