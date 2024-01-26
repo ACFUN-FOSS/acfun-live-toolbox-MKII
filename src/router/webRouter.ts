@@ -21,9 +21,9 @@ export default [
 			label: "弹幕流",
 			icon: "ChatLineSquare",
 			action: "router",
-			noElectron: true
+			noElectron: true,
 		},
-		component: () => import("@front/views/danmakuWeb/index.vue")
+		component: () => import("@front/views/danmakuWeb/index.vue"),
 	},
 	{
 		path: "/obs/danmakuSelf",
@@ -32,24 +32,13 @@ export default [
 			label: "弹幕流",
 			icon: "ChatLineSquare",
 			action: "router",
-			noElectron: true
+			noElectron: true,
 		},
-		component: () => import("@front/views/danmakuWeb/self.vue")
-	},
-	{
-		path: "/obs/applets",
-		name: "obsApplet",
-		meta: {
-			label: "小程序",
-			icon: "ChatLineSquare",
-			action: "router",
-			noElectron: true
-		},
-		component: () => import("@front/views/danmakuWeb/obsApplet.vue")
+		component: () => import("@front/views/danmakuWeb/self.vue"),
 	},
 	{
 		path: "/404",
 		name: "404",
-		component: () => import("@front/views/error-page/404.vue")
-	}
+		component: () => import("@front/views/error-page/404.vue"),
+	},
 ] as RouteRecordRaw[];

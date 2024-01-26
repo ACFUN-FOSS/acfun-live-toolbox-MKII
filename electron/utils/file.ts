@@ -3,18 +3,12 @@ import { appStatic, configStatic } from "./paths";
 import { zipTo, zipFrom } from "./zip";
 import { randomId } from "./base";
 import uniq from "lodash/uniq";
-const log = require("electron-log");
-log.transports.file.maxSize = 100 * 1024 * 1024;
 const path = require("path");
 const fs = require("fs");
 const ba64 = require("ba64");
 const spawn = require("child_process").spawn;
 const crypto = require("crypto");
-log.transports.file.resolvePath = () =>
-	process.platform === "win32"
-		? path.join(appStatic, "./../../TellFQZWhatHappened.log")
-		: path.join(configStatic, "./TellFQZWhatHappened.log");
-export { log };
+
 class File {
 	static registerEvents() {
 		ipcMain.on("backend_launch", this.launch);
@@ -362,10 +356,7 @@ class File {
 	static openFolder(event: any, res: any) {
 		let { url, create, home } = JSON.parse(res);
 
-		if (home && !path.isAbsolute(url)) {
-			url = path.join(require("os").homedir(), url);
-		}
-		if (!path.isAbsolute(url)) {
+		if (home || !path.isAbsolute(url)) {
 			url = path.join(configStatic, url);
 		}
 		if (create) {
@@ -378,7 +369,7 @@ class File {
 		openExplorer(url);
 	}
 	static openCache() {
-		File.openFolder({}, JSON.stringify({ url: "./", home: true }));
+		File.openFolder({}, JSON.stringify({ url: configStatic }));
 	}
 }
 export default File;

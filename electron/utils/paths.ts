@@ -1,7 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-
-const isWin32 = process.platform === "win32";
+import { getCacheDir } from "./sys";
 
 process.env.DIST_ELECTRON = path.join(__dirname, "..");
 process.env.DIST = path.join(process.env.DIST_ELECTRON, "../dist");
@@ -15,10 +14,5 @@ export const homedir = require("os").homedir();
 export const dirname = process.resourcesPath;
 // @ts-ignore
 export const appStatic = process.env.VITE_PUBLIC;
-export const configStatic = isDev // @ts-ignore
-	? path.join(appStatic, "configFiles")
-	: path.join(
-			require("os").homedir(),
-			isWin32 ? "/acfun-live-toolbox" : ".acfunlive-toolbox"
-	  );
+export const configStatic = getCacheDir();
 fs.mkdirSync(configStatic, { recursive: true });
