@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
 import { appStatic, configStatic } from "./paths";
+import { clearPort } from "./sys";
 const { spawn } = require("child_process");
 const path = require("path");
 const find = require("find-process");
@@ -8,7 +9,12 @@ const fs = require("fs");
 let restarting = false;
 class Backend {
 	static file(): string {
-		const platform = process.platform === "linux" ? "linux" : process.platform === "darwin" ? "mac" : "win";
+		const platform =
+			process.platform === "linux"
+				? "linux"
+				: process.platform === "darwin"
+				? "mac"
+				: "win";
 		const filename = ["acbackend", platform, process.arch].join("-");
 		return process.platform === "win32" ? filename + ".exe" : filename;
 	}
@@ -28,10 +34,21 @@ class Backend {
 		if (process.platform !== "win32") {
 			fs.chmodSync(exepath, 0o755);
 		}
-		const logfile = process.platform === "win32" ? path.join(appStatic, "./../../TellOrzogcWhatHappened") : path.join(configStatic, "./TellOrzogcWhatHappened");
-		const backend = spawn(exepath, ["-logfile", logfile, "-logversions", "10", "-tcp"]);
-		process.on("exit", () => {
-			backend.kill();
+		clearPort().then(() => {
+			const logfile =
+				process.platform === "win32"
+					? path.join(appStatic, "./../../TellOrzogcWhatHappened")
+					: path.join(configStatic, "./TellOrzogcWhatHappened");
+			const backend = spawn(exepath, [
+				"-logfile",
+				logfile,
+				"-logversions",
+				"10",
+				"-tcp",
+			]);
+			process.on("exit", () => {
+				backend.kill();
+			});
 		});
 	}
 

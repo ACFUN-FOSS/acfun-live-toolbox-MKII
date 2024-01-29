@@ -1,7 +1,5 @@
 // import { obsApplets } from "@front/applets";
-
 import { RouteRecordRaw } from "vue-router";
-
 // ATTENTION: Don't use:
 // process
 // global

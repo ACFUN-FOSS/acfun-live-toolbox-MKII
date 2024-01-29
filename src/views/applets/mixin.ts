@@ -23,7 +23,7 @@ export default defineComponent({
 			});
 		},
 		openFolder() {
-			openFolder("acfun-live-toolbox/applets", true);
+			openFolder("applets", true);
 		},
 		openDocument() {
 			openFile({

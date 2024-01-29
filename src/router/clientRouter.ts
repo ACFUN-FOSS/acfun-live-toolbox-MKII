@@ -10,25 +10,25 @@ const main = () => import("@front/layouts/main/index.vue");
 
 const clientRouter: RouteRecordRaw[] = [
 	{
-		name: "applets",
-		path: "/applets",
+		name: "appletConfig",
+		path: "/appletConfig",
 		component: appletLayout,
 
 		// See: /src/components/base/sidebars/sidebarBase.vue
 		// TODO: REFACTOR:
-		hidden: true
+		hidden: true,
 	},
 	{
 		path: "/login",
 		name: "Login",
-		component: () => import("@front/views/login/index.vue")
+		component: () => import("@front/views/login/index.vue"),
 	},
 	{
 		path: "/",
 		name: "home",
 		component: main,
 		meta: {
-			label: "直播"
+			label: "直播",
 		},
 		redirect: "/dashboard",
 		children: [
@@ -38,9 +38,9 @@ const clientRouter: RouteRecordRaw[] = [
 				meta: {
 					label: "首页",
 					icon: "Monitor",
-					action: "router"
+					action: "router",
 				},
-				component: () => import("@front/views/dashboard/index.vue")
+				component: () => import("@front/views/dashboard/index.vue"),
 			},
 			{
 				path: "/roomMgmt",
@@ -51,9 +51,9 @@ const clientRouter: RouteRecordRaw[] = [
 					action: "router",
 					disabled: () => {
 						return store.state.streamStatus.step === "unstreamable";
-					}
+					},
 				},
-				component: () => import("@front/views/roomMgmt/index.vue")
+				component: () => import("@front/views/roomMgmt/index.vue"),
 			},
 			{
 				path: "/appletsList",
@@ -61,9 +61,9 @@ const clientRouter: RouteRecordRaw[] = [
 				meta: {
 					label: "小程序",
 					icon: "Menu",
-					action: "router"
+					action: "router",
 				},
-				component: () => import("@front/views/applets/index.vue")
+				component: () => import("@front/views/applets/index.vue"),
 			},
 			{
 				path: "/restart",
@@ -71,8 +71,8 @@ const clientRouter: RouteRecordRaw[] = [
 				meta: {
 					label: "快速重启！",
 					icon: "RefreshRight",
-					action: restart
-				}
+					action: restart,
+				},
 			},
 			{
 				path: "/magiScr",
@@ -83,18 +83,18 @@ const clientRouter: RouteRecordRaw[] = [
 					action: "router",
 					disabled: () => {
 						return true;
-					}
+					},
 				},
-				redirect: "/"
-			}
-		]
+				redirect: "/",
+			},
+		],
 	},
 	{
 		path: "/record",
 		name: "record",
 		component: main,
 		meta: {
-			label: "录像"
+			label: "录像",
 		},
 		children: [
 			{
@@ -106,18 +106,18 @@ const clientRouter: RouteRecordRaw[] = [
 					action: "router",
 					disabled: () => {
 						return false;
-					}
+					},
 				},
-				component: () => import("@front/views/records/index.vue")
-			}
-		]
+				component: () => import("@front/views/records/index.vue"),
+			},
+		],
 	},
 	{
 		path: "/data",
 		name: "data",
 		component: main,
 		meta: {
-			label: "数据"
+			label: "数据",
 		},
 		children: [
 			{
@@ -127,22 +127,25 @@ const clientRouter: RouteRecordRaw[] = [
 					label: "完播复盘",
 					icon: "PieChart",
 					action: () => {
-						window.open(`http://ac.sizzwoo.cc/rank/u/${store.state.userProfile.userID}`, "_blank");
+						window.open(
+							`http://ac.sizzwoo.cc/rank/u/${store.state.userProfile.userID}`,
+							"_blank"
+						);
 					},
 					disabled: () => {
 						return false;
-					}
+					},
 				},
-				redirect: "/"
-			}
-		]
+				redirect: "/",
+			},
+		],
 	},
 	{
 		path: "/config",
 		name: "config",
 		component: main,
 		meta: {
-			label: "设置与选项"
+			label: "设置与选项",
 		},
 		children: [
 			{
@@ -152,11 +155,11 @@ const clientRouter: RouteRecordRaw[] = [
 				meta: {
 					label: "通用",
 					icon: "Setting",
-					action: "router"
+					action: "router",
 					// disabled: () => {
 					// 	return true;
 					// }
-				}
+				},
 				// redirect: "/"
 			},
 			{
@@ -166,8 +169,8 @@ const clientRouter: RouteRecordRaw[] = [
 				meta: {
 					label: "超级聊",
 					icon: "Upload",
-					action: "router"
-				}
+					action: "router",
+				},
 			},
 			{
 				path: "/config/emotion",
@@ -176,8 +179,8 @@ const clientRouter: RouteRecordRaw[] = [
 				meta: {
 					label: "表情包",
 					icon: "Edit",
-					action: "router"
-				}
+					action: "router",
+				},
 			},
 			{
 				path: "/config/roomNameList",
@@ -189,21 +192,22 @@ const clientRouter: RouteRecordRaw[] = [
 					action: "router",
 					disabled: () => {
 						return false;
-					}
-				}
+					},
+				},
 			},
 			{
 				path: "/config/danmakuSetting",
 				name: "danmakuSetting",
-				component: () => import("@front/views/danmakuSetting/index.vue"),
+				component: () =>
+					import("@front/views/danmakuSetting/index.vue"),
 				meta: {
 					label: "弹幕流",
 					icon: "ChatLineSquare",
 					action: "router",
 					disabled: () => {
 						return false;
-					}
-				}
+					},
+				},
 			},
 			{
 				path: "/config/robot",
@@ -215,22 +219,17 @@ const clientRouter: RouteRecordRaw[] = [
 					action: "router",
 					disabled: () => {
 						return false;
-					}
-				}
-			}
-		]
-	}
+					},
+				},
+			},
+		],
+	},
 ];
-
-
 
 export async function getClientRouter(): Promise<RouteRecordRaw[]> {
 	if (isDev()) {
-		const testPagesRouting = (await import("@front/test")).default
-		return [
-			...clientRouter,
-			...testPagesRouting
-		];
+		const testPagesRouting = (await import("@front/test")).default;
+		return [...clientRouter, ...testPagesRouting];
 	} else {
 		return clientRouter;
 	}

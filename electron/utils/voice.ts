@@ -1,6 +1,5 @@
 import { ipcMain } from "electron";
 import { configStatic } from "./paths";
-import { log } from "./file";
 const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
@@ -65,7 +64,7 @@ class Voice {
 			const b64buffer: any = [];
 			client.onopen = () => {
 				const common = {
-					app_id: appID
+					app_id: appID,
 				};
 				const business = {
 					aue: "lame",
@@ -74,18 +73,18 @@ class Voice {
 					speed: speed * 10,
 					volume: volume,
 					pitch: 50,
-					tte: "UTF8"
+					tte: "UTF8",
 				};
 				const data = {
 					text: btoa(utf8.encode(text)),
-					status: 2
+					status: 2,
 				};
 
 				client.send(
 					JSON.stringify({
 						common,
 						business,
-						data
+						data,
 					})
 				);
 			};

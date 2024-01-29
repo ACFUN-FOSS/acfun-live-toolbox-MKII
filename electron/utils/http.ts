@@ -1,6 +1,6 @@
 /**
  * FILENAME: http.ts
- * 
+ *
  * DESC: 启动 HTTP（用于 serve 静态文件）与 ws（用于工具箱不同实例通讯）服务器。
  */
 
@@ -10,37 +10,52 @@ import { appStatic, configStatic } from "./paths";
 import { startSocket } from "./socket";
 import File from "./file";
 
-
 import path from "path";
 import his from "connect-history-api-fallback";
 import ip from "ip";
 import express from "express";
-import { isRunningInDevServer } from "./sys";
+import { isRunningInDevServer, getCacheDir } from "./sys";
 
 const settings = JSON.parse(File.loadConfig(null) || "{}");
 
 const renderProcessDistDir = process.env.DIST;
 
 // TODO: REFACTOR: Rename to `httpServerPort`.
-export const port = settings && settings.general && settings.general.port ? settings.general.port : 1299;
+export const port =
+	settings && settings.general && settings.general.port
+		? settings.general.port
+		: 1299;
 // TODO: REFACTOR: Rename to `wsServerPort`.
-export const socket = settings && settings.general && settings.general.socket ? settings.general.socket : 4396;
+export const socket =
+	settings && settings.general && settings.general.socket
+		? settings.general.socket
+		: 4396;
 
 // 如果运行于 DEV SERVER，则一个哑巴 express 服务器，只用于给 socket.io
 // 创建 ws 服务器使。
 // 否则，启动完整的 express 服务器，同时用于 serve 静态文件。
 export const startHttp = () => {
 	return new Promise((resolve) => {
-
 		const server = express();
 
 		startSocket(server);
 		server.use((req: any, res: any, next: any) => {
-			res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+			res.header(
+				"Cache-Control",
+				"private, no-cache, no-store, must-revalidate"
+			);
 			res.header("Expires", "-1");
 			res.header("Pragma", "no-cache");
 			next();
 		});
+
+		//启动小程序服务
+		server.use(
+			"/applets",
+			express.static(path.join(getCacheDir(), "applets"), {
+				immutable: true,
+			})
+		);
 
 		if (!isRunningInDevServer()) {
 			server.use(
@@ -64,7 +79,7 @@ export const startHttp = () => {
 			// http://xxxxx/obs/danmaku/assets/index-xxx.js and
 			// http://xxxxx/obs/danmaku/assets/index-xxx.css, due to vite will inject
 			// <script type="module" crossorigin src="./assets/index-xxx.js"></script>
-    		// <link rel="stylesheet" href="./assets/index-xxx.css">
+			// <link rel="stylesheet" href="./assets/index-xxx.css">
 			// to the index.html.
 			server.use(
 				"/obs/danmaku/assets",
@@ -74,7 +89,6 @@ export const startHttp = () => {
 			server.get("/", function (req: any, res: any) {
 				res.render(path.join(renderProcessDistDir, "index.html"));
 			});
-
 		} else {
 			server.get("/", (_, res) => {
 				res.send(`Ws server is listening on ${socket}.`);
