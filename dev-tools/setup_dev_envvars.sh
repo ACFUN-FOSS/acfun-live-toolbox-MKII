@@ -1,3 +1,3 @@
-export sass_binary_site=https://npmmirror.com/mirrors/node-sass/
-export electron_mirror=https://registry.npmmirror.com/electron/
-export electron_builder_binaries_mirror=https://registry.npmmirror.com/-/binary/electron-builder-binaries/
+export SASS_BINARY_SITE=https://npmmirror.com/mirrors/node-sass/
+export ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+export ELECTRON_BUILDER_BINARIES_MIRROR=https://registry.npmmirror.com/-/binary/electron-builder-binaries/
