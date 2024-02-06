@@ -156,7 +156,7 @@ class File {
 		}
 		try {
 			ba64.writeImageSync(imgPath + imgName, b64);
-			event.reply("save_b64_ack", imgPath + imgName + ".png");
+			event.reply("save_b64_ack", imgPath + imgName + ".jpeg");
 		} catch (error) {
 			event.reply("save_b64_ack", "#error");
 		}
