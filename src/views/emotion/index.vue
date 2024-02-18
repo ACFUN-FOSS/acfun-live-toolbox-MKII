@@ -45,15 +45,16 @@
 					<el-card class="card" shadow="hover" :body-style="{ padding: '0px' }" @mouseenter="currentEmoji = emoji">
 						<span class="el-icon-error remove" @click="emos = emos.filter((i) => i !== emoji)" />
 						<img-input-static fit="contain" style="height: 120px; width: 100%" v-model="emoji.url" />
-						<div style="display: flex; padding: 0px 14px; justify-content: space-between">
-							<div style="width: 35%">
-								大小<br />
+						<div style="display: flex; justify-content: space-around">
+							<div style="width: 45%">
+								大小 <span>{{ emoji.scale }}</span
+								><br />
 								<el-button-group>
 									<el-button class="btn" type="primary" icon="Plus" @click="emoji.scale < 200 ? (emoji.scale += 2) : false" />
 									<el-button class="btn" type="primary" icon="Minus" @click="emoji.scale > 0 ? (emoji.scale -= 2) : false" />
 								</el-button-group>
 							</div>
-							<div style="width: 60%">
+							<div style="width: 45%">
 								关键词
 								<emoji-picker :showSelected="false" v-model="emoji.pattern">
 									<div class="emoji-picker">😀</div>
@@ -198,14 +199,12 @@ export default defineComponent({
 		display: flex;
 		flex-wrap: wrap;
 		.card-box {
-			width: calc(100% / 4 - 16px) !important;
+			width: calc(100% / 3 - 16px) !important;
 			height: 0px;
-			margin-top: 8px;
-			margin-right: 16px;
+			margin: 8px;
 			position: relative;
 			flex-shrink: 0;
 			padding-bottom: calc(100% / 4);
-			margin-bottom: 16px;
 			.card {
 				overflow: visible;
 				position: absolute;
@@ -213,6 +212,8 @@ export default defineComponent({
 				top: 0px;
 				right: 0px;
 				bottom: 0px;
+				border-radius: 8px;
+				overflow: hidden;
 				.remove {
 					color: $--color-danger;
 					font-size: getCssVar("font-size", "extra-large");
@@ -225,7 +226,6 @@ export default defineComponent({
 				}
 			}
 			.add {
-				border-radius: 8px;
 				border: 5px dashed getCssVar("border-color", "base");
 				cursor: pointer;
 				display: flex;

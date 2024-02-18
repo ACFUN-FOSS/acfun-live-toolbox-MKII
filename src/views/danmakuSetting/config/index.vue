@@ -1,30 +1,32 @@
 <template>
 	<content-frame class="danmaku-setting" :style="{ '--brightness': brightness / 100 }">
-		<row-frame title="预览">
-			<div class="list-add-btn" style="top: 0px">
-				<div class="slider">
-					背景亮度：
-					<el-slider style="width: 100px" v-model="brightness" :min="20" :max="100" :step="1" />
+		<row-frame style="padding-right: 10px">
+			<row-frame title="设置对象" width="100%">
+				<row-span>
+					<el-radio-group v-model="settingTarget">
+						<el-radio-button label="toolBox">主播版</el-radio-button>
+						<el-radio-button label="web">观众版</el-radio-button>
+					</el-radio-group>
+				</row-span>
+			</row-frame>
+			<row-frame title="预览" width="100%">
+				<div class="list-add-btn" style="top: 0px">
+					<div class="slider">
+						背景亮度：
+						<el-slider style="width: 100px" v-model="brightness" :min="20" :max="100" :step="1" />
+					</div>
 				</div>
-			</div>
-			<row-span>
-				<div class="danmaku-list-bg">
-					<flow class="danmaku-list" :configMode="true" :danmakuList="mockData" :max="100" :settings="settings" />
-				</div>
-			</row-span>
-		</row-frame>
-		<row-frame title="设置对象">
-			<row-span>
-				<el-radio-group v-model="settingTarget" >
-					<el-radio-button label="toolBox">主播版</el-radio-button>
-					<el-radio-button label="web">观众版</el-radio-button>
-				</el-radio-group>
-			</row-span>
+				<row-span>
+					<div class="danmaku-list-bg">
+						<flow class="danmaku-list" :configMode="true" :danmakuList="mockData" :max="100" :settings="settings" />
+					</div>
+				</row-span>
+			</row-frame>
 		</row-frame>
 		<div class="right-content">
 			<component v-model:settings="settings" v-model:mockData="mockData" v-for="(item, index) in settingBlocks" :key="index" :is="item" :setting-target="settingTarget" />
-			<el-button @click="save"  type="primary">保存（{{ { toolBox: "主播端", web: "观众端" }[settingTarget] }}设置）</el-button>
-			<el-button v-show="settingTarget === 'toolBox'" @click="saveSync"  type="primary">保存并同步到观众端</el-button>
+			<el-button @click="save" type="primary">保存（{{ { toolBox: "主播端", web: "观众端" }[settingTarget] }}设置）</el-button>
+			<el-button v-show="settingTarget === 'toolBox'" @click="saveSync" type="primary">保存并同步到观众端</el-button>
 		</div>
 	</content-frame>
 </template>
@@ -53,7 +55,7 @@ export default defineComponent({
 		flow,
 		contentFrame,
 		rowFrame,
-		rowSpan,
+		rowSpan
 	},
 	data() {
 		return {
@@ -65,7 +67,7 @@ export default defineComponent({
 			settings: settings(),
 			commonSettings: commonSettings(),
 			changeDialog: false,
-			filter: new Filter(),
+			filter: new Filter()
 		};
 	},
 	mounted() {
@@ -81,22 +83,22 @@ export default defineComponent({
 			return {
 				...rank(),
 				hasMedal: true,
-				clubName: "ACER",
+				clubName: "ACER"
 			};
-		},
+		}
 	},
 	watch: {
 		settingTarget: {
 			handler(n, o) {
 				this.getProfile(n);
-			},
+			}
 		},
 		settings: {
 			handler() {
 				this.resetFilter();
 			},
-			deep: true,
-		},
+			deep: true
+		}
 	},
 	methods: {
 		polling() {
@@ -121,18 +123,18 @@ export default defineComponent({
 		save() {
 			this.$store.commit("updateSettings", {
 				settingType: this.settingTarget,
-				setting: this.settings,
+				setting: this.settings
 			});
 			ElMessage({
 				message: "设置已保存",
 				duration: 1500,
 				type: "success",
-				offset: 60,
+				offset: 60
 			});
 		},
 		saveSync() {
 			const save = {
-				...this.settings,
+				...this.settings
 			};
 			delete save.settingOfType;
 			Object.assign(this.danmakuProfile.toolBox, save);
@@ -142,10 +144,10 @@ export default defineComponent({
 				message: "设置已保存并同步",
 				duration: 1500,
 				type: "success",
-				offset: 60,
+				offset: 60
 			});
-		},
-	},
+		}
+	}
 });
 </script>
 <style scoped lang="scss">
@@ -182,6 +184,7 @@ export default defineComponent({
 
 	.right-content {
 		@include scrollbarDark();
+		padding-bottom: 20px;
 		width: 55%;
 		:deep .el-checkbox-button__inner {
 			padding-left: 5px !important;

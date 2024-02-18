@@ -10,11 +10,12 @@ import { defineComponent } from "vue";
 import { common } from "@front/texts";
 export default defineComponent({
 	name: "heroBase",
-	computed: { common },
+	computed: { common }
 });
 </script>
 
 <style scoped lang="scss">
+@import "@front/styles/common.scss";
 @font-face {
 	font-family: "包图小白体";
 	src: url("/fonts/包图小白体.ttf") format("truetype");

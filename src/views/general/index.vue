@@ -12,30 +12,30 @@
 				<span class="hint">设置后工具箱启动时会同步打开推流工具(OBS或是直播助手)</span>
 			</el-form-item>
 			<el-form-item label="推流工具路径">
-				<row-span :span="8">
+				<row-span :span="9">
 					<el-input :model-value="general.streamToolPath" :disabled="general.streamToolEnable">
 						<template #append>
-							<el-button type="primary" class="attach" :disabled="general.streamToolEnable" @click="loadStreamToolPath">点击选择 </el-button>
+							<el-button class="attach" :disabled="general.streamToolEnable" @click="loadStreamToolPath">点击选择</el-button>
 						</template>
 					</el-input>
 				</row-span>
 			</el-form-item>
 			<el-form-item label="设置端口">
-				<row-span :span="4">
+				<row-span :span="5">
 					<el-input type="number" v-model="general.port" @change="save" class="general-number-input">
 						<template #prepend>
 							<span>服务器端口</span>
 						</template>
 					</el-input>
 				</row-span>
-				<row-span :span="4">
+				<row-span :span="5">
 					<el-input type="number" v-model="general.socket" @change="save" class="general-number-input">
 						<template #prepend>
 							<span>信令端口</span>
 						</template>
 					</el-input>
 				</row-span>
-				<row-span :span="12" class="hint">如果发现端口冲突可以更改数字尝试,重启生效</row-span>
+				<div class="hint">如果发现端口冲突可以更改数字尝试,重启生效</div>
 			</el-form-item>
 			<el-form-item label="配置文件">
 				<el-button type="primary" @click="openFolder">打开文件夹</el-button>
@@ -188,6 +188,7 @@ export default defineComponent({
 <style scoped lang="scss">
 @use "sass:map";
 @import "@front/styles/common.scss";
+@import "@front/styles/scrollbar.scss";
 #general {
 	position: absolute;
 	width: 100%;
@@ -202,8 +203,9 @@ export default defineComponent({
 			color: red;
 		}
 	}
-	.el-form-item{
+	.el-form-item {
 		margin-bottom: 10px !important;
 	}
+	@include scrollbarDark();
 }
 </style>

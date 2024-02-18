@@ -3,19 +3,36 @@
 		<span class="hint">鸡鸡人（机器人）即tts语音，请先点击试听确定系统支持此功能 鸡鸡人的语音等待列表为10条，超出后最早的语音会被略过</span>
 		<span class="hint">鸡鸡人仅会朗读设置了规则并且通过了弹幕流过滤的弹幕，并且不会朗读纯表情评论</span>
 		<span class="hint">讯飞语音需要在<a href="https://passport.xfyun.cn/register" target="_blank">这里</a>注册并获取密匙</span>
-		<span class="hint">###新增音频朗读，需要将mp3格式的音频文件放在<a @click.stop="openVoiceFolder" href="#">这里</a>###<a @click.stop="getVoiceList()" href="#">刷新音频列表</a></span>
+		<span class="hint"
+			>###新增音频朗读，需要将mp3格式的音频文件放在<a @click.stop="openVoiceFolder" href="#">这里</a>###<a @click.stop="getVoiceList()" href="#">刷新音频列表</a></span
+		>
 		<row-frame width="100%" title="通用设置">
 			<vue-form :form-footer="{ show: false }" v-model="robotSetting" :schema="schema" :ui-schema="uiSchema" />
 			<row-span :span="4">
-				<el-button  style="margin-top: -8px" type="primary" @click="save">保存</el-button>
+				<el-button style="margin-top: -8px" type="primary" @click="save">保存</el-button>
 			</row-span>
 		</row-frame>
 		<row-frame width="100%" wi v-for="type in typeOptions" :title="type.label" :key="type.value">
-			<rule-chain v-if="robotSetting.enable.includes(type.value)" :allow="type.value" v-model="robotSetting.rules[type.value]" :voice-list="voices" />
-			<el-button v-if="robotSetting.enable.includes(type.value)"  :disabled="!robotSetting.rules[type.value].length" @click="preview(type.value)" style="margin-top: 8px">
+			<rule-chain
+				v-if="Array.isArray(robotSetting.enable) && robotSetting.enable.includes(type.value)"
+				:allow="type.value"
+				v-model="robotSetting.rules[type.value]"
+				:voice-list="voices"
+			/>
+			<el-button
+				v-if="Array.isArray(robotSetting.enable) && robotSetting.enable.includes(type.value)"
+				:disabled="!robotSetting.rules[type.value].length"
+				@click="preview(type.value)"
+				style="margin-top: 8px"
+			>
 				点击试听</el-button
 			>
-			<el-checkbox style="margin-left: 8px" :model-value="robotSetting.enable.includes(type.value)" @update:model-value="switchType($event, type.value)">开启</el-checkbox>
+			<el-checkbox
+				style="margin-left: 8px"
+				:model-value="Array.isArray(robotSetting.enable) && robotSetting.enable.includes(type.value)"
+				@update:model-value="switchType($event, type.value)"
+				>开启</el-checkbox
+			>
 		</row-frame>
 	</content-frame>
 </template>
@@ -37,7 +54,7 @@ export default defineComponent({
 	name: "robot",
 	components: {
 		ruleChain,
-		VueForm,
+		VueForm
 	},
 	data() {
 		const voices: any = [];
@@ -45,7 +62,7 @@ export default defineComponent({
 			uiSchema: uiSchema(),
 			schema: schema(),
 			robotSetting: robotSetting(),
-			voices,
+			voices
 		};
 	},
 	beforeMount() {
@@ -59,7 +76,7 @@ export default defineComponent({
 	},
 	computed: {
 		typeOptions,
-		...mapState(["danmakuProfile"]),
+		...mapState(["danmakuProfile"])
 	},
 	methods: {
 		openVoiceFolder() {
@@ -85,7 +102,7 @@ export default defineComponent({
 				volume,
 				rtype,
 				api,
-				rules: this.robotSetting.rules[type],
+				rules: this.robotSetting.rules[type]
 			});
 		},
 		save() {
@@ -95,10 +112,10 @@ export default defineComponent({
 				message: "设置已保存",
 				duration: 1500,
 				type: "success",
-				offset: 60,
+				offset: 60
 			});
-		},
-	},
+		}
+	}
 });
 </script>
 

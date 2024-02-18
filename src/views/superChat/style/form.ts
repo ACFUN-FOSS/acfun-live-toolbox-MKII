@@ -1,18 +1,5 @@
-import {
-	colorF,
-	integerF,
-	selectF,
-	stringF,
-	numberF,
-	backgroundImageF,
-	fontF
-} from "@front/components/danmakuFlow/utils/form";
-import {
-	backgroundType,
-	backgroundPosition,
-	fontWeight,
-	backgroundSizeType
-} from "@front/datas/styleOptions";
+import { colorF, integerF, selectF, stringF, numberF, backgroundImageF, fontF } from "@front/components/danmakuFlow/utils/form";
+import { backgroundType, backgroundPosition, fontWeight, backgroundSizeType } from "@front/datas/styleOptions";
 import { backgroundArray } from "@front/components/superChat/backgrounds";
 export default () => {
 	return {
@@ -29,35 +16,22 @@ export default () => {
 				type: "object",
 				title: "背景设置",
 				properties: {
-					backgroundType: selectF(
-						"背景类型",
-						backgroundType(),
-						"50%"
-					),
+					backgroundType: selectF("背景类型", backgroundType(), "50%"),
 					backgroundColor: {
 						"ui:hidden": "{{parentFormData.backgroundType !== 0}}",
-						...colorF("背景颜色", "25%")
+						...colorF("背景颜色", "50%")
 					},
 					backgroundDynamic: {
 						"ui:hidden": "{{parentFormData.backgroundType !== 1}}",
 						...selectF("动态背景选择", backgroundArray, "50%")
 					},
 					backgroundImage: backgroundImageF("背景图片"),
-					backgroundSizeType: selectF(
-						"背景图片填充",
-						backgroundSizeType(),
-						"50%"
-					),
+					backgroundSizeType: selectF("背景图片填充", backgroundSizeType(), "50%"),
 					backgroundSize: {
-						"ui:hidden":
-							"{{parentFormData.backgroundSizeType !== 0}}",
-						...integerF("背景尺寸", "25%")
+						"ui:hidden": "{{parentFormData.backgroundSizeType !== 0}}",
+						...integerF("背景尺寸", "50%")
 					},
-					backgroundPosition: selectF(
-						"图片位置",
-						backgroundPosition(),
-						"25%"
-					),
+					backgroundPosition: selectF("图片位置", backgroundPosition(), "50%"),
 					backgroundOpacity: integerF("图片透明度", "50%")
 				}
 			},
@@ -66,10 +40,10 @@ export default () => {
 				title: "胶囊设置",
 				properties: {
 					font: fontF("字体", "50%"),
-					fontSize: integerF("字号", "25%"),
-					fontWeight: selectF("字粗", fontWeight(), "25%"),
-					color: colorF("颜色", "25%"),
-					textShadowWidth: numberF("文字轮廓", "25%")
+					fontSize: integerF("字号", "50%"),
+					fontWeight: selectF("字粗", fontWeight(), "50%"),
+					color: colorF("颜色", "50%"),
+					textShadowWidth: numberF("文字轮廓", "50%")
 				}
 			},
 			panelStyle: {
@@ -77,10 +51,10 @@ export default () => {
 				title: "面板设置",
 				properties: {
 					font: fontF("字体", "50%"),
-					fontSize: integerF("字号", "25%"),
-					fontWeight: selectF("字粗", fontWeight(), "25%"),
-					color: colorF("颜色", "25%"),
-					textShadowWidth: numberF("文字轮廓", "25%")
+					fontSize: integerF("字号", "50%"),
+					fontWeight: selectF("字粗", fontWeight(), "50%"),
+					color: colorF("颜色", "50%"),
+					textShadowWidth: numberF("文字轮廓", "50%")
 				}
 			}
 		}

@@ -1,6 +1,6 @@
 <template>
 	<content-frame id="roomNameList" v-loading="loading">
-		<el-row :gutter="20">
+		<el-row :gutter="10">
 			<el-col :span="12">
 				<div class="room-name-list-title">怪人（黑名单）</div>
 				<el-input style="margin-bottom: 5px" v-model="blackListToAdd" placeholder="点击输入UID,回车添加" @keypress.enter="addBlackList" />
@@ -219,9 +219,6 @@ export default defineComponent({
 	position: absolute;
 	width: 100%;
 	height: 100%;
-	flex-wrap: wrap;
-	overflow: auto;
-	@include scrollbarDark();
 	.room-name-list-title {
 		position: relative;
 		font-weight: 700;

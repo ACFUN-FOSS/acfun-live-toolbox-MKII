@@ -1,16 +1,12 @@
 <template>
-	<row-frame title="一般设置" :flex="true">
-		<row-span :span="6">
-			最大回滚弹幕数量
+	<row-frame title="一般设置" :flex="true" contentClass="form-row">
+		<row-span :span="6" class="form-col"> 最大回滚弹幕数量 </row-span>
+		<row-span :span="6" class="form-col">
+			<el-input-number v-model="setting.maxNum" />
 		</row-span>
-		<row-span :span="2">
-			<el-input-number  v-model="setting.maxNum" />
-		</row-span>
+		<row-span :span="6"> 弹幕方向 </row-span>
 		<row-span :span="6">
-			弹幕方向
-		</row-span>
-		<row-span :span="6">
-			<el-select v-model="setting.direction" >
+			<el-select v-model="setting.direction">
 				<el-option label="新弹幕在下" value="addToBottom" />
 				<el-option label="新弹幕在上" value="addToTop" />
 			</el-select>
@@ -49,5 +45,12 @@ export default defineComponent({
 });
 </script>
 
-<style scoped lang='scss'>
+<style lang="scss">
+.form-row {
+	display: flex;
+	align-items: center;
+	.form-col {
+		padding-bottom: 10px;
+	}
+}
 </style>

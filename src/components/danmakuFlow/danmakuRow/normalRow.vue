@@ -1,16 +1,24 @@
 <template>
-	<div class="danmaku-row" :class="{config:configMode}" :style="style">
-		 {{ JSON.stringify(setting) }}
-		<br><br>
+	<div class="danmaku-row" :class="{ config: configMode }" :style="style">
+		{{ JSON.stringify(setting) }}
+		<br /><br />
 		<div v-for="widget in setting.widgets" :key="widget.id">
-			{{ widget.labelEn }}, 
+			{{ widget.labelEn }},
 			{{ widget.component }}
-			<br><br>
+			<br /><br />
 		</div>
 
-		<component v-for="widget in setting.widgets" :key="widget.id" :is="widget.labelEn" :config-mode="configMode" :danmaku="danmaku" :setting="widget.value" :count="danmaku.count" />
-		
-		<div v-if="danmaku.combineCount>1" class="combo" :key="danmaku.combineCount">x{{danmaku.combineCount}}</div>
+		<component
+			v-for="widget in setting.widgets"
+			:key="widget.id"
+			:is="widget.labelEn"
+			:config-mode="configMode"
+			:danmaku="danmaku"
+			:setting="widget.value"
+			:count="danmaku.count"
+		/>
+
+		<div v-if="danmaku.combineCount > 1" class="combo" :key="danmaku.combineCount">x{{ danmaku.combineCount }}</div>
 	</div>
 </template>
 
@@ -19,20 +27,14 @@ import { defineComponent } from "vue";
 import { getUserInfo } from "@front/components/danmakuFlow/utils/getter";
 import { allDanmakuWidgets } from "@front/components/danmakuFlow/widgets";
 import content from "@front/components/danmakuFlow/widgets/content/index.vue";
-import {
-	padding,
-	margin,
-	border,
-	outerBox,
-	transform
-} from "@front/components/danmakuFlow/utils/styleGetter";
+import { padding, margin, border, outerBox, transform } from "@front/components/danmakuFlow/utils/styleGetter";
 export default defineComponent({
 	components: {
 		...allDanmakuWidgets,
 		content
 	},
 	mounted() {
-		debugger;
+		// debugger;
 	},
 	name: "danmakuRow",
 	props: {
@@ -55,16 +57,12 @@ export default defineComponent({
 	computed: {
 		danmakuWidgets(): any {
 			// @ts-ignore
-			return this.setting.widgets.filter(
-				(widget: any) => widget.labelEn !== "mainBlock"
-			);
+			return this.setting.widgets.filter((widget: any) => widget.labelEn !== "mainBlock");
 		},
 		style(): any {
 			try {
 				// @ts-ignore
-				const style = this.setting.widgets.find(
-					(widget: any) => widget.labelEn === "mainBlock"
-				)?.value.style;
+				const style = this.setting.widgets.find((widget: any) => widget.labelEn === "mainBlock")?.value.style;
 				if (style) {
 					return {
 						...padding(style),
@@ -84,7 +82,7 @@ export default defineComponent({
 	methods: { getUserInfo }
 });
 </script>
-<style scoped lang='scss'>
+<style scoped lang="scss">
 .danmaku-row {
 	&.config {
 		min-width: 300px;
