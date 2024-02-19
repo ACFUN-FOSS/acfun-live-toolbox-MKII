@@ -57,7 +57,7 @@
 			</row-span>
 		</row-frame>
 		<row-frame width="100%" title="这是预览">
-			<div class="list-add-btn" style="top: 0px">
+			<div class="list-add-btn" style="top: -10px">
 				<div class="slider">
 					背景亮度：
 					<el-slider style="width: 100px" v-model="brightness" :min="20" :max="100" :step="1" />
@@ -466,7 +466,7 @@ export default defineComponent({
 .slider {
 	display: flex;
 	align-items: center;
-	margin-top: -10px;
+	// margin-top: -10px;
 	margin-right: 20px;
 }
 .drop-down-item {

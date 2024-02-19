@@ -336,7 +336,7 @@ export default defineComponent({
 .slider {
 	display: flex;
 	align-items: center;
-	margin-top: -10px;
+	// margin-top: -10px;
 	margin-right: 20px;
 }
 .drop-down-item {

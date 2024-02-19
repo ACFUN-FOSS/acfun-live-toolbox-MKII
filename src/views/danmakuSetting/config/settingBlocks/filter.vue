@@ -49,10 +49,14 @@
 		<row-frame title="过滤器" :flex="true" contentClass="form-row">
 			<div class="hint">客户端的过滤器跟随主播端设置</div>
 		</row-frame>
-		<row-frame title="发送弹幕测试" :flex="true" contentClass="form-row">
-			<el-button-group>
+		<row-frame title="发送弹幕测试">
+			<el-select v-model="styleType" placeholder="选择弹幕类型" @change="sendDanmaku">
+				<el-option v-for="type in typeOptions" :label="type.label" :key="type.value" :value="type.value" />
+			</el-select>
+
+			<!-- <el-button-group>
 				<el-button v-for="type in typeOptions" :label="type.value" :key="type.value" @click="sendDanmaku(type.value)">{{ type.label }} </el-button>
-			</el-button-group>
+			</el-button-group> -->
 			<div class="hint">开播前可以用这个测一下</div>
 		</row-frame>
 	</template>
@@ -103,6 +107,11 @@ export default defineComponent({
 			default: "toolBox"
 		}
 	},
+	data() {
+		return {
+			styleType: ""
+		};
+	},
 	computed: {
 		typeOptions,
 		setting: {
@@ -116,6 +125,7 @@ export default defineComponent({
 	},
 	methods: {
 		sendDanmaku(value: number) {
+			console.log(value);
 			wsevent.wsEmit("sendMockDanmaku", value, "danmakuWeb");
 		}
 	}
@@ -123,7 +133,6 @@ export default defineComponent({
 </script>
 <style lang="scss">
 .form-row {
-	display: flex;
 	align-items: center;
 }
 </style>
