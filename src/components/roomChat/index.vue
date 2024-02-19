@@ -1,13 +1,13 @@
 <template>
-	<div id="room-chat" style="width:100%">
-		<el-input ref="input"  @keyup.enter="sendDanmaku" v-model="value" :placeholder="status.tips" :disabled="status.disabled">
-			<template #append v-if="danmakuProfile.common.emotion&&danmakuProfile.common.emojis.length">
-				<el-dropdown @command="addEmotion" type="primary" trigger="hover" max-height="200px" style="line-height:28px" :hide-on-click="false">
-					<el-button type="primary"  class="btnBase attach">😀</el-button>
+	<div id="room-chat" style="width: 100%">
+		<el-input ref="input" @keyup.enter="sendDanmaku" v-model="value" :placeholder="status.tips" :disabled="status.disabled">
+			<template #append v-if="danmakuProfile.common.emotion && danmakuProfile.common.emojis.length">
+				<el-dropdown @command="addEmotion" type="primary" trigger="hover" max-height="200px" style="line-height: 28px" :hide-on-click="false">
+					<el-button type="primary" class="btnBase attach">😀</el-button>
 					<template #dropdown>
 						<el-dropdown-menu class="emotion-drop-down">
-							<el-dropdown-item v-for="(emoji,index) in danmakuProfile.common.emojis" :key="index" :command="emoji.pattern">
-								<img style="max-width:64px" :src="emoji.url" />
+							<el-dropdown-item v-for="(emoji, index) in danmakuProfile.common.emojis" :key="index" :command="emoji.pattern">
+								<img style="max-width: 64px" :src="emoji.url" />
 							</el-dropdown-item>
 						</el-dropdown-menu>
 					</template>
@@ -50,9 +50,7 @@ export default defineComponent({
 			if (!this.isLogined || !this.isStreaming) {
 				return {
 					disabled: true,
-					tips: !this.isLogined
-						? "用户未登录，不可发言"
-						: "直播未开启，不可发言"
+					tips: !this.isLogined ? "用户未登录，不可发言" : "直播未开启，不可发言"
 				};
 			}
 			return {
@@ -133,9 +131,9 @@ export default defineComponent({
 });
 </script>
 
-<style scoped lang='scss'>
+<style scoped lang="scss">
 @import "@front/styles/common.scss";
-:deep .el-input-group__append {
+:deep(.el-input-group__append) {
 	border: none;
 }
 .btnBase {
@@ -155,7 +153,7 @@ export default defineComponent({
 	max-width: 90vw;
 	display: flex;
 	flex-wrap: wrap;
-	&:deep .el-dropdown-menu__item {
+	&:deep(.el-dropdown-menu__item) {
 		padding: 0px;
 		width: 25%;
 		display: block;

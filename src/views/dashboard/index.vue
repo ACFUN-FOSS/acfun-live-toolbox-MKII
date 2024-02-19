@@ -52,7 +52,7 @@ export default defineComponent({
 		opacity: 0.2;
 		padding-bottom: 8px;
 	}
-	:deep .welcome {
+	:deep(.welcome) {
 		color: getCssVar("text-color", "primary");
 		& > h1 {
 			margin-top: 0px;

@@ -8,9 +8,16 @@
 			<div class="v3-gradient-picker-stops-preview-container">
 				<div class="v3-gradient-picker-stops-preview" :style="stopsPreviewStyle" @click.stop.prevent="addStop($event)"></div>
 			</div>
-			<div class="v3-gradient-picker-stop" v-for="(stop, index) in stops" :key="index" :style="stopStyle(index)" :class="{ active: index == currentStopIdx }" @mousedown.stop="handleMouseDown(index, $event)"
-				@contextmenu.stop="handleMouseRightCLick(index,$event)">
-				<el-color-picker show-alpha  :modelValue="stops[index][0]" @update:modelValue="stops[index][0] = $event.replaceAll(' ','')" />
+			<div
+				class="v3-gradient-picker-stop"
+				v-for="(stop, index) in stops"
+				:key="index"
+				:style="stopStyle(index)"
+				:class="{ active: index == currentStopIdx }"
+				@mousedown.stop="handleMouseDown(index, $event)"
+				@contextmenu.stop="handleMouseRightCLick(index, $event)"
+			>
+				<el-color-picker show-alpha :modelValue="stops[index][0]" @update:modelValue="stops[index][0] = $event.replaceAll(' ', '')" />
 			</div>
 		</div>
 
@@ -29,15 +36,7 @@
 
 <script>
 import LinearGradient from "./LinearGradient";
-import {
-	defineComponent,
-	ref,
-	reactive,
-	computed,
-	onBeforeMount,
-	toRefs,
-	watch
-} from "vue";
+import { defineComponent, ref, reactive, computed, onBeforeMount, toRefs, watch } from "vue";
 
 import { ElColorPicker } from "element-plus";
 
@@ -58,10 +57,7 @@ export default defineComponent({
 		const { modelValue } = toRefs(props);
 
 		const emitInput = (angle, stops) => {
-			context.emit(
-				"update:modelValue",
-				new LinearGradient({ angle, stops })
-			);
+			context.emit("update:modelValue", new LinearGradient({ angle, stops }));
 		};
 		onBeforeMount(() => {
 			if (!(modelValue.value instanceof LinearGradient)) {
@@ -72,7 +68,7 @@ export default defineComponent({
 
 		const angle = computed({
 			get: () => modelValue.value.angle,
-			set: val => {
+			set: (val) => {
 				let degrees = parseInt(val, 10) || 0;
 				if (degrees < 0) degrees = 0;
 				else if (degrees > 360) degrees = 360;
@@ -81,21 +77,17 @@ export default defineComponent({
 		});
 		const stops = computed({
 			get: () => modelValue.value.stops || [],
-			set: val => emitInput(modelValue.value.angle, val)
+			set: (val) => emitInput(modelValue.value.angle, val)
 		});
 		const orderedStops = computed(() => {
 			return [...stops.value].sort((a, b) => a[POSITION] - b[POSITION]);
 		});
 
-		const getGradientString = angle => {
+		const getGradientString = (angle) => {
 			if (orderedStops.value.length === 1) {
 				return orderedStops.value[0][COLOR];
 			}
-			const color = orderedStops.value
-				.map(
-					stop => `${stop[COLOR].toString()} ${stop[POSITION] * 100}%`
-				)
-				.join(",");
+			const color = orderedStops.value.map((stop) => `${stop[COLOR].toString()} ${stop[POSITION] * 100}%`).join(",");
 			return `linear-gradient(${angle}deg, ${color})`;
 		};
 
@@ -113,24 +105,23 @@ export default defineComponent({
 			get: () => {
 				return stops.value[currentStopIdx.value][COLOR];
 			},
-			set: val => {
+			set: (val) => {
 				stops.value[currentStopIdx.value][COLOR] = val;
 				emitInput(angle, stops.value);
 			}
 		});
 
-		const setCurrentStopIdx = index => {
+		const setCurrentStopIdx = (index) => {
 			currentStopIdx.value = index;
 		};
-		const stopStyle = index => {
+		const stopStyle = (index) => {
 			return {
 				left: `${stops.value[index][POSITION] * 100}%`
 			};
 		};
 
-		const addStop = e => {
-			const position =
-				Math.round((e.offsetX * 100) / e.target.offsetWidth) / 100;
+		const addStop = (e) => {
+			const position = Math.round((e.offsetX * 100) / e.target.offsetWidth) / 100;
 			stops.value.push([currentColor.value, position]);
 			setCurrentStopIdx(stops.value.length);
 		};
@@ -149,12 +140,11 @@ export default defineComponent({
 			containerBoundingClientRectangle = stopsContainer.value.getBoundingClientRect();
 		};
 
-		const handleChange = event => {
+		const handleChange = (event) => {
 			event.preventDefault();
 			event.stopPropagation();
 
-			const x =
-				(event.touches ? event.touches[0].clientX : event.clientX) || 0;
+			const x = (event.touches ? event.touches[0].clientX : event.clientX) || 0;
 			const left = x - containerBoundingClientRectangle.left;
 
 			const containerWidth = containerBoundingClientRectangle.width;
@@ -176,7 +166,7 @@ export default defineComponent({
 			setCurrentStopIdx(index);
 			removeCurrentStop();
 		};
-		const handleMouseDown = index => {
+		const handleMouseDown = (index) => {
 			setCurrentStopIdx(index);
 			setContainerBoundingClientRectangle();
 			window.addEventListener("mousemove", handleChange);
@@ -250,8 +240,7 @@ export default defineComponent({
 				left: 0;
 				right: 0;
 				border-radius: 2px;
-				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-					0 0 6px rgba(0, 0, 0, 0.04);
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
 			}
 		}
 		.v3-gradient-picker-stop {
@@ -267,9 +256,8 @@ export default defineComponent({
 			align-items: center;
 			cursor: pointer;
 			overflow: hidden;
-			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-				0 0 6px rgba(0, 0, 0, 0.04);
-			:deep .el-color-picker {
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
+			:deep(.el-color-picker) {
 				position: absolute;
 				top: 0px;
 				left: 0px;
@@ -315,8 +303,7 @@ export default defineComponent({
 					border-radius: 1px;
 					height: 10px;
 					border: 0;
-					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-						0 0 6px rgba(0, 0, 0, 0.04);
+					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
 					background: #fff;
 					z-index: 2;
 				}
@@ -327,8 +314,7 @@ export default defineComponent({
 					border-radius: 1px;
 					height: 10px;
 					border: 0;
-					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-						0 0 6px rgba(0, 0, 0, 0.04);
+					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
 					background: #fff;
 				}
 
@@ -338,8 +324,7 @@ export default defineComponent({
 					border-radius: 1px;
 					height: 10px;
 					border: 0;
-					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-						0 0 6px rgba(0, 0, 0, 0.04);
+					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
 					background: #fff;
 				}
 
@@ -350,8 +335,7 @@ export default defineComponent({
 					background: rgba(0, 0, 0, 0.05);
 					border: 0;
 					border-radius: 2px;
-					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-						0 0 6px rgba(0, 0, 0, 0.04);
+					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
 					z-index: 1;
 				}
 
@@ -362,8 +346,7 @@ export default defineComponent({
 					background: rgba(0, 0, 0, 0.05);
 					border: 0;
 					border-radius: 2px;
-					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-						0 0 6px rgba(0, 0, 0, 0.04);
+					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
 				}
 
 				&::-ms-track {
@@ -379,15 +362,13 @@ export default defineComponent({
 					border: 0;
 					background: rgba(0, 0, 0, 0.05);
 					border-radius: 2px;
-					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-						0 0 6px rgba(0, 0, 0, 0.04);
+					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
 				}
 				&::-ms-fill-upper {
 					border: 0;
 					background: rgba(0, 0, 0, 0.05);
 					border-radius: 2px;
-					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12),
-						0 0 6px rgba(0, 0, 0, 0.04);
+					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
 				}
 			}
 		}

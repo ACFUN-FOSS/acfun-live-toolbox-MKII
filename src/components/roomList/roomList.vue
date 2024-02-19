@@ -5,7 +5,7 @@
 			<el-tab-pane label="贡献榜" name="second" />
 			<el-tab-pane label="守护榜" name="third" />
 		</el-tabs>
-		<div style="height:60px;transform:translateY(-10px);">
+		<div style="height: 60px; transform: translateY(-10px)">
 			<component :is="component" />
 		</div>
 	</div>
@@ -36,22 +36,22 @@ export default defineComponent({
 	}
 });
 </script>
-<style scoped lang='scss'>
+<style scoped lang="scss">
 @import "@front/styles/common.scss";
 .tabs {
 	position: absolute;
 	top: -62px;
 	width: 100%;
-	:deep .el-tabs__nav.is-top {
+	:deep(.el-tabs__nav.is-top) {
 		float: left;
 	}
-	:deep .el-tabs__item {
+	:deep(.el-tabs__item) {
 		box-shadow: none !important;
 	}
-	:deep .el-tabs__header {
+	:deep(.el-tabs__header) {
 		margin: 0px !important;
 	}
-	:deep .el-tabs__content {
+	:deep(.el-tabs__content) {
 		display: none;
 	}
 }

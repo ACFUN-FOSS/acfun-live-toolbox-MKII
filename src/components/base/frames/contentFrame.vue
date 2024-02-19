@@ -17,7 +17,7 @@ export default defineComponent({
 });
 </script>
 
-<style scoped lang='scss'>
+<style scoped lang="scss">
 .contentFrame {
 	position: absolute;
 	width: 100%;
@@ -27,7 +27,7 @@ export default defineComponent({
 	&.column {
 		flex-direction: column;
 		justify-content: flex-start;
-		:deep rowFrame {
+		:deep(rowFrame) {
 			margin-right: 4%;
 		}
 	}

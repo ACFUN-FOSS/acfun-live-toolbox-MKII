@@ -186,11 +186,11 @@ export default defineComponent({
 		@include scrollbarDark();
 		padding-bottom: 20px;
 		width: 55%;
-		:deep .el-checkbox-button__inner {
+		:deep(.el-checkbox-button__inner) {
 			padding-left: 5px !important;
 			padding-right: 5px !important;
 		}
-		:deep > div {
+		& > :deep(div) {
 			width: 100% !important;
 		}
 		overflow-y: scroll;

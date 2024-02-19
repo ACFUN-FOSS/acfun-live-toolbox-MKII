@@ -373,7 +373,7 @@ export default defineComponent({
 	width: 100%;
 	height: 100%;
 	display: flex;
-	:deep .imgInput {
+	:deep(.imgInput) {
 		width: 100%;
 		padding-bottom: 40%;
 		box-shadow: getCssVar("box-shadow", "base");

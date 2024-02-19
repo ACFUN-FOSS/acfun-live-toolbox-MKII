@@ -439,7 +439,7 @@ export default defineComponent({
 @import "@front/styles/scrollbar.scss";
 @import "@front/styles/backgrounds.scss";
 .setting-bar {
-	:deep .el-radio-button--mini .el-radio-button__inner {
+	:deep(.el-radio-button--mini .el-radio-button__inner) {
 		padding: 7px 10px !important;
 	}
 }

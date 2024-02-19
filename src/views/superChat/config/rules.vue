@@ -1,33 +1,35 @@
 <template>
 	<div class="super-chat-rule">
-		<div class="rule-block" v-for="(rule,index) in rules" :key="index">
-			<el-divider><span class="tips">规则{{index+1}}</span></el-divider>
-			<row-frame title="" style="width:100%" :flex="true">
+		<div class="rule-block" v-for="(rule, index) in rules" :key="index">
+			<el-divider
+				><span class="tips">规则{{ index + 1 }}</span></el-divider
+			>
+			<row-frame title="" style="width: 100%" :flex="true">
 				<row-span :span="3">
 					<p>金额（AC币）</p>
 					<div class="number-input">
 						>=
-						<el-input-number :step="10" :min="0"  v-model="rule.triggerValue" />
+						<el-input-number :step="10" :min="0" v-model="rule.triggerValue" />
 					</div>
 				</row-span>
 				<row-span :span="2">
 					<p>持续时间(秒)</p>
-					<el-input-number  :min="15" :modelValue="rule.listDuration/1000" @update:modelValue="rule.listDuration=$event*1000" />
+					<el-input-number :min="15" :modelValue="rule.listDuration / 1000" @update:modelValue="rule.listDuration = $event * 1000" />
 				</row-span>
 				<row-span :span="3.5">
 					<p>选择主题</p>
-					<el-select placeholder="请选择主题面板"  v-model="rule.themeID" @change="applyTheme(rule,$event)">
+					<el-select placeholder="请选择主题面板" v-model="rule.themeID" @change="applyTheme(rule, $event)">
 						<el-option label="默认" value="0" />
 						<el-option v-for="theme in themes" :key="theme.id" :label="theme.label" :value="theme.id" />
 					</el-select>
 				</row-span>
-				<row-span style="text-align:right" :span="3.5">
+				<row-span style="text-align: right" :span="3.5">
 					<p>&nbsp;</p>
-					<el-button  type="danger" @click="remove(rule)">删除</el-button>
+					<el-button type="danger" @click="remove(rule)">删除</el-button>
 				</row-span>
 			</row-frame>
 		</div>
-		<el-button style="width:100%;text-align:center"  type="primary" @click="add">添加+</el-button>
+		<el-button style="width: 100%; text-align: center" type="primary" @click="add">添加+</el-button>
 	</div>
 </template>
 
@@ -77,8 +79,7 @@ export default defineComponent({
 	},
 	methods: {
 		add() {
-			const previous =
-				clone(this.rules.slice(-1)[0]) || superChatBlockSetting();
+			const previous = clone(this.rules.slice(-1)[0]) || superChatBlockSetting();
 			this.rules.push({
 				...previous,
 				triggerValue: previous.triggerValue + 1,
@@ -103,9 +104,7 @@ export default defineComponent({
 				return;
 			}
 
-			const theme: any = this.themes.find(
-				(theme: any) => theme.id === themeID
-			);
+			const theme: any = this.themes.find((theme: any) => theme.id === themeID);
 			if (theme) {
 				rule.theme = theme.value;
 			} else {
@@ -116,7 +115,7 @@ export default defineComponent({
 });
 </script>
 
-<style scoped lang='scss'>
+<style scoped lang="scss">
 .super-chat-rule {
 	width: 100%;
 	.number-input {
@@ -124,7 +123,7 @@ export default defineComponent({
 		align-items: center;
 		& > div {
 			flex-grow: 1;
-			:deep .el-input__inner {
+			:deep(.el-input__inner) {
 				width: 100% !important;
 			}
 		}
