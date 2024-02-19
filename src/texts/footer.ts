@@ -1,7 +1,7 @@
 export const footer = (): any => {
 	return {
 		base:
-			"Logo:By @木羽熊藏\n UI设计: By @林梦仙\n ACFUN开源⑨课\n Copyright @ 2007-2021 AcFun. 保留所有权利",
-		wrap: "© ACFUN开源⑨课（ACFOSS） 2007-2023。保留所有权利。"
+			"Logo by @木羽熊藏\nUI 及 UE / UX 设计 by @林梦仙\n© AcFun 自由 / 开源 ⑨ 课（ACFUN-FOSS） 2007-20234。保留所有权利。",
+		wrap: "© AcFun 自由 / 开源 ⑨ 课（ACFUN-FOSS） 2007-20234。保留所有权利。"
 	};
 };

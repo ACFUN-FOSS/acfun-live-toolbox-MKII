@@ -12,12 +12,23 @@ TellOrzogcWhatHappened.panic
 # Compiled files
 BUILD
 node_modules
-.yarn
 dist
 dist-ssr
 dist-electron
 release
 *.local
+
+# Yarn
+# 我们要求开发者自行给项目配置 yarn，见 README.md。
+.yarn
+
+# Yarn config
+# 在开发者使用 corepack 为项目配置 yarn 时候，yarn 会在 .yarnrc.yml 中添加一条指向 .yarn
+# 目录的 “yarnPath” 记录，而 .yarn 目录在 git 忽略列表中，如果开发者不小心把这样的
+# .yarnrc.yml 提交到 git 仓库中，就会导致问题：如果某其他开发者 pull 之后正好清空了 yarn 的
+# 缓存或是重新配置了 yarn，那么他就不再能在项目根目录下执行 yarn 了，因为在其电脑中，
+# “yarnPath” 指向的是不存在的位置。
+.yarnrc.yml
 
 # Editor directories and files
 .vscode/.debug.env

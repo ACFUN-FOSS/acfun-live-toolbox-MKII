@@ -57,7 +57,7 @@ import shotcut from "./shotcut.vue";
 import roomList from "@front/components/roomList/roomList.vue";
 import roomChat from "@front/components/roomChat/index.vue";
 import minify from "@front/components/minify/index.vue";
-import appletList from "@front/views/applets/widget.vue";
+import appletList from "@front/views/legacyAppletsManager/widget.vue";
 export default defineComponent({
 	name: "streamMonitor",
 	components: {

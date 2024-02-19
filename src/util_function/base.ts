@@ -1,4 +1,8 @@
+// TODO: REFACTOR: 文件名不好
+
 import merge from "lodash/merge";
+
+
 export const randomId = (length = 6) => {
 	let Num = "";
 	for (let i = 0; i < length; i++) {
@@ -49,4 +53,7 @@ export const registerRole = (name: string) => {
 	win.role = name;
 };
 
-export const isDev = () => process.env.NODE_ENV === "development";
+
+export function isRunningInDevServer() {
+    return process.env.VITE_DEV_SERVER_URL && process.env.VITE_DEV_SERVER_URL != "";
+}

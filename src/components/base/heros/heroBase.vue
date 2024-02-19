@@ -1,7 +1,7 @@
 <template>
 	<div class="hero">
-		<div class="title">{{ common.title }}</div>
-		<div class="subtitle">{{ common.subTitle }}</div>
+		<div class="title">{{common.title}}</div>
+		<div class="subtitle">{{common.subTitle}}</div>
 	</div>
 </template>
 
@@ -10,11 +10,13 @@ import { defineComponent } from "vue";
 import { common } from "@front/texts";
 export default defineComponent({
 	name: "heroBase",
-	computed: { common },
+	computed: { common }
 });
 </script>
 
-<style scoped lang="scss">
+<style scoped lang='scss'>
+@import "@front/styles/common.scss";
+
 @font-face {
 	font-family: "包图小白体";
 	src: url("/fonts/包图小白体.ttf") format("truetype");

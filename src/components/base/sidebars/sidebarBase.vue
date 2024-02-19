@@ -25,14 +25,17 @@
 import { defineComponent } from "vue";
 import { footer, common } from "@front/texts";
 import { event } from "@front/util_function/eventBus";
-import { getClientRouter } from "@front/router/clientRouter";
+import { getElectronRouting } from "@front/router/electronRouting";
 
 
 export default defineComponent({
 	name: "sidebarBase",
 	mounted() {
-		getClientRouter().then((routing) => {
+		getElectronRouting().then((routing) => {
 			// TODO: REFACTOR: ?????
+			// TODO: REFACTOR: 可见拓展了 RouteRecordRaw（hidden 是自定义字段），用
+			// 接口描述数据结构。
+			// TODO: Edit /src/router/electronRouting.ts.
 			this.routingToShow = routing.slice(2).filter((i) =>!i.hidden);
 		});
 	},
@@ -46,9 +49,7 @@ export default defineComponent({
 		footer,
 		common,
 		contents() {
-			// TODO: REFACTOR: 可见拓展了 RouteRecordRaw（hidden 是自定义字段），用
-			// 接口描述数据结构。
-			// TODO: Edit /src/router/clientRouter.ts.
+			
 			
 		}
 	},

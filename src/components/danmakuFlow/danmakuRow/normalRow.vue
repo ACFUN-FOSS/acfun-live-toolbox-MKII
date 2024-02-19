@@ -32,7 +32,7 @@ export default defineComponent({
 		content
 	},
 	mounted() {
-		debugger;
+		//debugger;
 	},
 	name: "danmakuRow",
 	props: {

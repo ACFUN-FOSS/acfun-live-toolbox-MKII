@@ -87,7 +87,7 @@ import rowFrame from "@front/components/base/frames/rowFrame.vue";
 import rowSpan from "@front/components/base/frames/rowSpan.vue";
 
 
-import { loadSuperChat, saveSuperChat } from "@front/util_function/system";
+import { readSuperChatConfig, saveSuperChatConfig } from "@front/util_function/system";
 import defaultTheme from "./default";
 import { ElMessage } from "element-plus";
 export default defineComponent({
@@ -141,7 +141,7 @@ export default defineComponent({
 				this.themeID = this.theme = "";
 			}
 			this.themes = this.themes.filter((them: any) => them !== theme);
-			saveSuperChat({
+			saveSuperChatConfig({
 				list: this.themes,
 			});
 			ElMessage({
@@ -176,7 +176,7 @@ export default defineComponent({
 			const theme = this.themes.find((theme: any) => theme.id === this.themeID);
 			if (theme) {
 				Object.assign(theme.value, this.theme);
-				saveSuperChat({
+				saveSuperChatConfig({
 					list: this.themes,
 				});
 				const rules = this.$store.state.danmakuProfile.common?.superChat?.rules;
@@ -205,7 +205,7 @@ export default defineComponent({
 				label: this.newName,
 				value: cloneDeep(this.theme),
 			});
-			saveSuperChat({
+			saveSuperChatConfig({
 				list: this.themes,
 			});
 			this.newName = "新主题";
@@ -220,7 +220,7 @@ export default defineComponent({
 			this.saveAsDialog = false;
 		},
 		getTheme() {
-			loadSuperChat()
+			readSuperChatConfig()
 				.then((res: any) => {
 					this.themes = res.list;
 				})

@@ -21,7 +21,7 @@ export const minimize = () => {
 
 export const openConsole = () => {
 	if (isElectron()) {
-		ipcRenderer?.send("win_opendevtools");
+		ipcRenderer?.send("win_openDevtools");
 	}
 };
 
@@ -44,24 +44,24 @@ export const setWinBounds = (bounds: Partial<Electron.Rectangle>) => {
 	}
 };
 
-export const startApplet = (appletConfig: any) => {
+export const startLegacyApplet = (appletConfig: any) => {
 	if (isElectron()) {
-		ipcRenderer?.send("startApplet", JSON.stringify(appletConfig));
+		ipcRenderer?.send("legacyApplet_start", JSON.stringify(appletConfig));
 	}
 };
 
-export const loadApplet = (name: any) => {
+export const loadLegacyAppletSettings = (name: any) => {
 	return new Promise((resolve, reject) => {
 		try {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("load_applet", JSON.stringify({ name }));
-			ipcRenderer?.once("load_applet_ack", (e: any, args: any) => {
+			ipcRenderer?.send("legacyApplet_loadSettings", JSON.stringify({ name }));
+			ipcRenderer?.once("legacyApplet_loadSettings_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
-					throw new Error("load_applet failed!");
+					throw new Error("legacyApplet_loadSettings failed!");
 				}
 			});
 		} catch (error) {
@@ -70,24 +70,24 @@ export const loadApplet = (name: any) => {
 	});
 };
 
-export const saveApplet = (name: any, data: any) => {
+export const saveLegacyAppletSettings = (name: any, data: any) => {
 	if (isElectron()) {
-		ipcRenderer?.send("save_applet", JSON.stringify({ name, data }));
+		ipcRenderer?.send("legacyApplet_saveSettings", JSON.stringify({ name, data }));
 	}
 };
 
-export const appletList = () => {
+export const legacyAppletList = () => {
 	return new Promise((resolve, reject) => {
 		try {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("appletList");
-			ipcRenderer?.once("applet_list_ack", (e: any, args: any) => {
+			ipcRenderer?.send("legacyApplet_list");
+			ipcRenderer?.once("legacyApplet_list_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
-					throw new Error("applet_list failed!");
+					throw new Error("legacyApplet_list failed!");
 				}
 			});
 		} catch (error) {
@@ -98,7 +98,7 @@ export const appletList = () => {
 
 export const close = () => {
 	if (isElectron()) {
-		ipcRenderer?.send("win_opendevtools");
+		ipcRenderer?.send("win_openDevtools");
 	}
 };
 export const log = (msg: any) => {
@@ -250,17 +250,17 @@ export const uploadImage = (imageUrl: string) =>
 				throw new Error("no electron!");
 			}
 			ipcRenderer?.send(
-				"backend_save_with_md5",
+				"copyFileWithMd5Name",
 				JSON.stringify({
 					srcUrl: imageUrl,
 					distUrl: "./images",
 				})
 			);
-			ipcRenderer?.once("save_with_md5_ack", (e: any, res: any) => {
+			ipcRenderer?.once("copyFileWithMd5Name_ack", (e: any, res: any) => {
 				if (res !== "#error") {
 					resolve(res);
 				} else {
-					throw new Error("save with md5 failed!");
+					throw new Error("copyFileWithMd5Name failed!");
 				}
 			});
 		} catch (e) {
@@ -280,8 +280,8 @@ export const uploadBase64Image = (b64: string) => {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("backend_save_b64", b64);
-			ipcRenderer?.once("save_b64_ack", (e: any, args: any) => {
+			ipcRenderer?.send("saveB64ToImgFile", b64);
+			ipcRenderer?.once("saveB64ToImgFile_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -301,14 +301,14 @@ export const saveConfig = (data: any) => {
 	ipcRenderer?.send("backend_save_config", JSON.stringify(data));
 };
 
-export const loadConfig = () => {
+export const readConfig = () => {
 	return new Promise((resolve, reject) => {
 		try {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("backend_load_config");
-			ipcRenderer?.once("load_config_ack", (e: any, args: any) => {
+			ipcRenderer?.send("readConfig");
+			ipcRenderer?.once("readConfig_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
@@ -327,8 +327,8 @@ export const restoreConfig = (path: string) => {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("load_backup", path);
-			ipcRenderer?.once("load_backup_ack", (e: any, args: any) => {
+			ipcRenderer?.send("restoreAndReadBackupConfig", path);
+			ipcRenderer?.once("restoreAndReadBackupConfig_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
@@ -346,8 +346,8 @@ export const backupConfig = () => {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("save_backup");
-			ipcRenderer?.once("save_backup_ack", (e: any, args: any) => {
+			ipcRenderer?.send("backupConfig");
+			ipcRenderer?.once("backupConfig_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -366,8 +366,8 @@ export const removeCache = (data: any = []) => {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("remove_cache", JSON.stringify(data));
-			ipcRenderer?.once("remove_cache_ack", (e: any, args: any) => {
+			ipcRenderer?.send("removeCache", JSON.stringify(data));
+			ipcRenderer?.once("removeCache_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -386,8 +386,8 @@ export const getCacheSize = () => {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("size_cache");
-			ipcRenderer?.once("size_cache_ack", (e: any, args: any) => {
+			ipcRenderer?.send("getCacheSize");
+			ipcRenderer?.once("getCacheSize_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(args);
 				} else {
@@ -405,7 +405,7 @@ export const openFolder = (url: string, home = false) => {
 		throw new Error("no electron!");
 	}
 	ipcRenderer?.send(
-		"open_folder",
+		"openFolder",
 		JSON.stringify({ url, create: true, home })
 	);
 };
@@ -415,35 +415,35 @@ export const openFile = ({ url, create }: any) => {
 		throw new Error("no electron!");
 	}
 	// console.log(url);
-	ipcRenderer?.send("open_folder", JSON.stringify({ url, create }));
+	ipcRenderer?.send("openFolder", JSON.stringify({ url, create }));
 };
 
-export const openCache = () => {
+export const openCacheFolder = () => {
 	if (!isElectron()) {
 		throw new Error("no electron!");
 	}
-	ipcRenderer?.send("open_cache");
+	ipcRenderer?.send("openCacheFolder");
 };
 
-export const saveSuperChat = (data: any) => {
+export const saveSuperChatConfig = (data: any) => {
 	if (!isElectron()) {
 		throw new Error("no electron!");
 	}
-	ipcRenderer?.send("backend_save_superchat", JSON.stringify(data));
+	ipcRenderer?.send("saveSuperChatConfig", JSON.stringify(data));
 };
 
-export const loadSuperChat = () => {
+export const readSuperChatConfig = () => {
 	return new Promise((resolve, reject) => {
 		try {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("backend_load_superchat");
-			ipcRenderer?.once("load_superchat_ack", (e: any, args: any) => {
+			ipcRenderer?.send("ReadSuperchatConfig");
+			ipcRenderer?.once("ReadSuperchatConfig_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
-					throw new Error("load file failed!");
+					throw new Error("load superchat config failed!");
 				}
 			});
 		} catch (error) {
@@ -458,12 +458,12 @@ export const getFontList = () => {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("backend_font_list");
-			ipcRenderer?.once("font_list_ack", (e: any, args: any) => {
+			ipcRenderer?.send("getFontList");
+			ipcRenderer?.once("getFontList_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {
-					throw new Error("load font failed!");
+					throw new Error("get font list failed!");
 				}
 			});
 		} catch (error) {
@@ -478,8 +478,8 @@ export const getVoiceList = () => {
 			if (!isElectron()) {
 				throw new Error("no electron!");
 			}
-			ipcRenderer?.send("backend_voice_list");
-			ipcRenderer?.once("voice_list_ack", (e: any, args: any) => {
+			ipcRenderer?.send("getVoiceList");
+			ipcRenderer?.once("getVoiceList_ack", (e: any, args: any) => {
 				if (args !== "#error") {
 					resolve(JSON.parse(args));
 				} else {

@@ -11,7 +11,7 @@
 		</el-image>
 	</div>
 	<el-dialog class="dialogBase" title="图片剪裁" v-model="clipDialog" @close="editImg = ''">
-		<vue-cropper v-if="clipDialog" style="height: 300px" ref="cropper" :fixedNumber="['16', '10']" :autoCrop="true" :img="editImg" alt="Source Image" />
+		<vue-cropper v-if="clipDialog" style="height: 300px" ref="cropper" :fixedNumber="['16', '10']" :autoCrop="true" :img="editImg" :outputType="'png'" alt="Source Image" />
 		<span class="hint">鼠标滚轮进行缩放</span>
 		<template #footer>
 			<el-button type="primary" @click="crop">确定</el-button>
@@ -54,7 +54,7 @@ export default defineComponent({
 	},
 	methods: {
 		async getFile() {
-			const file: any = await load(".jpg,.png,.gif");
+			const file: any = await load(".png");
 			if (file) {
 				this.edit(file);
 			}

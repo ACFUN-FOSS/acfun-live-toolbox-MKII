@@ -2,13 +2,12 @@ import store from "@front/store";
 //import testRouters from "@front/test";
 import appletLayout from "@front/layouts/applets/index.vue";
 import { restart } from "@front/util_function/login";
-import { isDev } from "@front/util_function/base";
 import { RouteRecordRaw } from "vue-router";
+import { isRunningInDevServer } from "@front/util_function/base";
 const main = () => import("@front/layouts/main/index.vue");
 
-// TODO: REFACTOR: 重命名 “clientRouter” 为 “electronBrowserRouting” 类似的字眼。
 
-const clientRouter: RouteRecordRaw[] = [
+const electronRouting: RouteRecordRaw[] = [
 	{
 		name: "applets",
 		path: "/applets",
@@ -56,14 +55,14 @@ const clientRouter: RouteRecordRaw[] = [
 				component: () => import("@front/views/roomMgmt/index.vue")
 			},
 			{
-				path: "/appletsList",
-				name: "appletsList",
+				path: "/legacyApplets",
+				name: "legacyApplets",
 				meta: {
-					label: "小程序",
+					label: "旧式小程序",
 					icon: "Menu",
 					action: "router"
 				},
-				component: () => import("@front/views/applets/index.vue")
+				component: () => import("@front/views/legacyApplets/index.vue")
 			},
 			{
 				path: "/restart",
@@ -225,13 +224,13 @@ const clientRouter: RouteRecordRaw[] = [
 
 
 export async function getClientRouter(): Promise<RouteRecordRaw[]> {
-	if (isDev()) {
+	if (isRunningInDevServer()) {
 		const testPagesRouting = (await import("@front/test")).default
 		return [
-			...clientRouter,
+			...electronRouting,
 			...testPagesRouting
 		];
 	} else {
-		return clientRouter;
+		return electronRouting;
 	}
 }
