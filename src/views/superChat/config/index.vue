@@ -27,7 +27,7 @@
 				</row-span>
 			</template>
 			<row-span style="text-align: right" :span="1">
-				<el-button style="margin-top: -8px" type="primary" @click="save">保存</el-button>
+				<el-button type="primary" @click="save">保存</el-button>
 			</row-span>
 		</row-frame>
 		<row-frame v-show="superChat.enable" title="规则配置" style="width: 100%" :flex="true">

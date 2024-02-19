@@ -12,7 +12,7 @@
 			</span>
 		</row-span>
 		<row-frame :flex="true" width="100%" style="margin-bottom: 0px">
-			<row-span :span="2">
+			<row-span :span="4">
 				<row-frame width="100%" title="step1:导入">
 					<el-dropdown @command="loadCommand" type="primary" trigger="click" style="line-height: 28px">
 						<el-button type="primary"> 导入样式，从 </el-button>
@@ -28,13 +28,16 @@
 					</el-dropdown>
 				</row-frame>
 			</row-span>
-			<row-span :span="8.5">
+			<row-span :span="6.5">
 				<row-frame width="100%" title="step2:选择类型编辑">
-					<el-radio-group @change="currentWidget = {}" :disabled="!enable" v-model="styleType" class="setting-bar">
+					<!-- <el-radio-group @change="currentWidget = {}" :disabled="!enable" v-model="styleType" class="setting-bar">
 						<el-radio-button v-for="type in typeOptions" :label="type.value" :key="type.value">
 							{{ type.label }}
 						</el-radio-button>
-					</el-radio-group>
+					</el-radio-group> -->
+					<el-select :disabled="!enable" v-model="styleType" placeholder="选择类型" @change="currentWidget = {}">
+						<el-option v-for="type in typeOptions" :label="type.label" :key="type.value" :value="type.value" />
+					</el-select>
 				</row-frame>
 			</row-span>
 			<row-span :span="1.5">

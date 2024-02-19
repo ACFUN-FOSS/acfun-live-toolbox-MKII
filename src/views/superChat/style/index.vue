@@ -2,7 +2,7 @@
 	<content-frame align="column" class="danmaku-setting">
 		<row-frame title="选择主题编辑" style="padding-right: 10px">
 			<div style="display: flex; justify-content: space-between; algin-item: center">
-				<el-select v-model="themeID" @change="selectTheme">
+				<el-select placeholder="请选择主题" v-model="themeID" @change="selectTheme">
 					<el-option key="0" label="默认" :value="0" />
 					<el-option class="option" v-for="theme in themes" :key="theme.id" :label="theme.label" :value="theme.id">
 						<span class="label">{{ theme.label }}</span>
