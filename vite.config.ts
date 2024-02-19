@@ -16,6 +16,26 @@ export default defineConfig(({ command }) => {
 	const sourcemap = isServe || !!process.env.VSCODE_DEBUG;
 
 	return {
+		// 解決 vite 每次啓動 dev server 都會 “new dependencies optimized: xxx” 某些包
+		// 且强制 reload 的問題。
+		optimizeDeps: {
+			include: [
+				'lodash/replace',
+				'lodash/random', 
+				'lodash/throttle',
+				'lodash/sampleSize',
+				'lodash/sample',
+				'@lljj/vue3-form-element',
+				'obs-websocket-js',
+				'path',
+				'file-saver',
+				'date-fns',
+				'date-fns/format',
+				'lodash/debounce',
+				'vue/dist/vue.esm-bundler.js'
+			]
+		},
+
 		plugins: [
 			vue(),
 			electron([

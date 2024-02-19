@@ -1,35 +1,49 @@
-/*
- * AcFunlive toolbox client, AcFun直播工具箱的客戶端
- * 版權所有 (C) 2020 ACFUN-FOC(ACFUN自由與開源9課)
- * 此程序爲自由軟件：本程序遵守自由軟件聯盟(FSF)所發佈之GNU Affero通用公共許可第三版。
- * 在此條約下、伱可以再發行・修改之。
- * 我等開發者希望本程序能是實用的軟件、竝心懷如此願望而發佈。但此程序
- * ！       ！       ！       ！
- * 無       有       擔       保  。
- * ！       ！       ！       ！
- * 無 有 任 何 擔 保 。甚至不保證它能有用・能對伱產生經濟效益。
- * 伱應該收到了一份GNU Affero通用公共許可第三版、它伴隨着本程序。若伱沒有收到，請查閱
- * <http://www.gnu.org/licenses/>。同時提供伱的電子郵寄地址或傳統的郵件聯繫方式。
+/**
+ * FILENAME: main.ts
+ * 
+ * DESC: 浏览器（包括 electron 浏览器和推流软件的浏览器源）的入口文件
  */
 import "@front/styles/index.scss";
 import ElementPlus from "element-plus";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import store from "@front/store";
-import router from "@front/router";
+import { createRouter } from "@front/router";
 import App from "@front/App.vue";
 import { initGlobalComp } from "@front/components/injector";
 import { registerMethod } from "@front/util_function/globalRegister";
 import { createApp, h } from "vue";
 
-const app = createApp({
-	render: () => h(App)
-})
-	.use(ElementPlus)
-	.use(router)
-	.use(store);
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-	app.component(key, component);
+
+// const routings = await (await import("@front/router/electronRouting")).getElectronRouting();
+// console.log(routings);
+
+// 可能是 rollup 的 bug 导致了如下问题：在 production 打包时，入口文件以及其所 import
+// 的 module 均不能出现 top-level await，否则 await 将永远等待
+// 所以需要这样的 workaround。
+
+// 注：vite 在 dev server 模式采用 esbuild，在打包时使用 rollup。
+// 所以，對於有關包管理 / js 特性的代碼，能在 dev server 環境中運行不代表就能在
+// production 環境中運行。
+
+// 应用程序入口点
+async function main() {
+	const app = createApp({
+		render: () => h(App)
+	})
+		.use(ElementPlus)
+		.use(await createRouter())
+		.use(store);
+	for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+		app.component(key, component);
+	}
+	initGlobalComp(app);
+	registerMethod();
+	app.mount("body");
 }
-initGlobalComp(app);
-registerMethod();
-app.mount("body");
+
+main();
+
+// console.log("main.ts: router:");
+// console.log(router);
+
+

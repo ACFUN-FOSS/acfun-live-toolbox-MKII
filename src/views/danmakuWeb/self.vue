@@ -9,7 +9,7 @@
 import { defineComponent } from "vue";
 import { wsevent } from "@front/api";
 import { mapState, mapGetters } from "vuex";
-import { registerRole, isDev } from "@front/util_function/base";
+import { isRunningInDevServer, registerRole } from "@front/util_function/base";
 import { getMockByType } from "@front/views/danmakuSetting/mock/index";
 import { loginSession } from "@front/api/user";
 import { danmakuGift, danmakuPreHandler } from "@front/store/danmaku/danmaku";
@@ -43,7 +43,7 @@ export default defineComponent({
 		url() {
 			const file = this.$route.query.file || "index.html";
 			let link = `${window.location.origin}/configFiles/selfDanmaku/${file}`;
-			if (isDev()) link = `${window.location.origin}/liveChat`;
+			if (isRunningInDevServer()) link = `${window.location.origin}/liveChat`;
 			// @ts-ignore
 			return `${link}?liverUID=${this.userSession?.userID}&liveID=${this.roomProfile?.liveID}&clubName=${this.rank.clubName}`;
 		},

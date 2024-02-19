@@ -1,7 +1,7 @@
 <template>
 	<div class="hero">
-		<div class="title">{{ common.title }}</div>
-		<div class="subtitle">{{ common.subTitle }}</div>
+		<div class="title">{{common.title}}</div>
+		<div class="subtitle">{{common.subTitle}}</div>
 	</div>
 </template>
 

@@ -61,7 +61,7 @@
 import { defineComponent } from "vue";
 import Cookies from "@front/util_function/cookies";
 import topbarBase from "@front/components/system/topbars/base.vue";
-import { loadConfig, launch } from "@front/util_function/system";
+import { readConfig, launch } from "@front/util_function/system";
 import { assign } from "@front/util_function/base";
 import { login, loginSession } from "@front/api/user";
 import { getManagerList } from "@front/api/room";
@@ -113,7 +113,7 @@ export default defineComponent({
 	mounted() {
 		this.getCookie();
 		this.autoLogin();
-		loadConfig().then((res: any) => {
+		readConfig().then((res: any) => {
 			if (res) {
 				assign(this.$store.state.danmakuProfile, res);
 			}

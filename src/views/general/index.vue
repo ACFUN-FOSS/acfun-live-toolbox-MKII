@@ -1,3 +1,14 @@
+<!-- 
+
+TODO: REFACTOR: 重整 views 文件夹里的目录结构，如下面所示：
+views
+  - electronViews			// 在 electron 窗口里显示的页面 components
+    - xxxxxx
+  - obsViews				// 在各种推流软件的浏览器源里显示的页面 components
+    - xxxxxx
+
+-->
+
 <template>
 	<content-frame id="general" align="row">
 		<el-form label-width="130px" label-position="left">
@@ -63,7 +74,7 @@ import { defineComponent } from "vue";
 import { generalSettings } from "@front/datas/aboutDanmaku";
 import { mapState } from "vuex";
 import { load } from "@front/util_function/file";
-import { saveConfig, restoreConfig, backupConfig, getCacheSize, removeCache, openCache, openFolder, openConsole } from "@front/util_function/system";
+import { saveConfig, restoreConfig, backupConfig, getCacheSize, removeCache, openCacheFolder, openFolder, openConsole } from "@front/util_function/system";
 import cloneDeep from "lodash/cloneDeep";
 import { ElMessage } from "element-plus";
 import { danmaku } from "@front/datas";
@@ -179,7 +190,7 @@ export default defineComponent({
 			});
 		},
 		openFolder() {
-			openCache();
+			openCacheFolder();
 		}
 	}
 });
