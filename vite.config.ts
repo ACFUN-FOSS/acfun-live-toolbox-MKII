@@ -6,6 +6,7 @@ import renderer from "vite-plugin-electron-renderer";
 import { notBundle } from "vite-plugin-electron/plugin";
 import pkg from "./package.json";
 import path from "path";
+import { exec } from "child_process";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => {
@@ -14,8 +15,39 @@ export default defineConfig(({ command }) => {
 	const isServe = command === "serve";
 	const isBuild = command === "build";
 	const sourcemap = isServe || !!process.env.VSCODE_DEBUG;
+	if (isServe) {
+		//网页插件，默认5173端口
+		exec('cmd /K "cd ./src/api/appLink && npm run dev"');
+	}
+	if (isBuild) {
+		//把小模块一起打包了
+		exec('cmd /K "cd ./src/api/appLink && npm run build"');
+	}
 
 	return {
+<<<<<<< Updated upstream
+=======
+		// 解決 vite 每次啓動 dev server 都會 “new dependencies optimized: xxx” 某些包
+		// 且强制 reload 的問題。
+		optimizeDeps: {
+			include: [
+				"lodash/replace",
+				"lodash/random",
+				"lodash/throttle",
+				"lodash/sampleSize",
+				"lodash/sample",
+				"@lljj/vue3-form-element",
+				"obs-websocket-js",
+				"path",
+				"file-saver",
+				"date-fns",
+				"date-fns/format",
+				"lodash/debounce",
+				"vue/dist/vue.esm-bundler.js",
+			],
+		},
+
+>>>>>>> Stashed changes
 		plugins: [
 			vue(),
 			electron([
@@ -24,7 +56,9 @@ export default defineConfig(({ command }) => {
 					entry: "electron/main/index.ts",
 					onstart({ startup }) {
 						if (process.env.VSCODE_DEBUG) {
-							console.log(/* For `.vscode/.debug.script.mjs` */ "[startup] Electron App");
+							console.log(
+								/* For `.vscode/.debug.script.mjs` */ "[startup] Electron App"
+							);
 						} else {
 							startup();
 						}
@@ -39,7 +73,11 @@ export default defineConfig(({ command }) => {
 								// we can use `external` to exclude them to ensure they work correctly.
 								// Others need to put them in `dependencies` to ensure they are collected into `app.asar` after the app is built.
 								// Of course, this is not absolute, just this way is relatively simple. :)
-								external: Object.keys("dependencies" in pkg ? pkg.dependencies : {}),
+								external: Object.keys(
+									"dependencies" in pkg
+										? pkg.dependencies
+										: {}
+								),
 							},
 						},
 						plugins: [
@@ -62,7 +100,11 @@ export default defineConfig(({ command }) => {
 							minify: isBuild,
 							outDir: "dist-electron/preload",
 							rollupOptions: {
-								external: Object.keys("dependencies" in pkg ? pkg.dependencies : {}),
+								external: Object.keys(
+									"dependencies" in pkg
+										? pkg.dependencies
+										: {}
+								),
 							},
 						},
 						plugins: [isServe && notBundle()],
@@ -92,8 +134,8 @@ export default defineConfig(({ command }) => {
 			target: "esnext",
 			rollupOptions: {
 				// build 時候忽略 test 目录
-				external: new RegExp("/src/test/.*")
-			}
-		}
+				external: new RegExp("/src/test/.*"),
+			},
+		},
 	};
 });

@@ -1,11 +1,16 @@
+<<<<<<< Updated upstream
 import store from "@front/store";
 //import testRouters from "@front/test";
 import appletLayout from "@front/layouts/applets/index.vue";
 import { restart } from "@front/util_function/login";
 import { isDev } from "@front/util_function/base";
+=======
+>>>>>>> Stashed changes
 import { RouteRecordRaw } from "vue-router";
+import output from "@front/test";
 const main = () => import("@front/layouts/main/index.vue");
 
+<<<<<<< Updated upstream
 // TODO: REFACTOR: 重命名 “clientRouter” 为 “electronBrowserRouting” 类似的字眼。
 
 const clientRouter: RouteRecordRaw[] = [
@@ -18,6 +23,9 @@ const clientRouter: RouteRecordRaw[] = [
 		// TODO: REFACTOR:
 		hidden: true,
 	},
+=======
+let electronRouting: RouteRecordRaw[] = [
+>>>>>>> Stashed changes
 	{
 		path: "/login",
 		name: "Login",
@@ -46,7 +54,7 @@ const clientRouter: RouteRecordRaw[] = [
 				path: "/roomMgmt",
 				name: "roomMgmt",
 				meta: {
-					label: "房间管理",
+					label: "开播设置",
 					icon: "House",
 					action: "router",
 					disabled: () => {
@@ -113,6 +121,7 @@ const clientRouter: RouteRecordRaw[] = [
 		],
 	},
 	{
+<<<<<<< Updated upstream
 		path: "/data",
 		name: "data",
 		component: main,
@@ -146,14 +155,21 @@ const clientRouter: RouteRecordRaw[] = [
 		component: main,
 		meta: {
 			label: "设置与选项",
+=======
+		path: "/others",
+		name: "others",
+		component: main,
+		meta: {
+			label: "其它",
+>>>>>>> Stashed changes
 		},
 		children: [
 			{
-				path: "/config/general",
+				path: "/others/general",
 				name: "general",
 				component: () => import("@front/views/general/index.vue"),
 				meta: {
-					label: "通用",
+					label: "通用设置",
 					icon: "Setting",
 					action: "router",
 					// disabled: () => {
@@ -163,12 +179,21 @@ const clientRouter: RouteRecordRaw[] = [
 				// redirect: "/"
 			},
 			{
+<<<<<<< Updated upstream
 				path: "/config/superChat",
 				name: "superChat",
 				component: () => import("@front/views/superChat/index.vue"),
 				meta: {
 					label: "超级聊",
 					icon: "Upload",
+=======
+				path: "/others/market",
+				name: "market",
+				component: () => import("@front/views/general/index.vue"),
+				meta: {
+					label: "插件配置",
+					icon: "Setting",
+>>>>>>> Stashed changes
 					action: "router",
 				},
 			},
@@ -222,9 +247,26 @@ const clientRouter: RouteRecordRaw[] = [
 					},
 				},
 			},
+			{
+				path: "/others/about",
+				name: "about",
+				component: () => import("@front/views/general/index.vue"),
+				meta: {
+					label: "关于",
+					icon: "Setting",
+					action: "router",
+				},
+				// redirect: "/"
+			},
 		],
 	},
 ];
+
+if (process.env.NODE_ENV != "production") {
+	electronRouting = [...electronRouting, ...output];
+}
+
+export { electronRouting };
 
 export async function getClientRouter(): Promise<RouteRecordRaw[]> {
 	if (isDev()) {

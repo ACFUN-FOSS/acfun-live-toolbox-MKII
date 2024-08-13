@@ -18,16 +18,17 @@ export default defineComponent({
 	watch: {},
 	methods: {
 		test() {
-			load(".json").then(res => {
-				const unregiste = JSON.parse(res);
-				console.log(unregiste);
-				// console.log(lzwCompress.pack(unregiste));
-			});
-		}
-	}
+			const a = new EventSource(
+				" http://localhost:1299/api/messagers/register?name=123"
+			);
+			a.onmessage = (r) => {
+				console.log(r.data);
+			};
+		},
+	},
 });
 </script>
-<style scoped lang='scss'>
+<style scoped lang="scss">
 .danmaku {
 	width: 400px;
 	padding: 5px;
