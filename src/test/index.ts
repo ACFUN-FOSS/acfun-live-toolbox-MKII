@@ -9,11 +9,12 @@ if (process.env.NODE_ENV !== "production") {
 	const children: Array<any> = [];
 	const requireComponent = import.meta.glob("./*.vue");
 	Object.keys(requireComponent).forEach((fileName) => {
-		const name = fileName.replaceAll(".", "");
+		const name = fileName.replaceAll(/vue|\\|\.|\//g, "");
+		const component = requireComponent[fileName];
 		children.push({
-			path: `/testEnv${name}`,
+			path: `/testEnv/${name}`,
 			name,
-			component: requireComponent[fileName],
+			component,
 			meta: {
 				label: name,
 				action: "router",

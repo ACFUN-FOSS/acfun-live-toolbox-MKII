@@ -1,11 +1,10 @@
 /**
  * FILENAME: danmaku.ts
- * 
+ *
  * DESC: 与后端通讯的函数
  */
 
 import { session, requestT, login } from "@front/api/user";
-import { setHeartBeat } from "@front/api/utils/websocket";
 import { user } from "@front/datas";
 import { throttle } from "lodash";
 let starting = false;
@@ -22,11 +21,11 @@ export const startDanmaku = ({ onOpen, onDanmaku, onClose }: any): any => {
 	}
 	// 开始弹幕流获取
 	return start(session)
-		.then(res => {
+		.then((res) => {
 			let timer: any = null;
 			const { ws }: any = res;
-			const heartBeat = throttle(function() {
-				setHeartBeat(ws, { once: true });
+			const heartBeat = throttle(function () {
+				// setHeartBeat(ws, { once: true });
 			}, 5000);
 			(window as any).danmakuWS = ws;
 			heartBeat();
@@ -50,7 +49,7 @@ export const startDanmaku = ({ onOpen, onDanmaku, onClose }: any): any => {
 			ws.addEventListener("message", judge);
 			if (onOpen) onOpen(res);
 		})
-		.catch(err => {
+		.catch((err) => {
 			console.error(err);
 			if (onClose) onClose();
 			throw new Error(err);
@@ -68,13 +67,13 @@ export const start = async (data: user.Session): Promise<any> => {
 		data: {
 			type: 100,
 			data: {
-				liverUID: data.userID
-			}
+				liverUID: data.userID,
+			},
 		},
 		timeout: 20000,
 		once: false,
 		tokenInfo,
-		ip: "localhost"
+		ip: "localhost",
 	}).catch(() => {
 		return Promise.reject(new Error("startDanmakuFlow Failed!"));
 	});

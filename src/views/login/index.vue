@@ -167,11 +167,7 @@ export default defineComponent({
 				this.setCookie(tokenInfo);
 			}
 			this.$store.dispatch("login");
-<<<<<<< Updated upstream
 			this.$router.replace("dashboard");
-=======
-			this.$router.replace("/dashboard");
->>>>>>> Stashed changes
 		},
 		getCookie() {
 			const userData = Cookies.get("userData");

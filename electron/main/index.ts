@@ -1,8 +1,9 @@
 import { app, BrowserWindow, shell, protocol, globalShortcut } from "electron";
 import { release } from "node:os";
 import { join } from "node:path";
-import { MainWin, startHttp, Backend, File, KsApi, Voice, AppTest, Applets } from "../utils";
-import { isRunningInDevServer as isRunningUnderDevServer } from "../utils/sys";
+import { MainWin, Backend, File, KsApi } from "../subsystem";
+import { isRunningInDevServer as isRunningUnderDevServer } from "../subsystem/sys";
+import { startHttp } from "../server";
 
 // The built directory structure
 //
@@ -31,7 +32,9 @@ if (release().startsWith("6.1")) app.disableHardwareAcceleration();
 if (process.platform === "win32") app.setAppUserModelId(app.getName());
 
 // Scheme must be registered before the app is ready
-protocol.registerSchemesAsPrivileged([{ scheme: "app", privileges: { secure: true, standard: true } }]);
+protocol.registerSchemesAsPrivileged([
+	{ scheme: "app", privileges: { secure: true, standard: true } },
+]);
 
 // Remove electron security warnings
 // This warning only shows in development mode
@@ -80,7 +83,7 @@ async function createWindow() {
 	 * 	 - HTTP 服务器完整功能会发挥作用，除提供 ws 支持外也 serve
 	 *     静态文件（包括 index.html）。
 	 *   - electron 浏览器载入 HTTP SERVER 所 serve 的 index.html。
-	 * 
+	 *
 	 * 上述 ws 指工具箱各个实例（electron 窗口、浏览器打开的工具箱界面……）
 	 * 之间通信所用的 websocket，并非工具箱与后端通信所用的 websocket。
 	 */
@@ -112,14 +115,14 @@ async function createWindow() {
 	File.registerEvents();
 	MainWin.registerEvents(win);
 	KsApi.registerEvents();
-	Voice.registerEvents();
-	AppTest.registerEvents(app);
 	Backend.init();
-	Applets.registerEvents();
 
 	// Test actively push message to the Electron-Renderer
 	win.webContents.on("did-finish-load", () => {
-		win?.webContents.send("main-process-message", new Date().toLocaleString());
+		win?.webContents.send(
+			"main-process-message",
+			new Date().toLocaleString()
+		);
 	});
 }
 

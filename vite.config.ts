@@ -17,7 +17,6 @@ export default defineConfig(({ command }) => {
 	const sourcemap = isServe || !!process.env.VSCODE_DEBUG;
 	if (isServe) {
 		//网页插件，默认5173端口
-		exec('cmd /K "cd ./src/api/appLink && npm run dev"');
 	}
 	if (isBuild) {
 		//把小模块一起打包了
@@ -25,8 +24,6 @@ export default defineConfig(({ command }) => {
 	}
 
 	return {
-<<<<<<< Updated upstream
-=======
 		// 解決 vite 每次啓動 dev server 都會 “new dependencies optimized: xxx” 某些包
 		// 且强制 reload 的問題。
 		optimizeDeps: {
@@ -46,8 +43,6 @@ export default defineConfig(({ command }) => {
 				"vue/dist/vue.esm-bundler.js",
 			],
 		},
-
->>>>>>> Stashed changes
 		plugins: [
 			vue(),
 			electron([
@@ -118,6 +113,7 @@ export default defineConfig(({ command }) => {
 			alias: {
 				"@front": path.resolve(__dirname, "./src"),
 				"@back": path.resolve(__dirname, "./electron"),
+				"@appLink":path.resolve(__dirname,"./src/api/appLink")
 			},
 		},
 		server:

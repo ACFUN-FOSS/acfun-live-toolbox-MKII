@@ -1,13 +1,17 @@
 <template>
 	<div style="width: 100%; height: 100%; position: relative">
 		<super-chat-list class="super-chat" v-if="superChatEnable" />
-		<flow :class="{ superChatEnable }" :settings="danmakuProfile.web" :danmakuList="flow" />
+		<flow
+			:class="{ superChatEnable }"
+			:settings="danmakuProfile.web"
+			:danmakuList="flow"
+		/>
 	</div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { wsevent } from "@front/api";
+import { {} } from "@front/api";
 import { commonSettings } from "@front/datas/aboutDanmaku";
 import { tempInfo } from "@front/datas/temp";
 import flow from "@front/components/danmakuFlow/index.vue";
@@ -84,17 +88,10 @@ export default defineComponent({
 	},
 	methods: {
 		registerEvents() {
-			wsevent.on("update-style", this.updateSettings);
-			wsevent.on("sendMockDanmaku", this.setMock);
-			wsevent.on("sendDanmaku", this.sendDanmaku);
-			wsevent.on("server-response", this.handleResponse);
-			wsevent.on("requireRegister", this.subscribeData);
+
 		},
 		unRegisterEvents() {
-			wsevent.off("update-style", this.updateSettings);
-			wsevent.off("sendMockDanmaku", this.setMock);
-			wsevent.off("server-response", this.handleResponse);
-			wsevent.off("requireRegister", this.subscribeData);
+
 		},
 		sendDanmaku(danmaku: any) {
 			this.$store.commit("addNewDanmaku", danmaku);
@@ -105,21 +102,14 @@ export default defineComponent({
 		},
 		async chechEveryThing() {
 			try {
-				await wsevent.register(this.appID, this.danmakuProfile?.general?.socket || 4396);
+
 				this.subscribeData();
 			} catch (error) {
 				console.log(error);
 			}
 		},
 		subscribeData() {
-			wsevent.wsEmit(
-				"register-client",
-				{
-					sourceID: this.appID,
-					states: ["userSession", "roomProfile"],
-				},
-				"server"
-			);
+
 		},
 		statusLooper() {
 			clearInterval(this.statusTimer);

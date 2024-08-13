@@ -1,31 +1,9 @@
-<<<<<<< Updated upstream
-import store from "@front/store";
-//import testRouters from "@front/test";
-import appletLayout from "@front/layouts/applets/index.vue";
-import { restart } from "@front/util_function/login";
-import { isDev } from "@front/util_function/base";
-=======
->>>>>>> Stashed changes
 import { RouteRecordRaw } from "vue-router";
-import output from "@front/test";
+import test from "@front/test";
+import { isDev } from "@front/util_function/base";
 const main = () => import("@front/layouts/main/index.vue");
 
-<<<<<<< Updated upstream
-// TODO: REFACTOR: 重命名 “clientRouter” 为 “electronBrowserRouting” 类似的字眼。
-
-const clientRouter: RouteRecordRaw[] = [
-	{
-		name: "appletConfig",
-		path: "/appletConfig",
-		component: appletLayout,
-
-		// See: /src/components/base/sidebars/sidebarBase.vue
-		// TODO: REFACTOR:
-		hidden: true,
-	},
-=======
-let electronRouting: RouteRecordRaw[] = [
->>>>>>> Stashed changes
+export const electronRouting: RouteRecordRaw[] = [
 	{
 		path: "/login",
 		name: "Login",
@@ -38,10 +16,10 @@ let electronRouting: RouteRecordRaw[] = [
 		meta: {
 			label: "直播",
 		},
-		redirect: "/dashboard",
+		redirect: "/home/dashboard",
 		children: [
 			{
-				path: "/dashboard",
+				path: "/home/dashboard",
 				name: "dashboard",
 				meta: {
 					label: "首页",
@@ -54,161 +32,14 @@ let electronRouting: RouteRecordRaw[] = [
 				path: "/roomMgmt",
 				name: "roomMgmt",
 				meta: {
-					label: "开播设置",
+					label: "房间管理",
 					icon: "House",
 					action: "router",
-					disabled: () => {
-						return store.state.streamStatus.step === "unstreamable";
-					},
 				},
 				component: () => import("@front/views/roomMgmt/index.vue"),
 			},
 			{
-				path: "/appletsList",
-				name: "appletsList",
-				meta: {
-					label: "小程序",
-					icon: "Menu",
-					action: "router",
-				},
-				component: () => import("@front/views/applets/index.vue"),
-			},
-			{
-				path: "/restart",
-				name: "restart",
-				meta: {
-					label: "快速重启！",
-					icon: "RefreshRight",
-					action: restart,
-				},
-			},
-			{
-				path: "/magiScr",
-				name: "magiScr",
-				meta: {
-					label: "魔法画屏",
-					icon: "MagicStick",
-					action: "router",
-					disabled: () => {
-						return true;
-					},
-				},
-				redirect: "/",
-			},
-		],
-	},
-	{
-		path: "/record",
-		name: "record",
-		component: main,
-		meta: {
-			label: "录像",
-		},
-		children: [
-			{
-				path: "/streamRecord",
-				name: "streamRecord",
-				meta: {
-					label: "直播录制",
-					icon: "VideoCamera",
-					action: "router",
-					disabled: () => {
-						return false;
-					},
-				},
-				component: () => import("@front/views/records/index.vue"),
-			},
-		],
-	},
-	{
-<<<<<<< Updated upstream
-		path: "/data",
-		name: "data",
-		component: main,
-		meta: {
-			label: "数据",
-		},
-		children: [
-			{
-				path: "/replay",
-				name: "replay",
-				meta: {
-					label: "完播复盘",
-					icon: "PieChart",
-					action: () => {
-						window.open(
-							`http://ac.sizzwoo.cc/rank/u/${store.state.userProfile.userID}`,
-							"_blank"
-						);
-					},
-					disabled: () => {
-						return false;
-					},
-				},
-				redirect: "/",
-			},
-		],
-	},
-	{
-		path: "/config",
-		name: "config",
-		component: main,
-		meta: {
-			label: "设置与选项",
-=======
-		path: "/others",
-		name: "others",
-		component: main,
-		meta: {
-			label: "其它",
->>>>>>> Stashed changes
-		},
-		children: [
-			{
-				path: "/others/general",
-				name: "general",
-				component: () => import("@front/views/general/index.vue"),
-				meta: {
-					label: "通用设置",
-					icon: "Setting",
-					action: "router",
-					// disabled: () => {
-					// 	return true;
-					// }
-				},
-				// redirect: "/"
-			},
-			{
-<<<<<<< Updated upstream
-				path: "/config/superChat",
-				name: "superChat",
-				component: () => import("@front/views/superChat/index.vue"),
-				meta: {
-					label: "超级聊",
-					icon: "Upload",
-=======
-				path: "/others/market",
-				name: "market",
-				component: () => import("@front/views/general/index.vue"),
-				meta: {
-					label: "插件配置",
-					icon: "Setting",
->>>>>>> Stashed changes
-					action: "router",
-				},
-			},
-			{
-				path: "/config/emotion",
-				name: "emotion",
-				component: () => import("@front/views/emotion/index.vue"),
-				meta: {
-					label: "表情包",
-					icon: "Edit",
-					action: "router",
-				},
-			},
-			{
-				path: "/config/roomNameList",
+				path: "/nameList",
 				name: "roomNameList",
 				component: () => import("@front/views/roomNameList/index.vue"),
 				meta: {
@@ -220,41 +51,50 @@ let electronRouting: RouteRecordRaw[] = [
 					},
 				},
 			},
+		],
+	},
+	{
+		path: "/plugIn",
+		name: "plugIn",
+		component: main,
+		meta: {
+			label: "插件",
+		},
+		children: [],
+	},
+	{
+		path: "/config",
+		name: "config",
+		component: main,
+		meta: {
+			label: "设置",
+		},
+		children: [
 			{
-				path: "/config/danmakuSetting",
-				name: "danmakuSetting",
-				component: () =>
-					import("@front/views/danmakuSetting/index.vue"),
-				meta: {
-					label: "弹幕流",
-					icon: "ChatLineSquare",
-					action: "router",
-					disabled: () => {
-						return false;
-					},
-				},
-			},
-			{
-				path: "/config/robot",
-				name: "robot",
-				component: () => import("@front/views/robot/index.vue"),
-				meta: {
-					label: "鸡鸡人",
-					icon: "User",
-					action: "router",
-					disabled: () => {
-						return false;
-					},
-				},
-			},
-			{
-				path: "/others/about",
-				name: "about",
+				path: "/config/general",
+				name: "general",
 				component: () => import("@front/views/general/index.vue"),
 				meta: {
-					label: "关于",
+					label: "通用",
 					icon: "Setting",
 					action: "router",
+					// disabled: () => {
+					// 	return true;
+					// }
+				},
+				// redirect: "/"
+			},
+			{
+				path: "/config/market",
+				name: "market",
+				component: () => import("@front/views/general/index.vue"),
+				meta: {
+					label: "插件市场",
+					icon: "Setting",
+					action: "router",
+					// disabled: () => {
+					// 	return true;
+					// }
 				},
 				// redirect: "/"
 			},
@@ -262,17 +102,10 @@ let electronRouting: RouteRecordRaw[] = [
 	},
 ];
 
-if (process.env.NODE_ENV != "production") {
-	electronRouting = [...electronRouting, ...output];
-}
-
-export { electronRouting };
-
-export async function getClientRouter(): Promise<RouteRecordRaw[]> {
+export const getClientRouter = () => {
 	if (isDev()) {
-		const testPagesRouting = (await import("@front/test")).default;
-		return [...clientRouter, ...testPagesRouting];
-	} else {
-		return clientRouter;
+		return [...electronRouting, ...test];
 	}
-}
+	console.log(electronRouting);
+	return electronRouting;
+};

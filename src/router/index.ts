@@ -1,28 +1,12 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import { isElectron } from "@front/util_function/electron";
-const routes: Array<RouteRecordRaw> = isElectron() ?
-	await (await import("@front/router/clientRouter")).getClientRouter()
-	: (await import("@front/router/webRouter")).default;
-
-console.log(routes);
-
-// ATTENTION: Don't use:
-// process
-// global
-// and any other node.js-specific global variables
-// in non-electron environment.
+import { getClientRouter } from "@front/router/clientRouter";
 
 const router = (() => {
-	if(isElectron())
-		return createRouter({
-			history: createWebHistory(process.env.BASE_URL),
-			routes
-		});
-	else
-		return createRouter({
-			history: createWebHistory(),
-			routes
-		});
+	return createRouter({
+		history: createWebHistory(),
+		routes: getClientRouter(),
+	});
 })();
 if (!isElectron() || process.env.NODE_ENV === "production") {
 	router.beforeEach((to, from, next) => {
@@ -32,7 +16,7 @@ if (!isElectron() || process.env.NODE_ENV === "production") {
 				return;
 			}
 			next({
-				name: "404"
+				name: "404",
 			});
 		} else {
 			// @ts-ignore
@@ -40,18 +24,13 @@ if (!isElectron() || process.env.NODE_ENV === "production") {
 				next(false);
 				return;
 			}
-			if (to.fullPath.includes("applet")) {
-				next();
-				return;
-			}
-
 			if (sessionStorage.getItem("logined") === "true") {
 				if (to.name !== "Login") {
 					next();
 					return;
 				}
 				next({
-					name: "dashboard"
+					name: "dashboard",
 				});
 				return;
 			}
@@ -60,7 +39,7 @@ if (!isElectron() || process.env.NODE_ENV === "production") {
 				return;
 			}
 			next({
-				name: "Login"
+				name: "Login",
 			});
 		}
 	});

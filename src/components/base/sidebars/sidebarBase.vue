@@ -3,16 +3,27 @@
 		<div class="mainTitle">{{ common.title + common.subTitle }}</div>
 		<div class="subTitle">版本：{{ common.version }}</div>
 		<div class="sidebarList">
-			<div class="listBlock" v-for="item in routingToShow" :key="item.meta.label">
+			<div
+				class="listBlock"
+				v-for="item in routingToShow"
+				:key="item.meta.label"
+			>
 				<div class="blockTitle">{{ item.meta.label }}</div>
 				<div
 					class="blockRow"
 					v-for="row in item.children"
 					:key="row.meta.label"
-					:class="{ active: $route.name == row.name, disabled: row.meta.disabled ? row.meta.disabled() : false }"
+					:class="{
+						active: $route.name == row.name,
+						disabled: row.meta.disabled
+							? row.meta.disabled()
+							: false,
+					}"
 					@click="route(row)"
 				>
-					<el-icon class="rowIcon"><component :is="row.meta.icon"></component></el-icon>{{ row.meta.label }}
+					<el-icon class="rowIcon"
+						><component :is="row.meta.icon"></component></el-icon
+					>{{ row.meta.label }}
 					<!-- <span class="rowIcon" :class="row.meta.icon" /> -->
 				</div>
 			</div>
@@ -27,19 +38,19 @@ import { footer, common } from "@front/texts";
 import { event } from "@front/util_function/eventBus";
 import { getClientRouter } from "@front/router/clientRouter";
 
-
 export default defineComponent({
 	name: "sidebarBase",
 	mounted() {
-		getClientRouter().then((routing) => {
-			// TODO: REFACTOR: ?????
-			this.routingToShow = routing.slice(2).filter((i) =>!i.hidden);
-		});
+		this.routingToShow = getClientRouter()
+			.slice(1)
+			.filter((i) => {
+				return !i.hidden && i.children.length;
+			});
 	},
 	data() {
 		return {
 			event,
-			routingToShow: []
+			routingToShow: [],
 		};
 	},
 	computed: {
@@ -49,24 +60,13 @@ export default defineComponent({
 			// TODO: REFACTOR: 可见拓展了 RouteRecordRaw（hidden 是自定义字段），用
 			// 接口描述数据结构。
 			// TODO: Edit /src/router/clientRouter.ts.
-			
-		}
+		},
 	},
 	methods: {
 		route(row: any) {
-			if (row.meta.disabled && row.meta.disabled()) {
-				return;
-			}
-			event.emit("routeChange", { name: row.name });
-			if (row.meta.action === "router") {
-				this.$router.push({ name: row.name });
-			}
-
-			if (typeof row.meta.action === "function") {
-				row.meta.action();
-			}
-		}
-	}
+			this.$router.push({ name: row.name });
+		},
+	},
 });
 </script>
 

@@ -2,7 +2,7 @@ import { RootState, stateFunc } from "./state";
 import store from "./index";
 import { event } from "@front/util_function/eventBus";
 import { stream as streamData, temp, room as roomData } from "@front/datas";
-import { room, stream, common, wsevent, statistic, user } from "@front/api";
+import { room, stream, common, statistic, user } from "@front/api";
 import cloneDeep from "lodash/cloneDeep";
 import { saveConfig } from "@front/util_function/system";
 import { ElMessage } from "element-plus";
@@ -11,13 +11,13 @@ import { danmakuHandler, danmakuPreHandler } from "./danmaku/danmaku";
 import { read } from "@front/api/robot";
 import {
 	getUserInfo,
-	getGiftValue
+	getGiftValue,
 } from "@front/components/danmakuFlow/utils/getter";
 import {
 	isOwner,
 	isNormalDanmaku,
 	hasGift,
-	hasContent
+	hasContent,
 } from "@front/components/danmakuFlow/utils/tester";
 export const mutations: any = {
 	reset() {
@@ -26,7 +26,7 @@ export const mutations: any = {
 		sessionStorage.setItem("preStep", "online");
 	},
 	getRoomProfile(state: RootState) {
-		user.streamInfo(state.userSession).then(res => {
+		user.streamInfo(state.userSession).then((res) => {
 			if (!res) {
 				throw new Error("no streamInfo");
 			}
@@ -46,21 +46,16 @@ export const mutations: any = {
 	},
 
 	getRank(state: RootState) {
-		room.getRank(state.userSession).then(res => {
+		room.getRank(state.userSession).then((res) => {
 			Object.assign(state.rank, res);
 			event.emit("rank-updated");
-			wsevent.wsEmit(
-				"update-manager",
-				{ list: state.managerList },
-				"client"
-			);
 		});
 	},
 
 	getCategory(state: RootState) {
 		common
 			.catrgory()
-			.then(res => {
+			.then((res) => {
 				state.roomCategorys = res || [];
 			})
 			.catch(() => {
@@ -71,7 +66,7 @@ export const mutations: any = {
 	getStreamSession(state: RootState) {
 		stream
 			.session()
-			.then(res => {
+			.then((res) => {
 				state.streamSession = res || streamData.session();
 			})
 			.catch(() => {
@@ -87,7 +82,7 @@ export const mutations: any = {
 		}
 		stream
 			.encodec(streamName)
-			.then(res => {
+			.then((res) => {
 				state.streamEncodec = res[0] || streamData.encodec();
 			})
 			.catch(() => {
@@ -144,9 +139,7 @@ export const mutations: any = {
 			state.danmakuProfile[styleType].settingOfType = cloneDeep(style);
 		}
 		saveConfig(state.danmakuProfile);
-		setTimeout(() => {
-			wsevent.wsEmit("update-style", {}, "danmakuWeb");
-		}, 500);
+		setTimeout(() => {}, 500);
 	},
 	updateSettings(state: RootState, { settingType, setting }: any) {
 		if (settingType && setting) {
@@ -170,12 +163,12 @@ export const mutations: any = {
 	kickOut(state: RootState, uid: number) {
 		room.kickOutPerson({
 			userID: uid,
-			liveID: state.roomProfile.liveID
+			liveID: state.roomProfile.liveID,
 		});
 	},
 	addBlackList(state: RootState, userProfile: any) {
 		const common = state.danmakuProfile.common;
-		if (common.blackList.find(i => i.userID === userProfile.userID)) {
+		if (common.blackList.find((i) => i.userID === userProfile.userID)) {
 			return;
 		}
 		common.blackList = [userProfile, ...common.blackList];
@@ -186,14 +179,14 @@ export const mutations: any = {
 		const common = state.danmakuProfile.common;
 
 		common.blackList = common.blackList.filter(
-			i => i.userID !== userProfile.userID
+			(i) => i.userID !== userProfile.userID
 		);
 		store.commit("updateSettings", {});
 	},
 	addLikeList(state: RootState, userProfile: any) {
 		const common = state.danmakuProfile.common;
 		if (!common.likeList) common.likeList = [];
-		if (common.likeList.find(i => i.userID === userProfile.userID)) {
+		if (common.likeList.find((i) => i.userID === userProfile.userID)) {
 			return;
 		}
 		common.likeList = [userProfile, ...common.likeList];
@@ -203,7 +196,7 @@ export const mutations: any = {
 		const common = state.danmakuProfile.common;
 		if (!common.likeList) return;
 		common.likeList = common.likeList.filter(
-			i => i.userID !== userProfile.userID
+			(i) => i.userID !== userProfile.userID
 		);
 		store.commit("updateSettings", {});
 	},
@@ -218,7 +211,7 @@ export const mutations: any = {
 		likeList.forEach((like: any) => {
 			requestList.push(
 				user.isStreaming({
-					userID: like.userID
+					userID: like.userID,
 				})
 			);
 		});
@@ -240,7 +233,7 @@ export const mutations: any = {
 						needMention = isLiving;
 						tempLike[id] = {
 							...temp.likeTemp(),
-							isLive: isLiving
+							isLive: isLiving,
 						};
 					}
 					if (needMention) {
@@ -251,7 +244,7 @@ export const mutations: any = {
 							dangerouslyUseHTMLString: true,
 							duration: 5000,
 							offset: 160,
-							type: "success"
+							type: "success",
 						});
 					}
 				} catch (error) {}
@@ -266,7 +259,7 @@ export const mutations: any = {
 		keyword =
 			keyword.replaceAll(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~]/g, "") ||
 			keyword;
-		if (common.keywords.find(key => key === keyword)) {
+		if (common.keywords.find((key) => key === keyword)) {
 			return;
 		}
 		common.keywords = [keyword, ...common.keywords];
@@ -274,12 +267,12 @@ export const mutations: any = {
 	},
 	removeKeyword(state: RootState, keyword: string) {
 		const common = state.danmakuProfile.common;
-		common.keywords = common.keywords.filter(i => i !== keyword);
+		common.keywords = common.keywords.filter((i) => i !== keyword);
 		store.commit("updateSettings", {});
 	},
 	minify(state: RootState) {
 		event.emit("routeChange", {
-			name: "statusPanel"
+			name: "statusPanel",
 		});
 		state.minify = state.minify ? false : store.getters.isStreaming;
 		event.emit("minify", state.minify);
@@ -292,7 +285,6 @@ export const mutations: any = {
 	},
 	addNewDanmaku(state: RootState, danmaku: any) {
 		if (isElectron()) {
-			wsevent.wsEmit("sendDanmaku", danmaku, "danmakuWeb");
 		}
 		const filter = state.filter;
 		const preHandler = danmakuPreHandler[String(danmaku.type)];
@@ -352,7 +344,7 @@ export const mutations: any = {
 							...settings.robotSetting,
 							rules: rules[danmaku.type],
 							danmaku: filtered[0],
-							filters: [state.temp.emojiTester]
+							filters: [state.temp.emojiTester],
 						});
 					}
 				} while (false);
@@ -367,5 +359,5 @@ export const mutations: any = {
 		if (handler) {
 			handler(danmaku, store);
 		}
-	}
+	},
 };

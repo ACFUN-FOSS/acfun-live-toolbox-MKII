@@ -7,7 +7,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import { wsevent } from "@front/api";
+import { {} } from "@front/api";
 import { mapState, mapGetters } from "vuex";
 import { registerRole, isDev } from "@front/util_function/base";
 import { getMockByType } from "@front/views/danmakuSetting/mock/index";
@@ -60,14 +60,10 @@ export default defineComponent({
 				});
 		},
 		registerEvents() {
-			wsevent.on("sendMockDanmaku", this.setMock);
-			wsevent.on("server-response", this.handleResponse);
-			wsevent.on("restartDanmaku", this.restartDanmaku);
+
 		},
 		unRegisterEvents() {
-			wsevent.off("sendMockDanmaku", this.setMock);
-			wsevent.off("server-response", this.handleResponse);
-			wsevent.off("restartDanmaku", this.restartDanmaku);
+
 		},
 
 		handleResponse(e: any) {
@@ -77,9 +73,7 @@ export default defineComponent({
 		// TODO: REFACTOR: ??
 		async chechEveryThing() {
 			try {
-				if (!wsevent.registered) {
-					await wsevent.register(this.appID, this.danmakuProfile?.general?.socket || 4396);
-				}
+
 				this.subscribeData();
 			} catch (error) {
 				console.log(error);
@@ -90,14 +84,7 @@ export default defineComponent({
 			}
 		},
 		subscribeData() {
-			wsevent.wsEmit(
-				"register-client",
-				{
-					sourceID: this.appID,
-					states: ["userSession", "roomProfile", "rank"],
-				},
-				"server"
-			);
+
 		},
 		restartDanmaku() {
 			this.$store.dispatch("restartDanmaku");

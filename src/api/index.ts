@@ -5,7 +5,6 @@ import * as room from "./room";
 import * as stream from "./stream";
 import * as user from "./user";
 import * as statistic from "./statistic";
-export { wsevent } from "./wsbus";
 
 const allApi = {
 	...common,
@@ -13,6 +12,6 @@ const allApi = {
 	...room,
 	...stream,
 	...user,
-	...statistic
+	...statistic,
 };
 export { common, danmaku, room, stream, user, statistic, allApi };

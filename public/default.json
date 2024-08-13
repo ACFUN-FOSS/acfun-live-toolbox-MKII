@@ -1,7 +1,6 @@
 {
 	"general": {
-		"port": 1299,
-		"socket": 4396
+		"port": 1299
 	},
 	"common": {
 		"blackList": [],

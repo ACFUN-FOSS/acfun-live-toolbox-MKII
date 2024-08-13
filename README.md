@@ -10,7 +10,7 @@
   <span><img src="./readme_agpllogo1.png" height="50px"></span>
 </div>
 <div align="center">
-  
+
   *An AcFun-FOSS project.*
 </div>
 
@@ -102,3 +102,19 @@ Then attach your debugger to port 9229.
 
 -   [C/C++ addons, Node.js modules - Pre-Bundling](https://github.com/electron-vite/vite-plugin-electron-renderer#dependency-pre-bundling)
 -   [dependencies vs devDependencies](https://github.com/electron-vite/vite-plugin-electron-renderer#dependencies-vs-devdependencies)
+
+
+
+## ROAD MAP
+
+- [x] ws服务改成eventsource（待测试）
+- [ ] 迁移后端接口
+- [ ] 重写弹幕服务
+- [ ] 搞定路径问题
+- [ ] 弹幕数据库
+- [ ] 设计小程序架构
+- [ ] 挂载生命周期钩子
+- [ ] 自动更新
+- [ ] 小程序市场
+- [ ] 重新设计ui
+- [ ] 重写基础小程序（弹幕鸡  obs推流等）

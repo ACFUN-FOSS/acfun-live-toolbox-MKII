@@ -7,7 +7,7 @@ import { Event } from "@front/util_function/eventBus";
 import { io, Socket } from "socket.io-client";
 
 // TODO: REFACTOR: 名称不当。本类看起来更像是代表了一个通信的总线，而不是 Event。
-class WsEvent extends Event {
+class {} extends Event {
 	registered = false;
 	io: Socket | undefined;
 	id = "";
@@ -73,4 +73,4 @@ class WsEvent extends Event {
 	}
 }
 
-export const wsevent = new WsEvent();
+export const {} = new {}();

@@ -1,6 +1,16 @@
 <template>
-	<div id="statusBar" :class="{ unfold: isUnfold }" element-loading-background="rgba(0, 0, 0, 0)">
-		<div class="switch" @click="unfold" v-if="streamStatus.step == 'danmakuing'"><span class="el-icon-arrow-up" />{{ isUnfold ? "折叠" : "展开" }}</div>
+	<div
+		id="statusBar"
+		:class="{ unfold: isUnfold }"
+		element-loading-background="rgba(0, 0, 0, 0)"
+	>
+		<div
+			class="switch"
+			@click="unfold"
+			v-if="streamStatus.step == 'danmakuing'"
+		>
+			<span class="el-icon-arrow-up" />{{ isUnfold ? "折叠" : "展开" }}
+		</div>
 		<transition name="fade">
 			<component :is="currentComp" />
 		</transition>
@@ -12,14 +22,18 @@ import { defineAsyncComponent, defineComponent } from "vue";
 import { mapState } from "vuex";
 import { event } from "@front/util_function/eventBus";
 import { registerRole } from "@front/util_function/base";
-import { wsevent, allApi } from "@front/api";
+import { allApi } from "@front/api";
 import { ElMessage } from "element-plus";
 import { chat } from "@front/api/chat";
 import { registerHost, closeWorker } from "@front/util_function/storeWorker";
 import { load, save } from "@front/util_function/system";
 import format from "date-fns/format";
-const mainPanel = defineAsyncComponent(() => import("@front/views/streamMonitor/index.vue"));
-const shrink = defineAsyncComponent(() => import("@front/views/streamMonitor/shrink.vue"));
+const mainPanel = defineAsyncComponent(
+	() => import("@front/views/streamMonitor/index.vue")
+);
+const shrink = defineAsyncComponent(
+	() => import("@front/views/streamMonitor/shrink.vue")
+);
 export default defineComponent({
 	name: "statusBar",
 	components: {
@@ -43,12 +57,17 @@ export default defineComponent({
 		this.unregisterEvents();
 	},
 	computed: {
-		...mapState(["roomProfile", "streamStatus", "danmakuProfile", "userSession"]),
+		...mapState([
+			"roomProfile",
+			"streamStatus",
+			"danmakuProfile",
+			"userSession",
+		]),
 		currentComp(): any {
 			return this.isUnfold ? mainPanel : shrink;
 		},
 	},
-	
+
 	methods: {
 		registerEvents() {
 			event.on("routeChange", this.unfold);
@@ -57,18 +76,12 @@ export default defineComponent({
 			// 因为 statusBar 只在主窗口显示，而这些逻辑应该仅仅在主窗口中运行。将
 			// 这些逻辑放到 statusBar 实现了只在主窗口中运行的目的。
 			// TODO: REFACTOR: 应该放到更外层的组件中。
-			wsevent.on("send-chat", this.sendChat);
-			wsevent.on("register-client", this.setWSClient);
-			wsevent.on("acfun-api-get", this.sendApi);
 			registerHost(this.$store, this.dispatchWSClient);
 			registerRole("工具箱");
 		},
 		unregisterEvents() {
 			event.off("routeChange", this.unfold);
 			event.off("streamStatusChanged", this.handleStatusChange);
-			wsevent.off("send-chat", this.sendChat);
-			wsevent.off("register-client", this.setWSClient);
-			wsevent.off("acfun-api-get", this.sendApi);
 			closeWorker();
 		},
 		setWSClient({ sourceID, states }: any) {
@@ -76,7 +89,7 @@ export default defineComponent({
 			clients[sourceID] = states;
 		},
 		dispatchWSClient() {
-			if (!wsevent.registered) {
+			if (false) {
 				// TODO: REFACTOR: 应该在更外层的文件中初始化 ws bus。
 				this.registerWS();
 				return;
@@ -89,7 +102,6 @@ export default defineComponent({
 					if (["userData"].includes(state)) return;
 					output[state] = this.$store.state[state];
 				});
-				wsevent.wsEmit("server-response", output, client);
 			}
 			this.$store.commit("cleanChangedDanmaku");
 		},
@@ -142,17 +154,12 @@ export default defineComponent({
 				data: recordList,
 			});
 		},
-		registerWS() {
-			wsevent.register("server", this.danmakuProfile?.general?.socket || 4396);
-		},
+		registerWS() {},
 		sendApi({ sourceID, method }: any) {
 			const apis: any = allApi;
 			if (!sourceID || !method || !apis[method]) {
 				return;
 			}
-			apis[method]().then((res: any) => {
-				wsevent.wsEmit("acfun-api-res", res, sourceID);
-			});
 		},
 		sendChat({ message }: any) {
 			chat({

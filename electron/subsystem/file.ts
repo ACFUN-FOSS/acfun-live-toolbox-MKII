@@ -1,7 +1,7 @@
 import { ipcMain } from "electron";
-import { appStatic, configStatic } from "./paths";
-import { zipTo, zipFrom } from "./zip";
-import { randomId } from "./base";
+import { appStatic, configStatic } from "../subsystem/paths";
+import { zipTo, zipFrom } from "../subsystem/zip";
+import { randomId } from "../subsystem/base";
 import uniq from "lodash/uniq";
 const path = require("path");
 const fs = require("fs");

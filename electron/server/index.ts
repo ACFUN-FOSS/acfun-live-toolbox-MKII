@@ -10,8 +10,6 @@ const renderProcessDistDir = process.env.DIST;
 
 // TODO: REFACTOR: Rename to `httpServerPort`.
 export const port = 1299;
-// TODO: REFACTOR: Rename to `wsServerPort`.
-export const socket = 4396;
 
 export const server = express();
 
