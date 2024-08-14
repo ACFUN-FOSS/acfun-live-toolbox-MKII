@@ -15,6 +15,7 @@ export const server = express();
 
 export const startHttp = () => {
 	return new Promise((resolve) => {
+		server.use(express.json());
 		server.use((req: any, res: any, next: any) => {
 			res.header(
 				"Cache-Control",

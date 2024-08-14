@@ -6,24 +6,23 @@
 
 <script>
 import { defineComponent } from "vue";
-// import lzwCompress from "lzwcompress";
-import { load } from "@front/util_function/file";
+import appMsg from "@front/api/appLink/src/index.js";
 export default defineComponent({
 	cname: "JSON测试",
 	name: "align1Test",
 	data() {
 		return {};
 	},
-	computed: {},
-	watch: {},
 	methods: {
 		test() {
-			const a = new EventSource(
-				" http://localhost:1299/api/messagers/register?name=123"
-			);
-			a.onmessage = (r) => {
-				console.log(r.data);
-			};
+			const msg = new appMsg(" http://localhost:1299");
+			msg.register("host");
+			msg.on("callback", (e) => {
+				console.log(e);
+			});
+			setTimeout(() => {
+				msg.emit("callback", { id: 1, test: 2 }, "host");
+			}, 1000);
 		},
 	},
 });

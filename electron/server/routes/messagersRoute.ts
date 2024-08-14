@@ -4,6 +4,6 @@ const router = express.Router();
 
 router.get("/register", register);
 
-router.get("/emit", emit);
+router.post("/emit", emit);
 
 export default router;

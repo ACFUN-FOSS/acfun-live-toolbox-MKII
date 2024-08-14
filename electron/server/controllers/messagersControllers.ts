@@ -28,21 +28,22 @@ export const register = eventsHandler;
 export const emit = (req, res) => {
 	const { source, target, event, data } = req.body;
 	if (!clients[target]) {
-		res.code(404);
 		res.write(toEventSource(`Client ${target} no found.`));
 		return;
 	}
 	clients[target].write(
 		toEventSource({
 			source,
-			event,
 			data,
+			event,
 		})
 	);
 
-	res.code(200);
-	res.write(
-		toEventSource(`${event} emit successful from ${source} to ${target} `)
+	res.send(
+		JSON.stringify({
+			code: 200,
+			msg: `${event} emit successful from ${source} to ${target} `,
+		})
 	);
 };
 
