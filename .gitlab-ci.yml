@@ -57,7 +57,7 @@ deploy: # This job runs in the deploy stage.
         - cd /home/gitlab-runner/ghcli/github/acfun-live-toolbox-MKII/
         - gh release create v$VERSION --generate-notes $PACKED_PATH#UnPacked.zip $INSTALLER_PATH#Installer.exe
         - echo "发布至服务器"
-        - PUBLISH_PATH=/home/gitlab-runner/publish/toolbox/$VERSION
+        - PUBLISH_PATH=/home/gitlab-runner/publish/toolbox/v$VERSION
         - |
             if [-d $PUBLISH_PATH]; then
                 rm -r $PUBLISH_PATH
