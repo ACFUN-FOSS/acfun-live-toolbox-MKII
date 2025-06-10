@@ -1,5 +1,5 @@
 {
-  "name": "root",
+  "name": "ACLiveFrame",
   "description": "Secure boilerplate for Electron app based on Vite",
   "version": "3.1.0",
   "private": true,
@@ -29,13 +29,20 @@
   "devDependencies": {
     "@npmcli/map-workspaces": "4.0.2",
     "@playwright/test": "1.52.0",
+    "@types/archiver": "^6.0.3",
+    "@types/express": "^5.0.3",
     "@types/node": "22.15.30",
+    "@types/unzipper": "^0.10.11",
     "electron": "36.4.0",
     "electron-builder": "26.0.12",
     "glob": "11.0.2",
     "playwright": "^1.52.0"
   },
   "dependencies": {
-    "@app/main": "*"
+    "@app/main": "*",
+    "archiver": "^7.0.1",
+    "conf": "^14.0.0",
+    "express": "^5.1.0",
+    "unzipper": "^0.12.3"
   }
 }

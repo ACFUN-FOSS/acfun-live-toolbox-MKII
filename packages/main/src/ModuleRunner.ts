@@ -2,6 +2,8 @@ import {AppModule} from './AppModule.js';
 import {ModuleContext} from './ModuleContext.js';
 import {app} from 'electron';
 
+globalThis.appName = app.getName();
+globalThis.appVersion = app.getVersion();
 class ModuleRunner implements PromiseLike<void> {
   #promise: Promise<void>;
 
