@@ -3,7 +3,7 @@ import { ModuleContext } from "../ModuleContext.js";
 import { BrowserWindow } from "electron";
 import type { AppInitConfig } from "../AppInitConfig.js";
 
-interface WindowConfig {
+export interface WindowConfig {
   width: number;
   height: number;
   resizable: boolean;
@@ -14,7 +14,7 @@ interface WindowConfig {
   focusable?: boolean; // 新增是否可聚焦属性
 }
 
-class WindowManager implements AppModule {
+export class WindowManager implements AppModule {
   readonly #preload: { path: string };
   readonly #renderer: { path: string } | URL;
   readonly #openDevTools;
@@ -34,7 +34,7 @@ class WindowManager implements AppModule {
 
   async enable({ app }: ModuleContext): Promise<void> {
     await app.whenReady();
-    await this.restoreWindow();
+    await this.createWindow();
     app.on("second-instance", () => this.restoreWindow());
     app.on("activate", () => this.restoreWindow());
   }
@@ -53,6 +53,7 @@ class WindowManager implements AppModule {
           : this.#renderer.path
     }
   ): Promise<BrowserWindow> {
+
     const allowMultipleWindows = windowConfig?.allowMultipleWindows ?? false;
 
     if (!allowMultipleWindows) {
@@ -65,6 +66,7 @@ class WindowManager implements AppModule {
         this.restoreWindow(existingWindow?.id);
       }
     }
+
     const browserWindow = new BrowserWindow({
       show: false, // Use the 'ready-to-show' event to show the instantiated BrowserWindow.
       width: windowConfig?.width || 800,
@@ -86,6 +88,14 @@ class WindowManager implements AppModule {
         webviewTag: false, // The webview tag is not recommended. Consider alternatives like an iframe or Electron's BrowserView. @see https://www.electronjs.org/docs/latest/api/webview-tag#warning
         preload: this.#preload.path,
       },
+    });
+
+    // 新增：监听 ready-to-show 事件显示窗口
+    browserWindow.once('ready-to-show', () => {
+      browserWindow.show();
+      if (this.#openDevTools) {
+        browserWindow.webContents.openDevTools(); // 开发模式自动打开调试工具
+      }
     });
 
     if (!windowConfig) {
@@ -165,5 +175,6 @@ class WindowManager implements AppModule {
 export function createWindowManagerModule(
   ...args: ConstructorParameters<typeof WindowManager>
 ) {
-  return new WindowManager(...args);
+  globalThis.windowManager = new WindowManager(...args);
+  return globalThis.windowManager;
 }
