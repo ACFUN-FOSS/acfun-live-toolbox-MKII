@@ -1,9 +1,13 @@
-import {sha256sum} from './nodeCrypto.js';
-import {versions} from './versions.js';
-import {ipcRenderer} from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
+import { sha256sum } from './nodeCrypto.js';
+import { versions } from './versions.js';
 
-function send(channel: string, message: string) {
-  return ipcRenderer.invoke(channel, message);
-}
-
-export {sha256sum, versions, send};
+// 暴露API给渲染进程
+contextBridge.exposeInMainWorld('api', {
+  sha256sum,
+  versions,
+  window: {
+    minimize: () => ipcRenderer.send('window-minimize'),
+    close: () => ipcRenderer.send('window-close')
+  }
+});

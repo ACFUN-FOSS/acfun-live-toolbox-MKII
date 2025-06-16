@@ -39,10 +39,12 @@
     "playwright": "^1.52.0"
   },
   "dependencies": {
-    "@app/main": "*",
     "archiver": "^7.0.1",
     "conf": "^14.0.0",
     "express": "^5.1.0",
     "unzipper": "^0.12.3"
+  },
+  "optionalDependencies": {
+    "@app/main": "*"
   }
 }

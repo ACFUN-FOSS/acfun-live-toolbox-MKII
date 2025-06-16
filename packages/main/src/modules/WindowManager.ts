@@ -8,6 +8,7 @@ export interface WindowConfig {
   height: number;
   resizable: boolean;
   title: string;
+  frame: boolean;
   allowMultipleWindows: boolean;
   targetUrl: string; // 添加 targetUrl 属性
   alwaysOnTop?: boolean; // 新增置顶属性
@@ -45,6 +46,7 @@ export class WindowManager implements AppModule {
       width: 1024,
       height: 768,
       resizable: true,
+      frame: false,
       title: globalThis.appName,
       allowMultipleWindows: false,
       targetUrl:
@@ -74,7 +76,8 @@ export class WindowManager implements AppModule {
       resizable: windowConfig?.resizable ?? true,
       title: windowConfig?.title || globalThis.appName,
       // 固定属性值
-      skipTaskbar: true,
+      frame: false, // 隐藏标题栏及控制按钮
+      skipTaskbar: false,
       hasShadow: true,
       movable: true,
       minimizable: true,
