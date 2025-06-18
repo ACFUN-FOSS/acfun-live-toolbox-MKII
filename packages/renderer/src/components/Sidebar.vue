@@ -1,54 +1,59 @@
 <script setup lang="ts">
-import {ref} from "vue";
-const selectedKeys = ref(['home']);
-import { Menu as TMenu, MenuItem as TMenuItem, Icon,MenuGroup as TMenuGroup, } from 'tdesign-vue-next';
-const collapsed = ref(false);
+import {
+  Menu as TMenu,
+  MenuItem as TMenuItem,
+  Icon,
+  MenuGroup as TMenuGroup,
+} from "tdesign-vue-next";
+import { ref } from "vue";
+const selectedKeys = ref("home");
 
-const changeCollapsed = () => {
+const collapsed = ref<boolean>(false);
+
+const handleCollapse = () => {
   collapsed.value = !collapsed.value;
 };
-
-const handleSelect = (keys) => {
-  selectedKeys.value = keys;
-  console.log('Selected keys updated:', keys);
-};
-
 </script>
 
-
 <template>
-  <div class="sidebar-container" :class="{ collapsed }"><!-- 添加折叠状态类绑定 -->
+  <div class="sidebar-container" :class="{ collapsed }">
+    <!-- 添加折叠状态类绑定 -->
     <TMenu
-  v-model:selectedKeys="selectedKeys"
-  class="sidebar-menu"
-  :collapsed="collapsed"
-  :width="200"
-  :collapsed-width="64"
-  @select="handleSelect"
-  :multiple="false"
->
+      :value="selectedKeys"
+      class="sidebar-menu"
+      :collapsed="collapsed"
+      :width="200"
+      :collapsed-width="64"
+      :multiple="false"
+      @change="selectedKeys = $event"
+    >
       <!-- 未命名分组 -->
-        <TMenuItem key="home">
-          <template #icon>
-            <Icon name="home" />
-          </template>
-          <span class="menu-text">首页</span>
-        </TMenuItem>
+      <TMenuItem value="home">
+        <template #icon>
+          <Icon name="home" />
+        </template>
+        <span class="menu-text">首页</span>
+      </TMenuItem>
 
       <!-- 应用分组 -->
       <TMenuGroup title="应用">
-        <!-- 暂时为空 -->
+        <TMenuItem value="market">
+          <template #icon>
+            <Icon name="shop" />
+          </template>
+          <span class="menu-text">应用市场</span>
+        </TMenuItem>
       </TMenuGroup>
 
       <!-- 其它分组 -->
       <TMenuGroup title="其它">
-        <TMenuItem key="settings">
+        <TMenuItem value="settings">
           <template #icon>
             <Icon name="setting" />
           </template>
           <span class="menu-text">设置</span>
         </TMenuItem>
-        <TMenuItem key="develop">
+        <TMenuItem value="develop">
           <template #icon>
             <Icon name="system-code" />
           </template>
@@ -58,7 +63,12 @@ const handleSelect = (keys) => {
 
       <!-- 操作按钮区域 -->
       <template #operations>
-        <TButton class="t-demo-collapse-btn" variant="text" shape="square" @click="changeCollapsed">
+        <TButton
+          class="t-demo-collapse-btn"
+          variant="text"
+          shape="square"
+          @click="handleCollapse"
+        >
           <Icon :name="collapsed ? 'menu-unfold' : 'menu-fold'" />
         </TButton>
       </template>
@@ -77,14 +87,8 @@ const handleSelect = (keys) => {
 }
 
 /* 深色模式特定样式 */
-:deep(.theme--dark) .sidebar-container {
-  background-color: #1d1e23;
-}
-
-/* 提高侧边栏与顶边栏的区分度 */
-:deep(.theme--light) .sidebar-container {
-  background-color: #eaeaea;
-}
+/* 已通过全局CSS变量实现主题适配，无需单独设置 */
+/* 侧边栏背景色继承自父容器的 --td-bg-color-secondary */
 
 .sidebar-menu {
   height: 100%;

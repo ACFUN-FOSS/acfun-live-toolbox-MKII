@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Layout as TLayout, Content as TContent } from 'tdesign-vue-next';
-import TitleBar from './components/TitleBar.vue';
-import Sidebar from './components/Sidebar.vue';
+import { Layout as TLayout, Content as TContent } from "tdesign-vue-next";
+import TitleBar from "./components/TitleBar.vue";
+import Sidebar from "./components/Sidebar.vue";
 </script>
 
 <template>
@@ -12,10 +12,7 @@ import Sidebar from './components/Sidebar.vue';
     <!-- 主布局容器 -->
     <TLayout class="main-layout">
       <!-- 侧边导航栏 -->
-      <Sidebar
-        width="200"
-        class="app-sider"
-      />
+      <Sidebar width="200" class="app-sider" />
 
       <!-- 主内容区域 -->
       <TContent class="app-content">
@@ -36,13 +33,13 @@ import Sidebar from './components/Sidebar.vue';
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   overflow: hidden;
 }
 
 .app-container {
-  width: 100%;
-  height: calc(100% );
+  height: calc(100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -53,29 +50,46 @@ html, body {
 .main-layout {
   flex: 1;
   display: flex;
+  flex-direction: row;
   height: calc(768px - 32px);
   overflow: hidden;
   width: 100%;
 }
 
 .app-sider {
-  background-color: #f5f5f5;
-  border-right: 1px solid #e5e5e5; /* 添加侧边栏和内容区的分割线 */
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05); /* 添加轻微阴影增强分隔感 */
+  background-color: var(--td-bg-color-secondary);
+  border-right: 1px solid var(--td-border-color);
+  box-shadow: var(--td-shadow-2);
   z-index: 10;
   display: block !important;
   flex-shrink: 0;
+  transition: all 0.2s ease-in-out;
 }
 
 .app-content {
   padding: 20px;
   overflow-y: auto;
-  background-color: #fff;
+  background-color: var(--td-bg-color);
+  color: var(--td-text-color-primary);
   flex: 1;
+  min-height: 0;
 }
 
 .content-container {
   max-width: 1200px;
   margin: 0 auto;
+}
+.theme-test-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--td-bg-color-secondary);
+  border: 1px solid var(--td-border-color);
+  border-radius: var(--td-radius-large);
+  padding: 16px;
+  box-shadow: var(--td-shadow-3);
+  z-index: 1000;
+  max-width: 300px;
+  transition: all 0.2s ease-in-out;
 }
 </style>

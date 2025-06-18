@@ -141,9 +141,16 @@ export class HttpManager {
     if (!this.APP_DIR) {
       // Add fallback to current working directory if both values are undefined
       const pkg = await getPackageJson();
-      const rootPath =
-        pkg.appPath ||  process.cwd()||path.dirname(app.getPath("exe")); // Fallback to current working directory
+      const rootPath = pkg.appPath ||  process.cwd()||path.dirname(app.getPath("exe")); // Fallback to current working directory
       this.APP_DIR = path.join(rootPath, "application");
+
+      // 检查并创建应用目录
+      try {
+        await fs.access(this.APP_DIR);
+      } catch {
+        await fs.mkdir(this.APP_DIR, { recursive: true });
+        console.log(`创建应用目录: ${this.APP_DIR}`);
+      }
     }
 
     if (this.serverRunning) {
