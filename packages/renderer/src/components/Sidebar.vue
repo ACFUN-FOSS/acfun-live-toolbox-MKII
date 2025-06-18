@@ -19,16 +19,15 @@ const handleCollapse = () => {
   <div class="sidebar-container" :class="{ collapsed }">
     <!-- 添加折叠状态类绑定 -->
     <TMenu
-      :value="selectedKeys"
+     v-model="selectedKeys"
       class="sidebar-menu"
       :collapsed="collapsed"
       :width="200"
       :collapsed-width="64"
       :multiple="false"
-      @change="selectedKeys = $event"
     >
       <!-- 未命名分组 -->
-      <TMenuItem value="home">
+      <TMenuItem value="home" :to="{ name: 'home' }">
         <template #icon>
           <Icon name="home" />
         </template>

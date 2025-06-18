@@ -16,10 +16,7 @@ import Sidebar from "./components/Sidebar.vue";
 
       <!-- 主内容区域 -->
       <TContent class="app-content">
-        <div class="content-container">
-          <h1>欢迎使用我的应用</h1>
-          <p>这是主内容区域，可根据窗口大小自适应调整。</p>
-        </div>
+        <router-view />
       </TContent>
     </TLayout>
   </div>
