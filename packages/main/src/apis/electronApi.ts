@@ -1,7 +1,32 @@
 import { ipcMain } from 'electron';
-import type { BrowserWindow } from 'electron';
 
 // 窗口管理相关API实现
+// 应用管理相关API实现
+
+    // 注册应用模块
+    ipcMain.handle('app:registerModule', async (_, moduleName: string, modulePath: string) => {
+        try {
+            const appManager = globalThis.appManager as any;
+            await appManager.registerModule(moduleName, modulePath);
+            return { success: true };
+        } catch (error) {
+            console.error('Error registering app module:', error);
+            return { success: false, error: 'Failed to register app module' };
+        }
+    });
+
+    // 启用应用模块
+    ipcMain.handle('app:enableModule', async (_, moduleName: string) => {
+        try {
+            const appManager = globalThis.appManager as any;
+            await appManager.enableModule(moduleName);
+            return { success: true };
+        } catch (error) {
+            console.error('Error enabling app module:', error);
+            return { success: false, error: 'Failed to enable app module' };
+        }
+    });
+
 export function initializeElectronApi() {
     // 关闭窗口
     ipcMain.handle('window:close', async (_, windowId?: number) => {
@@ -62,5 +87,32 @@ export function initializeElectronApi() {
     // 获取所有窗口
     ipcMain.handle('window:getAllWindows', () => {
         return globalThis.windowManager.getAllWindowsInfo();
+    });
+
+    // 获取已安装应用
+    ipcMain.handle('app:getInstalledApps', async () => {
+        try {
+            const appManager = globalThis.appManager as any;
+            const apps = Array.from(appManager.apps.entries()).map(([id, config]) => ({
+                id,
+                ...config
+            }));
+            return { success: true, data: apps };
+        } catch (error) {
+            console.error('Error getting installed apps:', error);
+            return { success: false, error: 'Failed to get installed apps' };
+        }
+    });
+
+    // 启动应用
+    ipcMain.handle('app:startApp', async (_, appId: string, displayType?: string) => {
+        try {
+            const appManager = globalThis.appManager as any;
+            const window = await appManager.startApp(appId);
+            return { success: true, windowId: window.id };
+        } catch (error) {
+            console.error('Error starting app:', error);
+            return { success: false, error: 'Failed to start app' };
+        }
     });
 }

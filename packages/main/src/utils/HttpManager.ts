@@ -2,7 +2,6 @@ import http from "http";
 import path from "path";
 import fs from "fs/promises";  // 使用Promise版本的fs API
 import url from "url";
-import { ConfigManager } from "./ConfigManager.js";
 import { app } from "electron";
 import { getPackageJson } from "./Devars.js";
 
@@ -15,7 +14,7 @@ export class HttpManager {
   private APP_DIR: string = '';  // 新增：应用目录路径
   private serverInitialized = false;  // 新增：服务器初始化状态
   private serverRunning = false;  // 新增：服务器运行状态
-  private configManager: ConfigManager = globalThis.configManager;  // 新增：配置管理器实例
+  private configManager: any = globalThis.configManager;  // 新增：配置管理器实例
 
   constructor() {
     this.port = this.configManager.readConfig(undefined).port || 3000;
@@ -92,16 +91,27 @@ export class HttpManager {
       res.writeHead(200, { "Content-Type": contentType });
       res.end(fileData);
     } catch (error) {
-      // 尝试回退到应用根目录的index.html
+      // SPA路由支持：先尝试当前应用目录的index.html，再回退到根目录
+      // 提取当前应用目录路径
+      const currentAppDir = path.dirname(filePath);
+      const appIndex = path.join(currentAppDir, "index.html");
       const appRootIndex = path.join(this.APP_DIR, "index.html");
       try {
-        const indexData = await fs.readFile(appRootIndex);
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(indexData);
-      } catch {
-        res.writeHead(404, { "Content-Type": "text/plain" });
-        res.end("Not Found");
-      }
+          // 优先尝试加载当前应用目录下的index.html
+          const indexData = await fs.readFile(appIndex);
+          res.writeHead(200, { "Content-Type": "text/html" });
+          res.end(indexData);
+        } catch {
+          // 当前应用目录下不存在index.html，尝试根目录
+          try {
+            const rootIndexData = await fs.readFile(appRootIndex);
+            res.writeHead(200, { "Content-Type": "text/html" });
+            res.end(rootIndexData);
+          } catch {
+            res.writeHead(404, { "Content-Type": "text/plain" });
+            res.end("Not Found");
+          }
+        }
     }
   }
 

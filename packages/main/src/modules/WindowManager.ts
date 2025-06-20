@@ -94,12 +94,18 @@ export class WindowManager implements AppModule {
         });
 
         // 新增：监听 ready-to-show 事件显示窗口
+        // 窗口就绪后显示窗口
         browserWindow.once('ready-to-show', () => {
             browserWindow.show();
             if (this.#openDevTools) {
                 browserWindow.webContents.openDevTools(); // 开发模式自动打开调试工具
             }
         });
+
+        // 页面加载完成后发送应用就绪事件
+        browserWindow.webContents.once('did-finish-load', () => {
+              browserWindow.webContents.send('apps-ready');
+          });
 
         // Set main window ID when first window is created
         if (this.#mainWindowId === null) {
@@ -200,6 +206,14 @@ export class WindowManager implements AppModule {
         return BrowserWindow.getAllWindows().find(
             (w) => !w.isDestroyed() && w.id === windowId
         ) || null;
+    }
+
+    /**
+     * 获取所有窗口实例
+     * @returns 窗口实例数组
+     */
+    getWindows(): BrowserWindow[] {
+        return BrowserWindow.getAllWindows().filter(window => !window.isDestroyed());
     }
 
     /**

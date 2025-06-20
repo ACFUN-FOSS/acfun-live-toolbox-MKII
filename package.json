@@ -36,11 +36,14 @@
     "electron": "36.4.0",
     "electron-builder": "26.0.12",
     "glob": "11.0.2",
-    "playwright": "^1.52.0"
+    "playwright": "^1.52.0",
+    "vite-plugin-electron-renderer": "^0.14.6"
   },
   "dependencies": {
     "archiver": "^7.0.1",
     "conf": "^14.0.0",
+    "electron-data": "^2.1.2",
+    "electron-store": "^10.1.0",
     "express": "^5.1.0",
     "unzipper": "^0.12.3"
   },

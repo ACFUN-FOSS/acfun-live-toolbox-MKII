@@ -17,6 +17,7 @@ interface AppConfig {
   info?: string;
   settings?: Record<string, any>;
   windows: WindowConfig;
+  supportedDisplays?: ('main' | 'obs' | 'client')[];
 }
 
 export class AppManager {
@@ -47,13 +48,15 @@ export class AppManager {
       this.httpManager.serveStatic(`/application/${config.name}`, folder);
 
       // 加载API接口
-      const apiPath = path.join(folder, "api.js");
+      const apiPath = path.join(folder, "api.cjs");
       if (fs.existsSync(apiPath)) {
-        const apiRoutes = require(apiPath);
+        // Access default export for ES module compatibility
+        const apiModule = require(apiPath);
+        const apiRoutes = apiModule.default || apiModule;
         this.httpManager.addApiRoutes(
-          `/api/application/${config.name}`,
-          apiRoutes
-        );
+            `/api/application/${config.name}`,
+            apiRoutes
+          );
       }
     }
   }
@@ -88,7 +91,14 @@ export class AppManager {
     if (!config) {
       throw new Error(`App ${appId} not found`);
     }
-    return this.configManager.readConfig(config.name) || config;
+    // 读取已保存的配置
+    let savedConfig = this.configManager.readConfig(config.name);
+    // 如果没有保存的配置，使用默认配置并保存
+    if (!savedConfig) {
+      savedConfig = { ...config };
+      await this.configManager.saveConfig(config.name, savedConfig);
+    }
+    return savedConfig;
   }
 
   async saveAppConfig(appId: string, configData: AppConfig): Promise<void> {

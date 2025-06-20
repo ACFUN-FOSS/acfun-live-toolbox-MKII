@@ -1,18 +1,81 @@
 <script setup lang="ts">
+// 使用preload脚本暴露的ipcRenderer
+const { ipcRenderer } = window;
+
 import {
   Menu as TMenu,
   MenuItem as TMenuItem,
   Icon,
   MenuGroup as TMenuGroup,
 } from "tdesign-vue-next";
-import { ref } from "vue";
+import { ref, onMounted,onUnmounted } from "vue";
+import { useRouter } from 'vue-router';
 const selectedKeys = ref("home");
+const installedApps = ref([]);
+const router = useRouter();
 
 const collapsed = ref<boolean>(false);
 
 const handleCollapse = () => {
   collapsed.value = !collapsed.value;
 };
+
+// 获取已安装应用列表 - 添加重试机制确保数据加载完成
+const getInstalledApps = async (attempt = 1) => {
+  try {
+    const response = await window.api.app.getInstalledApps();
+    if (response.success) {
+      // 过滤出有supportedDisplays的应用
+      const filteredApps = response.data.filter(app => 
+        app.supportedDisplays && app.supportedDisplays.length > 0
+      );
+      installedApps.value = filteredApps;
+      
+      // 如果没有应用且未超过最大尝试次数，1秒后重试
+      if (filteredApps.length === 0 && attempt < 3) {
+        setTimeout(() => getInstalledApps(attempt + 1), 1000);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to get installed apps (attempt ' + attempt + '):', error);
+    // 出错时重试，最多3次
+    if (attempt < 3) {
+      setTimeout(() => getInstalledApps(attempt + 1), 1000);
+    }
+  }
+};
+
+// 处理应用点击事件
+const handleAppClick = async (app) => {
+  selectedKeys.value = `app-${app.id}`;
+  const { supportedDisplays } = app;
+
+  if (!supportedDisplays || supportedDisplays.length === 0) return;
+
+  // 判断显示方式，优先main
+  if (supportedDisplays.includes('main')) {
+    router.push({ name: 'app-view', params: { appId: app.id } });
+  } else if (supportedDisplays.includes('client')) {
+    await ipcRenderer.invoke('app:startApp', app.id, 'client');
+  }
+};
+
+// 组件挂载时获取应用列表并监听主进程事件
+onMounted(() => {
+    // 监听主进程发送的应用数据就绪事件
+    const handleAppsReady = () => {
+      getInstalledApps();
+    };
+    window.api.app.on('apps-ready', handleAppsReady);
+
+    // 初始获取
+    getInstalledApps();
+
+  // 组件卸载时移除事件监听
+  onUnmounted(() => {
+    ipcRenderer.removeListener('apps-ready', handleAppsReady);
+  });
+});
 </script>
 
 <template>
@@ -41,6 +104,19 @@ const handleCollapse = () => {
             <Icon name="shop" />
           </template>
           <span class="menu-text">应用市场</span>
+        </TMenuItem>
+
+        <!-- 动态渲染已安装应用 -->
+        <TMenuItem
+          v-for="app in installedApps"
+          :key="app.id"
+          :value="'app-' + app.id"
+          @click="handleAppClick(app)"
+        >
+          <template #icon>
+            <Icon name="application" />
+          </template>
+          <span class="menu-text">{{ app.name }}</span>
         </TMenuItem>
       </TMenuGroup>
 

@@ -10,5 +10,11 @@ contextBridge.exposeInMainWorld('api', {
         minimize: () => ipcRenderer.invoke('window:minimize'),
         close: () => ipcRenderer.invoke('window:close'),
         toggleAlwaysOnTop: (alwaysOnTop?: boolean) => ipcRenderer.invoke('window:toggleAlwaysOnTop', alwaysOnTop)
+    },
+    app: {
+        getInstalledApps: () => ipcRenderer.invoke('app:getInstalledApps'),
+        on: (channel: string, listener: (...args: any[]) => void) => {
+            ipcRenderer.on(channel, listener);
+        }
     }
 });

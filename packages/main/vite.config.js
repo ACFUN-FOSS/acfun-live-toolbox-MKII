@@ -15,11 +15,11 @@ export default /**
     target: `node${getNodeMajorVersion()}`,
     lib: {
       entry: 'src/index.ts',
-      formats: ['es'],
+      formats: ['cjs'],
     },
     rollupOptions: {
       output: {
-        entryFileNames: '[name].js',
+        entryFileNames: '[name].cjs',
       },
     },
     emptyOutDir: true,

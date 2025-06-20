@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Application</title>
+    <style>
+        .page { display: none; }
+        .page.active { display: block; }
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 客户端页面 -->
+        <div id="main-page" class="page active">
+            <h1>客户端显示页面</h1>
+            <p>这是小程序的主界面，供用户交互使用。</p>
+            <div class="api-test">
+              <h3>API测试</h3>
+              <button id="getConfigBtn">获取配置 (getConfig)</button>
+              <button id="updateSettingsBtn">更新设置 (updateSettings)</button>
+              <button id="getStatusBtn">获取状态 (getStatus)</button>
+              <div id="apiResult"></div>
+            </div>
+        </div>
+
+        <!-- OBS端页面 -->
+        <div id="obs-page" class="page">
+            <h1>OBS浏览器显示页面</h1>
+            <p>这是供OBS捕获的专用界面。</p>
+        </div>
+
+        <!-- 客户端独立窗口页面 -->
+        <div id="client-page" class="page">
+            <h1>客户端独立窗口</h1>
+            <p>这是通过AppManager调用开启的新窗口界面。</p>
+        </div>
+    </div>
+
+    <script>
+        // 简单的SPA路由实现
+        function router() {
+            const path = window.location.pathname;
+            const mainPage = document.getElementById('main-page');
+            const obsPage = document.getElementById('obs-page');
+            const clientPage = document.getElementById('client-page');
+
+            // 默认隐藏所有页面
+            mainPage.classList.remove('active');
+            obsPage.classList.remove('active');
+            clientPage.classList.remove('active');
+
+            // 根据路径显示对应页面
+            if (path.endsWith('/obs')) {
+                obsPage.classList.add('active');
+            } else if (path.endsWith('/client')) {
+                clientPage.classList.add('active');
+            } else {
+                mainPage.classList.add('active');
+            }
+        }
+
+        // 监听路由变化
+        window.addEventListener('popstate', router);
+        window.addEventListener('load', router);
+
+        // API测试功能
+        document.addEventListener('DOMContentLoaded', () => {
+          const apiResult = document.getElementById('apiResult');
+
+          // 获取配置
+          document.getElementById('getConfigBtn')?.addEventListener('click', async () => {
+            try {
+              const response = await fetch('/api/application/template/config');
+              const data = await response.json();
+              apiResult.textContent = JSON.stringify(data, null, 2);
+              apiResult.style.color = 'green';
+            } catch (error) {
+              apiResult.textContent = `获取配置失败: ${error.message}`;
+              apiResult.style.color = 'red';
+            }
+          });
+
+          // 更新设置
+          document.getElementById('updateSettingsBtn')?.addEventListener('click', async () => {
+            try {
+              const response = await fetch('/api/application/template/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ theme: 'dark', notifications: true })
+              });
+              const data = await response.json();
+              apiResult.textContent = JSON.stringify(data, null, 2);
+              apiResult.style.color = 'green';
+            } catch (error) {
+              apiResult.textContent = `更新设置失败: ${error.message}`;
+              apiResult.style.color = 'red';
+            }
+          });
+
+          // 获取状态
+          document.getElementById('getStatusBtn')?.addEventListener('click', async () => {
+            try {
+              const response = await fetch('/api/application/template/status');
+              const data = await response.json();
+              apiResult.textContent = JSON.stringify(data, null, 2);
+              apiResult.style.color = 'green';
+            } catch (error) {
+              apiResult.textContent = `获取状态失败: ${error.message}`;
+              apiResult.style.color = 'red';
+            }
+          });
+        });
+    </script>
+</body>
+</html>
