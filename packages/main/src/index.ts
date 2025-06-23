@@ -8,6 +8,7 @@ import { autoUpdater } from './modules/AutoUpdater.js';
 import { chromeDevToolsExtension } from './modules/ChromeDevToolsExtension.js';
 import { HttpManager } from './utils/HttpManager.js';
 import { ConfigManager } from './utils/ConfigManager.js';
+import { DataManager } from './utils/DataManager.js';
 import { AppManager } from './utils/AppManager.js';
 import { initializeElectronApi } from './apis/electronApi.js';
 import { app } from "electron";
@@ -27,17 +28,19 @@ export async function initApp(initConfig: AppInitConfig) {
     globalThis.appVersion = app.getVersion();
 
     // 延迟初始化WindowManager，确保IPC事件处理器已注册
-    const windowManager = createWindowManagerModule({ initConfig, openDevTools: import.meta.env.DEV });
+    const windowManager = createWindowManagerModule({ initConfig, openDevTools: process.env.NODE_ENV === 'development' });
     moduleRunner.init(windowManager);
 
     // 初始化全局变量
     globalThis.configManager = new ConfigManager();
+    globalThis.dataManager = DataManager.getInstance();
     globalThis.httpManager = new HttpManager();
     // Initialize HTTP server to set APP_DIR before AppManager uses it
     await globalThis.httpManager.initializeServer(); // <-- Add this line
     // 初始化应用
     globalThis.appManager = new AppManager();
     await globalThis.appManager.init();
+    globalThis.dataManager.setAppManager(globalThis.appManager);
 
     await moduleRunner;
 

@@ -1,11 +1,14 @@
-import fs from 'fs';
-import path from 'path';
-import { promisify } from 'util';
-import { ConfigManager } from './ConfigManager.js';
-import { HttpManager } from './HttpManager.js';
-import { WindowManager, WindowConfig } from '../modules/WindowManager.js';
-import { getPackageJson } from './Devars.js';
-import {app} from 'electron';
+import fs from "fs";
+import path from "path";
+import { promisify } from "util";
+import { ConfigManager } from "./ConfigManager.js";
+import { HttpManager } from "./HttpManager.js";
+import { WindowManager, WindowConfig } from "../modules/WindowManager.js";
+import { getPackageJson } from "./Devars.js";
+import { app } from "electron";
+import { EventEmitter } from "events";
+import { BrowserWindow, ipcMain } from 'electron';
+import { DataManager } from './DataManager';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
@@ -17,10 +20,10 @@ interface AppConfig {
   info?: string;
   settings?: Record<string, any>;
   windows: WindowConfig;
-  supportedDisplays?: ('main' | 'obs' | 'client')[];
+  supportedDisplays?: ("main" | "obs" | "client")[];
 }
 
-export class AppManager {
+export class AppManager extends EventEmitter {
   private apps: Map<string, AppConfig> = new Map();
   private appWindows: Map<string, Electron.BrowserWindow[]> = new Map();
   private httpManager: HttpManager = globalThis.httpManager;
@@ -29,6 +32,7 @@ export class AppManager {
   private configManager: ConfigManager = globalThis.configManager;
 
   constructor() {
+    super();
   }
   // 修正：直接使用 HttpManager 初始化的应用目录
   private async getAppDirectory(): Promise<string> {
@@ -54,9 +58,9 @@ export class AppManager {
         const apiModule = require(apiPath);
         const apiRoutes = apiModule.default || apiModule;
         this.httpManager.addApiRoutes(
-            `/api/application/${config.name}`,
-            apiRoutes
-          );
+          `/api/application/${config.name}`,
+          apiRoutes
+        );
       }
     }
   }
@@ -70,7 +74,7 @@ export class AppManager {
 
     const items = await readdir(appDir); // 使用 promisify 后的 readdir
     const folders: string[] = [];
-    
+
     for (const item of items) {
       const itemPath = path.join(appDir, item);
       const stats = await stat(itemPath); // 使用 promisify 后的 stat
@@ -78,7 +82,7 @@ export class AppManager {
         folders.push(itemPath);
       }
     }
-    
+
     return folders;
   }
 
@@ -92,7 +96,7 @@ export class AppManager {
       throw new Error(`App ${appId} not found`);
     }
     // 读取已保存的配置
-    let savedConfig = this.configManager.readConfig(config.name);
+    let savedConfig: any = await this.configManager.readConfig(config.name);
     // 如果没有保存的配置，使用默认配置并保存
     if (!savedConfig) {
       savedConfig = { ...config };
@@ -134,6 +138,7 @@ export class AppManager {
     const windows = this.appWindows.get(appId) || [];
     windows.forEach((window) => window.close());
     this.appWindows.delete(appId);
+    this.emit("app-closed", appId);
   }
 
   async restartApp(appId: string): Promise<void> {
@@ -150,11 +155,37 @@ export class AppManager {
     // 清理HTTP托管
     this.apps.forEach((app) => {
       this.httpManager.removeStatic(`/application/${app.name}`);
-      this.httpManager.removeApiRoutes(`/api/application/${app.name}`);
+      this.httpManager.removeApiRoutes(`/api/application/${app.id}`);
     });
 
     // 重新初始化
     this.apps.clear();
     await this.init();
   }
+  private createClientWindow(appId: string): BrowserWindow {
+    const window = new BrowserWindow({
+      width: 800,
+      height: 600,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: path.join(__dirname, "preload.js"),
+      },
+    });
+
+    // 加载渲染器页面
+    const indexPath = path.join(__dirname, '../../../renderer/index.html');
+    window.loadFile(indexPath).catch(err => {
+      console.error('Failed to load window content:', err);
+    });
+
+    // 监听窗口关闭事件
+    window.on("closed", () => {
+      DataManager.getInstance().handleClientClosed(appId);
+      this.emit("app-closed", appId);
+    });
+
+    return window;
+  }
 }
+
