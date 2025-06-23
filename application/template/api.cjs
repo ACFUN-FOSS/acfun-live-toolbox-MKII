@@ -33,12 +33,13 @@ async function getConfig(req, res) {
  */
 async function updateSettings(req, res) {
   try {
-    // 读取请求体
-    const body = [];
-    for await (const chunk of req) {
-      body.push(chunk);
+    // 从请求体获取设置数据 (已由express.json()中间件解析)
+    const settings = req.body;
+
+    // 验证请求数据
+    if (!settings || typeof settings !== 'object') {
+      throw new Error('Invalid settings format');
     }
-    const settings = JSON.parse(Buffer.concat(body).toString());
 
     // 在实际应用中，这里应该更新配置文件
     // 为简化示例，仅返回成功信息
@@ -79,6 +80,9 @@ function getStatus(req, res) {
 
 const express = require('express');
 const router = express.Router();
+
+// 添加JSON解析中间件
+router.use(express.json());
 
 // 直接定义带HTTP方法的路由
 router.get('/config', getConfig);

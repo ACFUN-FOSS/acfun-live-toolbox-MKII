@@ -4,11 +4,12 @@ import fs from "fs/promises";  // 使用Promise版本的fs API
 import url from "url";
 import { app } from "electron";
 import { getPackageJson } from "./Devars.js";
+import express from "express";
 
 export class HttpManager {
   // 声明所有类属性（新增）
   private port: number;
-  private apiRoutes: Map<string, any> = new Map();
+  private expressApp: express.Application = express();
   private staticMappings: Map<string, string> = new Map();
   private server: http.Server;
   private APP_DIR: string = '';  // 新增：应用目录路径
@@ -18,8 +19,16 @@ export class HttpManager {
 
   constructor() {
     this.port = this.configManager.readConfig(undefined).port || 3000;
-    this.server = http.createServer(this.handleRequest.bind(this));
-    // 移除构造函数中的server.listen调用（改为通过initializeServer启动）
+    this.expressApp.use(express.json()); // 添加JSON解析中间件
+    this.server = http.createServer((req, res) => {
+      console.log(`Incoming request: ${req.method} ${req.url}`);
+      // 先尝试Express处理API请求
+      this.expressApp(req, res, () => {
+        console.log(`Express did not handle request: ${req.method} ${req.url}, falling back to static file handling`);
+        // Express未处理的请求交给原有逻辑处理静态文件
+        this.handleRequest(req, res);
+      });
+    });
   }
 
   // 合并外部的handleRequest方法到类内部（关键修改）
@@ -27,26 +36,6 @@ export class HttpManager {
     try {
       const parsedUrl = url.parse(req.url!, true);
       const pathname = parsedUrl.pathname || "";
-
-      // -------------------- 修复：API路由匹配逻辑 --------------------
-      // 遍历所有API路由前缀，查找匹配的路径
-      const apiPrefix = Array.from(this.apiRoutes.keys()).find(prefix => 
-        pathname.startsWith(prefix)
-      );
-      if (apiPrefix) {
-        const apiPath = pathname.replace(apiPrefix, "").replace(/^\//, ""); // 提取API子路径
-        const routes = this.apiRoutes.get(apiPrefix);
-        if (routes && apiPath) {
-          const handler = routes[apiPath];
-          if (handler) {
-            await handler(req, res);
-            return;
-          }
-        }
-        res.writeHead(404, { "Content-Type": "text/plain" });
-        res.end("API Not Found");
-        return;
-      }
 
       // -------------------- 修复：静态资源匹配逻辑 --------------------
       // 遍历所有静态资源前缀，查找匹配的路径
@@ -120,8 +109,9 @@ export class HttpManager {
     this.staticMappings.set(pathPrefix, dir);  // 存储静态资源映射
   }
 
-  addApiRoutes(pathPrefix: string, routes: any) {
-    this.apiRoutes.set(pathPrefix, routes);  // 存储API路由映射
+  addApiRoutes(prefix: string, router: ExpressRouter): void {
+    console.log(`Mounting API routes at prefix: ${prefix}`);
+    this.expressApp.use(prefix, router);
   }
 
   // 新增：类型辅助方法（原getContentType改为类方法）
@@ -213,11 +203,6 @@ export class HttpManager {
   // 新增：移除静态资源映射方法
   removeStatic(pathPrefix: string): void {
     this.staticMappings.delete(pathPrefix);  // 从Map中删除指定前缀
-  }
-
-  // 新增：移除API路由映射方法
-  removeApiRoutes(pathPrefix: string): void {
-    this.apiRoutes.delete(pathPrefix);  // 从Map中删除指定前缀
   }
 
   // Add public method to expose APP_DIR

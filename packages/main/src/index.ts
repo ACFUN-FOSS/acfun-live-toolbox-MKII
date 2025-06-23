@@ -27,7 +27,8 @@ export async function initApp(initConfig: AppInitConfig) {
     globalThis.appVersion = app.getVersion();
 
     // 延迟初始化WindowManager，确保IPC事件处理器已注册
-    moduleRunner.init(createWindowManagerModule({ initConfig, openDevTools: import.meta.env.DEV }));
+    const windowManager = createWindowManagerModule({ initConfig, openDevTools: import.meta.env.DEV });
+    moduleRunner.init(windowManager);
 
     // 初始化全局变量
     globalThis.configManager = new ConfigManager();
@@ -41,7 +42,7 @@ export async function initApp(initConfig: AppInitConfig) {
     await moduleRunner;
 
     // 应用数据准备就绪后通过windowManager通知所有窗口
-    globalThis.windowManager.getWindows().forEach((window: Electron.BrowserWindow) => {
+    windowManager.getWindows().forEach((window: Electron.BrowserWindow) => {
       if (!window.isDestroyed()) {
         window.webContents.send('apps-ready');
       }

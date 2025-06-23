@@ -209,14 +209,6 @@ export class WindowManager implements AppModule {
     }
 
     /**
-     * 获取所有窗口实例
-     * @returns 窗口实例数组
-     */
-    getWindows(): BrowserWindow[] {
-        return BrowserWindow.getAllWindows().filter(window => !window.isDestroyed());
-    }
-
-    /**
      * 获取所有窗口信息
      * @returns 窗口信息数组
      */
@@ -236,6 +228,14 @@ export class WindowManager implements AppModule {
             isAlwaysOnTop: window.isAlwaysOnTop(),
             bounds: window.getBounds()
         }));
+    }
+
+    /**
+     * 获取所有非销毁状态的窗口实例
+     * @returns 窗口实例数组
+     */
+    getWindows(): BrowserWindow[] {
+        return BrowserWindow.getAllWindows().filter(w => !w.isDestroyed());
     }
 
     /**
