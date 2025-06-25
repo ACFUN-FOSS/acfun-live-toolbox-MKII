@@ -14,6 +14,9 @@ dependencies:
   vue-router:
     specifier: '4'
     version: 4.5.1(vue@3.5.16)
+  wujie-vue3:
+    specifier: ^1.0.28
+    version: 1.0.28(vue@3.5.16)
 
 devDependencies:
   '@vitejs/plugin-vue':
@@ -946,3 +949,18 @@ packages:
       '@vue/server-renderer': 3.5.16(vue@3.5.16)
       '@vue/shared': 3.5.16
       typescript: 5.8.3
+
+  /wujie-vue3@1.0.28(vue@3.5.16):
+    resolution: {integrity: sha512-41TxePEmldOHFoU4cKmp4PtoiXuNa6fb+ozu4cohLyGkOkw9DQDGNv+P5GQofPo6H1MhZ4B8z0wXXcIzGvR+yw==}
+    peerDependencies:
+      vue: ^3.0.0
+    dependencies:
+      vue: 3.5.16(typescript@5.8.3)
+      wujie: 1.0.28
+    dev: false
+
+  /wujie@1.0.28:
+    resolution: {integrity: sha512-Numzm/yh50XV928sjWb8Qo1Fl3zXMhGqRPl1rZ7ZmRNC07dfaTXuFcIb17OrbYd3IokjLs17UAKgjCyKIJtfNw==}
+    dependencies:
+      '@babel/runtime': 7.27.6
+    dev: false

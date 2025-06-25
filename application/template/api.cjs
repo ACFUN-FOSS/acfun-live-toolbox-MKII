@@ -158,19 +158,15 @@ function getSubscribeInfo(req, res) {
     // 生成订阅URL和前端示例代码
     const subscribeUrl = `http://localhost:3000/events/subscribe/${topic}`;
     const exampleCode = `
-// 前端订阅数据更新示例
-const eventSource = new EventSource('${subscribeUrl}');
-
-eventSource.onmessage = (event) => {
-  const data = JSON.parse(event.data);
+// 前端订阅数据更新示例 (wujie微前端)
+// 监听主应用发送的数据
+window.$wujie?.on('${topic}', (data) => {
   console.log('Received data update:', data);
   // 处理更新的数据
-};
+});
 
-eventSource.onerror = (error) => {
-  console.error('EventSource error:', error);
-  eventSource.close();
-};
+// 向主应用发送数据
+// window.$wujie?.send('topic', data);
     `;
 
     res.json({

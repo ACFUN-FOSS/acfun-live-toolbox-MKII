@@ -210,24 +210,20 @@
                 throw new Error(result.error || '获取订阅信息失败');
               }
 
-              // 创建EventSource连接
-              eventSource = new EventSource(result.subscribeUrl);
+              // 使用wujie微前端通信机制订阅数据
+            window.$wujie?.on(topic, (data) => {
+              const updateItem = document.createElement('div');
+              updateItem.className = 'update-item';
+              updateItem.innerHTML = `
+                <div class="update-time">${new Date(data.timestamp).toLocaleTimeString()}</div>
+                <div>${JSON.stringify(data.value, null, 2)}</div>
+              `;
+              dataUpdates.prepend(updateItem); // 最新的更新显示在顶部
+            });
 
-              // 订阅状态更新
-              subscriptionStatus.textContent = `已订阅主题: ${topic}`;
-              subscriptionStatus.className = 'status-subscribed';
-
-              // 处理接收到的数据
-              eventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                const updateItem = document.createElement('div');
-                updateItem.className = 'update-item';
-                updateItem.innerHTML = `
-                  <div class="update-time">${new Date(data.timestamp).toLocaleTimeString()}</div>
-                  <div>${JSON.stringify(data.value, null, 2)}</div>
-                `;
-                dataUpdates.prepend(updateItem); // 最新的更新显示在顶部
-              };
+            // 订阅状态更新
+            subscriptionStatus.textContent = `已订阅主题: ${topic}`;
+            subscriptionStatus.className = 'status-subscribed';
 
               // 处理错误
               eventSource.onerror = (error) => {

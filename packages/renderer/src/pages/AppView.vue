@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import WujieVue from 'wujie-vue3';
 // 使用preload脚本暴露的ipcRenderer
-const { ipcRenderer } = window;
+// const { ipcRenderer } = window;
 
 
 const route = useRoute();
@@ -11,10 +12,15 @@ const appUrl = ref('');
 const loading = ref(true);
 const error = ref('');
 
+const handleWujieError = (err: any) => {
+  error.value = `子应用加载失败: ${err.message || '未知错误'}`;
+  loading.value = false;
+};
+
 onMounted(async () => {
   try {
     // 获取应用配置
-    const result = await window.api.app.getInstalledApps();
+    const result = await ( window.api as any).app.getInstalledApps();
     if (!result.success) {
       throw new Error(result.error || '获取应用列表失败');
     }
@@ -50,15 +56,16 @@ onMounted(async () => {
       <t-alert theme="error" :message="error" />
     </div>
 
-    <iframe
+    <WujieVue
       v-else
-      :src="appUrl"
-      class="app-iframe"
-      frameborder="0"
       width="100%"
       height="100%"
-      @load="loading = false"
-    ></iframe>
+      name="sub-app-{{ appId }}"
+      :url="appUrl"
+      :loading="loading"
+      @mounted="loading = false"
+      @error="handleWujieError"
+    ></WujieVue>
   </div>
 </template>
 
