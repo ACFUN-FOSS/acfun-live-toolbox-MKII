@@ -1,5 +1,11 @@
 /// <reference types="vite/client" />
 
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue';
+  const component: DefineComponent<{}, {}, any>;
+  export default component;
+}
+
 /**
  * Describes all existing environment variables and their types.
  * Required for Code completion/intellisense and type checking.

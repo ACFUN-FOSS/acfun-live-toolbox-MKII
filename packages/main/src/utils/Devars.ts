@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 /**
  * 读取根目录下的 package.json 文件
  * @returns 返回 package.json 的内容，若读取失败则返回 null

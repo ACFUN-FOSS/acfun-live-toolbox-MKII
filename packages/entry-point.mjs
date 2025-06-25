@@ -1,4 +1,7 @@
-import {initApp} from '@app/main';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { initApp } = require('@app/main');
+// Updated to use .cjs extension after build configuration change
 import {fileURLToPath} from 'node:url';
 
 if (process.env.NODE_ENV === 'development' || process.env.PLAYWRIGHT_TEST === 'true' || !!process.env.CI) {

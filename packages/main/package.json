@@ -1,6 +1,7 @@
 {
   "name": "@app/main",
-  "type": "module",
+
+  "main": "dist/index.cjs",
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc --noEmit"
@@ -8,18 +9,20 @@
   "exports": {
     ".": {
       "types": "./src/index.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/index.cjs"
     }
   },
   "dependencies": {
     "@app/preload": "*",
     "@app/renderer": "*",
-    "electron-updater": "6.6.2"
+    "electron-updater": "6.6.2",
+    "electron-data": "^2.1.2"
   },
   "devDependencies": {
     "@app/electron-versions": "*",
     "electron-devtools-installer": "4.0.0",
+    "@types/conf": "^11.0.0",
     "typescript": "5.8.3",
-    "vite": "6.3.5"
+    "vite": "7.0.0"
   }
 }

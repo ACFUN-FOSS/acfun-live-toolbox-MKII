@@ -9,13 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.5.13"
+    "tdesign-vue-next": "^1.13.2",
+    "vue-router": "4",
+    "wujie-vue3": "^1.0.28"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.3",
+    "@vitejs/plugin-vue": "^6.0.0",
     "@vue/tsconfig": "^0.7.0",
     "typescript": "~5.8.3",
-    "vite": "^6.3.5",
+    "vite": "^7.0.0",
     "vue-tsc": "^2.2.8"
   },
   "main": "./dist/index.html",

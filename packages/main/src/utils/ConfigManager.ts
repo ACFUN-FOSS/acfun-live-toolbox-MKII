@@ -1,41 +1,70 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, readdirSync, unlinkSync, rmdirSync, createWriteStream } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
-import Conf from 'conf';
-import archiver from 'archiver';
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  copyFileSync,
+  readdirSync,
+  unlinkSync,
+  rmdirSync,
+  createWriteStream,
+} from "fs";
+import { join } from "path";
+import { homedir } from "os";
+import * as electron_data from 'electron-data';
+import archiver from "archiver";
 // 新增解压相关模块
-import { createReadStream } from 'fs';
-import { Extract } from 'unzipper';
-import config from './config.js';
+import { createReadStream } from "fs";
+import { Extract } from "unzipper";
+import config from "./config.js";
 
-// 默认配置路径
-const DEFAULT_CONFIG_PATH = join(homedir(), globalThis.appName);
-// 使用 conf 实例来保存配置路径
-const configStore = new Conf({
-  projectName: globalThis.appName, // 替换为你的应用名称
-  schema: {
-    configPath: {
-      type: "string",
-      default: DEFAULT_CONFIG_PATH, // 替换为你的应用名称
-    },
-  },
-});
+// 新增：定义配置模式接口（扩展Record允许任意属性）
 
-// 配置管理器类
+
 class ConfigManager {
   private configPath: string;
-
+  private DEFAULT_CONFIG_PATH: string;
   constructor(customPath?: string) {
-    // 优先使用自定义路径，其次使用 conf 存储的路径，最后使用默认路径
-    this.configPath =
-      customPath ||
-      (configStore.get("configPath") as string) ||
-      DEFAULT_CONFIG_PATH;
-    this.ensureConfigDirectoryExists();
-    configStore.set("configPath", this.configPath);
+    this.DEFAULT_CONFIG_PATH = join(homedir(), globalThis.appName);
+   
+    // 初始化electron-data配置
+    electron_data.config({
+      filename: globalThis.appName,
+      path: customPath || this.DEFAULT_CONFIG_PATH,
+      autosave: true,
+      prettysave: true
+    });
 
-    // 调用 readConfig 方法
-    this.readConfig(undefined);
+
+    // 优先使用自定义路径，其次使用 conf 存储的路径，最后使用默认路径
+    this.configPath = customPath || this.DEFAULT_CONFIG_PATH;
+    this.ensureConfigDirectoryExists();
+    // 异步初始化配置
+    this.initializeConfig().catch(err => console.error('配置初始化失败:', err));
+  }
+
+  // 新增异步初始化方法
+  private async initializeConfig(): Promise<void> {
+    // 如果没有自定义路径，尝试从electron-data获取保存的路径
+    if (!this.configPath) {
+      const savedPath = await electron_data.get("configPath");
+      this.configPath = savedPath || this.DEFAULT_CONFIG_PATH;
+    }
+    await electron_data.set("configPath", this.configPath);
+    await this.readConfig(undefined);
+  }
+
+  // 实现配置读写方法
+  async get(key: string): Promise<any> {
+    return await electron_data.get(key);
+  }
+
+  async set(key: string, value: any): Promise<void> {
+    await electron_data.set(key, value);
+  }
+
+  async delete(key: string): Promise<void> {
+    await electron_data.unset(key);
   }
 
   // 获取当前配置路径
@@ -94,12 +123,15 @@ class ConfigManager {
   }
 
   // 读取配置
-  readConfig(appName: string|undefined): any {
+  async readConfig(appName: string | undefined): Promise<any> {
     const filePath = this.getConfigFilePath(appName);
     const targetDir = this.getConfigPath(appName);
 
     // 判断 appName 为空，且目标目录不存在或目录为空
-    if (!appName && (!existsSync(targetDir) || readdirSync(targetDir).length === 0)) {
+    if (
+      !appName &&
+      (!existsSync(targetDir) || readdirSync(targetDir).length === 0)
+    ) {
       // 保存默认配置
       this.saveConfig(appName, config);
       return config;
@@ -113,12 +145,12 @@ class ConfigManager {
   }
 
   // 保存配置
-  saveConfig(appName: string|undefined, configData: any): void {
+  saveConfig(appName: string | undefined, configData: any): any {
     const filePath = this.getConfigFilePath(appName);
     const jsonData = JSON.stringify(configData, null, 2);
     writeFileSync(filePath, jsonData, "utf8");
+    return configData;
   }
-
 
   // 备份配置
   async backupConfig(): Promise<string | null> {
@@ -130,13 +162,13 @@ class ConfigManager {
     const backupPath = join(this.configPath, backupFileName);
 
     const output = createWriteStream(backupPath);
-    const archive = archiver('zip', {
-      zlib: { level: 9 } // 压缩级别
+    const archive = archiver("zip", {
+      zlib: { level: 9 }, // 压缩级别
     });
 
     // 监听完成事件
     await new Promise((resolve, reject) => {
-      output.on('close', () => {
+      output.on("close", () => {
         resolve(backupPath);
       });
 
@@ -162,7 +194,7 @@ class ConfigManager {
       // 备份当前配置
       const backupPath = await this.backupConfig();
       if (!backupPath) {
-        console.warn('备份当前配置失败，可能无配置文件需要备份');
+        console.warn("备份当前配置失败，可能无配置文件需要备份");
       }
 
       // 确保配置目录存在
@@ -172,15 +204,12 @@ class ConfigManager {
       const extract = Extract({ path: this.configPath });
 
       await new Promise((resolve, reject) => {
-        readStream
-          .pipe(extract)
-          .on('close', resolve)
-          .on('error', reject);
+        readStream.pipe(extract).on("close", resolve).on("error", reject);
       });
 
       return true;
     } catch (error) {
-      console.error('导入配置失败:', error);
+      console.error("导入配置失败:", error);
       return false;
     }
   }

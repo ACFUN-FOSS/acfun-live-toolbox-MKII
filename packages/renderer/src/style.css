@@ -3,14 +3,87 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* 基础主题变量 - 浅色模式默认值 */
+  --td-brand-color: #3662E3;
+  --td-brand-color-hover: #406ffd;
+  --td-brand-color-active: #2855d8;
+  --td-brand-color-disabled: #8daaf2;
+
+  /* 功能色 */
+  --td-success-color: #00B42A;
+  --td-warning-color: #FF7D00;
+  --td-error-color: #F53F3F;
+  --td-info-color: #86909C;
+
+  /* 背景色 */
+  --td-bg-color: #FFFFFF;
+  --td-bg-color-secondary: #F2F3F5;
+  --td-bg-color-tertiary: #E5E6EB;
+  --td-bg-color-mask: rgba(0, 0, 0, 0.4);
+
+  /* 文本色 */
+  --td-text-color-primary: #1D2129;
+  --td-text-color-secondary: #4E5969;
+  --td-text-color-placeholder: #86909C;
+  --td-text-color-disabled: #C9CDD4;
+
+  /* 边框色 */
+  --td-border-color: #E5E6EB;
+  --td-border-color-light: #F2F3F5;
+  --td-border-color-dark: #C9CDD4;
+
+  /* 尺寸变量 */
+  --td-radius-small: 2px;
+  --td-radius-default: 4px;
+  --td-radius-large: 8px;
+  --td-radius-full: 9999px;
+
+  /* 阴影变量 */
+  --td-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --td-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --td-shadow-3: 0 4px 16px rgba(0, 0, 0, 0.12);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 深色模式主题变量 */
+:root[theme-mode="dark"] {
+  /* 品牌色保持不变 */
+  --td-brand-color: #3662E3;
+  --td-brand-color-hover: #406ffd;
+  --td-brand-color-active: #2855d8;
+  --td-brand-color-disabled: #8daaf2;
+
+  /* 功能色 */
+  --td-success-color: #00C432;
+  --td-warning-color: #FF8A18;
+  --td-error-color: #F75959;
+  --td-info-color: #9CA3AF;
+
+  /* 背景色 */
+  --td-bg-color: #1D1E23;
+  --td-bg-color-secondary: #2D2E33;
+  --td-bg-color-tertiary: #3E3F46;
+  --td-bg-color-mask: rgba(0, 0, 0, 0.6);
+
+  /* 文本色 */
+  --td-text-color-primary: #F2F3F5;
+  --td-text-color-secondary: #C9CDD4;
+  --td-text-color-placeholder: #86909C;
+  --td-text-color-disabled: #6B7785;
+
+  /* 边框色 */
+  --td-border-color: #4E5969;
+  --td-border-color-light: #3E3F46;
+  --td-border-color-dark: #6B7785;
+
+  /* 阴影变量 */
+  --td-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.16);
+  --td-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.24);
+  --td-shadow-3: 0 4px 16px rgba(0, 0, 0, 0.32);
 }
 
 a {
@@ -59,21 +132,10 @@ button:focus-visible {
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
+/* 移除 prefers-color-scheme 自动切换，我们将通过主题切换按钮手动控制 */
