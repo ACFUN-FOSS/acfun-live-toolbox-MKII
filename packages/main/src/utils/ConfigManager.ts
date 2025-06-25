@@ -11,7 +11,7 @@ import {
 } from "fs";
 import { join } from "path";
 import { homedir } from "os";
-import Conf from "conf";
+import * as electron_data from 'electron-data';
 import archiver from "archiver";
 // 新增解压相关模块
 import { createReadStream } from "fs";
@@ -19,38 +19,52 @@ import { Extract } from "unzipper";
 import config from "./config.js";
 
 // 新增：定义配置模式接口（扩展Record允许任意属性）
-interface ConfigSchema extends Record<string, unknown> {
-  configPath: string; // 明确包含configPath属性
-}
+
 
 class ConfigManager {
   private configPath: string;
   private DEFAULT_CONFIG_PATH: string;
-  // 修改：显式指定Conf的泛型类型为ConfigSchema
-  private configStore: Conf<ConfigSchema>;
-
   constructor(customPath?: string) {
     this.DEFAULT_CONFIG_PATH = join(homedir(), globalThis.appName);
-    // 修改：初始化时指定泛型类型，并保持原有schema逻辑
-    this.configStore = new Conf<ConfigSchema>({
-      projectName: globalThis.appName,
-      schema: {
-        configPath: {
-          type: "string",
-          default: this.DEFAULT_CONFIG_PATH,
-        },
-      },
+   
+    // 初始化electron-data配置
+    electron_data.config({
+      filename: globalThis.appName,
+      path: customPath || this.DEFAULT_CONFIG_PATH,
+      autosave: true,
+      prettysave: true
     });
-    // 优先使用自定义路径，其次使用 conf 存储的路径，最后使用默认路径
-    this.configPath =
-      customPath ||
-      (this.configStore.get("configPath") as string) ||
-      this.DEFAULT_CONFIG_PATH;
-    this.ensureConfigDirectoryExists();
-    this.configStore.set("configPath", this.configPath);
 
-    // 调用 readConfig 方法
-    this.readConfig(undefined);
+
+    // 优先使用自定义路径，其次使用 conf 存储的路径，最后使用默认路径
+    this.configPath = customPath || this.DEFAULT_CONFIG_PATH;
+    this.ensureConfigDirectoryExists();
+    // 异步初始化配置
+    this.initializeConfig().catch(err => console.error('配置初始化失败:', err));
+  }
+
+  // 新增异步初始化方法
+  private async initializeConfig(): Promise<void> {
+    // 如果没有自定义路径，尝试从electron-data获取保存的路径
+    if (!this.configPath) {
+      const savedPath = await electron_data.get("configPath");
+      this.configPath = savedPath || this.DEFAULT_CONFIG_PATH;
+    }
+    await electron_data.set("configPath", this.configPath);
+    await this.readConfig(undefined);
+  }
+
+  // 实现配置读写方法
+  async get(key: string): Promise<any> {
+    return await electron_data.get(key);
+  }
+
+  async set(key: string, value: any): Promise<void> {
+    await electron_data.set(key, value);
+  }
+
+  async delete(key: string): Promise<void> {
+    await electron_data.unset(key);
   }
 
   // 获取当前配置路径
@@ -109,7 +123,7 @@ class ConfigManager {
   }
 
   // 读取配置
-  readConfig(appName: string | undefined): any {
+  async readConfig(appName: string | undefined): Promise<any> {
     const filePath = this.getConfigFilePath(appName);
     const targetDir = this.getConfigPath(appName);
 
