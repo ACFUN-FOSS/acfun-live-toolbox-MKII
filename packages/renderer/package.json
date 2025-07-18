@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "tdesign-vue-next": "^1.13.2",
+    "tdesign-vue-next": "^1.15.1",
     "vue-router": "4",
     "wujie-vue3": "^1.0.28"
   },
