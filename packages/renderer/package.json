@@ -11,7 +11,7 @@
   "dependencies": {
     "tdesign-vue-next": "^1.13.2",
     "vue-router": "4",
-    "wujie-vue3": "^1.0.28"
+    "wujie-vue3": "^1.0.29"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.0",
