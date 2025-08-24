@@ -11,6 +11,7 @@ import { HttpManager } from './utils/HttpManager.js';
 import { ConfigManager } from './utils/ConfigManager.js';
 import { DataManager } from './utils/DataManager.js';
 import { AppManager } from './utils/AppManager.js';
+<<<<<<< HEAD
 import { AuthManager } from './utils/AuthManager.js';
 import { initializeElectronApi } from './apis/electronApi';
 import { initializeLiveApi } from './apis/liveApi';
@@ -18,6 +19,11 @@ import { initializeStatsApi } from './apis/statsApi';
 import { initializeAuthApi } from './apis/authApi';
 import { httpApi } from './apis/httpApi.js';
 import { app, ipcMain } from "electron";
+=======
+import { initializeElectronApi } from './apis/electronApi.js';
+import { initializeHttpApi } from './apis/httpApi.js';
+import { app } from "electron";
+>>>>>>> 800cd5e (Add AcfunDanmu module and HTTP API integration)
 
 export async function initApp(initConfig: AppInitConfig) {
     const moduleRunner = createModuleRunner()
@@ -53,8 +59,15 @@ initializeAuthApi();
     globalThis.httpManager = new HttpManager();
     // Initialize HTTP server to set APP_DIR before AppManager uses it
     await globalThis.httpManager.initializeServer(); // <-- Add this line
+<<<<<<< HEAD
 // 挂载HTTP API
 globalThis.httpManager.addApiRoutes('/api', httpApi);
+=======
+
+    // 初始化HTTP API并挂载路由
+    const apiRouter = initializeHttpApi();
+    globalThis.httpManager.addApiRoutes('/api', apiRouter);
+>>>>>>> 800cd5e (Add AcfunDanmu module and HTTP API integration)
     // 初始化应用
       globalThis.appManager = new AppManager();
       // 初始化认证管理器

@@ -16,7 +16,11 @@ interface AcfunDanmuConfig {
 
 // 默认配置
 const DEFAULT_CONFIG: AcfunDanmuConfig = {
+<<<<<<< HEAD
   port: 15368, // 确保与主进程HTTP服务端口(3000)不冲突
+=======
+  port: 15368,
+>>>>>>> 800cd5e (Add AcfunDanmu module and HTTP API integration)
   debug: false,
   connectionMode: 'ws',
   logLevel: 'info'
@@ -38,6 +42,14 @@ export class AcfunDanmuModule implements AppModule {
     this.logCallback = callback;
   }
 
+<<<<<<< HEAD
+=======
+  // 获取当前状态
+  getStatus(): { running: boolean, port: number } {    
+    return { running: !!this.process, port: this.config.port };
+  }
+
+>>>>>>> 800cd5e (Add AcfunDanmu module and HTTP API integration)
   // 获取当前配置
   getConfig(): AcfunDanmuConfig {
     return { ...this.config };
@@ -51,7 +63,11 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // 启动服务
+<<<<<<< HEAD
   private async start(): Promise<void> {
+=======
+  async start(): Promise<void> {
+>>>>>>> 800cd5e (Add AcfunDanmu module and HTTP API integration)
     try {
       // 确保之前的进程已关闭
       if (this.process) {
@@ -191,8 +207,332 @@ export class AcfunDanmuModule implements AppModule {
   }
 }
 
+<<<<<<< HEAD
 // 创建模块工厂函数
 
+=======
+  // 房管相关方法
+  async getManagerList(uid: number, page: number = 1, pageSize: number = 20): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/manager/list`,
+      'GET',
+      { uid, page, pageSize }
+    );
+  }
+
+  async addManager(uid: number, targetId: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/manager/add`,
+      'POST',
+      { uid, targetId }
+    );
+  }
+
+  async removeManager(uid: number, targetId: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/manager/remove`,
+      'POST',
+      { uid, targetId }
+    );
+  }
+
+  async getKickRecord(uid: number, page: number = 1, pageSize: number = 20): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/manager/kickRecord`,
+      'GET',
+      { uid, page, pageSize }
+    );
+  }
+
+  async managerKickUser(uid: number, targetId: number, reason: string = '', duration: number = 3600): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/manager/kickUser`,
+      'POST',
+      { uid, targetId, reason, duration }
+    );
+  }
+
+  async authorKickUser(uid: number, targetId: number, reason: string = '', duration: number = 3600): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/author/kickUser`,
+      'POST',
+      { uid, targetId, reason, duration }
+    );
+  }
+
+  // 守护徽章相关方法
+  async getMedalDetail(uid: number, medalId: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/medal/detail`,
+      'GET',
+      { uid, medalId }
+    );
+  }
+
+  async getMedalList(uid: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/medal/list`,
+      'GET',
+      { uid }
+    );
+  }
+
+  async getMedalRank(uid: number, medalId: number, rankType: number = 1): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/medal/rank`,
+      'GET',
+      { uid, medalId, rankType }
+    );
+  }
+
+  async getUserWearingMedal(uid: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/medal/wearing`,
+      'GET',
+      { uid }
+    );
+  }
+
+  async wearMedal(uid: number, medalId: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/medal/wear`,
+      'POST',
+      { uid, medalId }
+    );
+  }
+
+  async unwearMedal(uid: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/medal/unwear`,
+      'POST',
+      { uid }
+    );
+  }
+
+  // 登录相关方法
+  async login(account: string, password: string): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/login`,
+      'POST',
+      { account, password }
+    );
+  }
+
+  async loginWithQRCode(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/login/qrcode`,
+      'POST'
+    );
+  }
+
+  // 观看列表相关方法
+  async getWatchingList(liveID: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/watchingList`,
+      'GET',
+      { liveId: liveID }
+    );
+  }
+
+  // 排行榜相关方法
+  async getBillboard(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/billboard`,
+      'GET'
+    );
+  }
+
+  // 摘要信息相关方法
+  async getSummary(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/summary`,
+      'GET'
+    );
+  }
+
+  // 幸运列表相关方法
+  async getLuckList(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/luckList`,
+      'GET'
+    );
+  }
+
+  // 回放信息相关方法
+  async getPlayback(liveID: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/playback`,
+      'GET',
+      { liveId: liveID }
+    );
+  }
+
+  // 礼物列表相关方法
+  async getAllGiftList(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/gift/allList`,
+      'GET'
+    );
+  }
+
+  async getGiftList(liveID: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/gift/list`,
+      'GET',
+      { liveId: liveID }
+    );
+  }
+
+  // 账户钱包相关方法
+  async getWalletBalance(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/wallet/balance`,
+      'GET'
+    );
+  }
+
+  // 用户直播信息相关方法
+  async getUserLiveInfo(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/user/liveInfo`,
+      'GET'
+    );
+  }
+
+  // 直播列表相关方法
+  async getAllLiveList(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/allList`,
+      'GET'
+    );
+  }
+
+  // 直播数据相关方法
+  async getLiveData(days: number = 7): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/data`,
+      'GET',
+      { days }
+    );
+  }
+
+  // 用户信息相关方法
+  async getUserInfo(userID?: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/user/info`,
+      'GET',
+      userID ? { userId: userID } : {}
+    );
+  }
+
+  // 上传图片相关方法
+  async uploadImage(imagePath: string): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/upload/image`,
+      'POST',
+      { imageFile: imagePath }
+    );
+  }
+
+  // 直播预告相关方法
+  async getScheduleList(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/scheduleList`,
+      'GET'
+    );
+  }
+
+  // 直播状态相关方法
+  async getLiveStatus(liveID: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/status`,
+      'GET',
+      { liveId: liveID }
+    );
+  }
+
+  // 转码信息相关方法
+  async getTranscodeInfo(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/transcodeInfo`,
+      'GET'
+    );
+  }
+
+  // 直播控制相关方法
+  async startLive(categoryID: number, title: string, coverUrl: string): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/start`,
+      'POST',
+      { categoryId: categoryID, title, coverUrl }
+    );
+  }
+
+  async stopLive(): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/stop`,
+      'POST'
+    );
+  }
+
+  async updateLiveInfo(title: string, coverUrl: string): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/updateInfo`,
+      'POST',
+      { title, coverUrl }
+    );
+  }
+
+  // 直播剪辑相关方法
+  async checkCanCut(liveID: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/checkCanCut`,
+      'GET',
+      { liveId: liveID }
+    );
+  }
+
+  async setCanCut(liveID: number, canCut: boolean): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/live/setCanCut`,
+      'POST',
+      { liveId: liveID, canCut }
+    );
+  }
+
+  // HTTP客户端工具方法
+  private async callAcfunDanmuApi(path: string, method: 'GET' | 'POST' = 'GET', data: any = null): Promise<any> {
+    try {
+      let url = `http://localhost:${this.config.port}/api${path}`;
+      const options = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-id': 'acfun-live-toolbox'
+        }
+      };
+
+      if (method === 'POST' && data) {
+        options.body = JSON.stringify(data);
+      } else if (method === 'GET' && data) {
+        const queryParams = new URLSearchParams(data);
+        url += `?${queryParams}`;
+      }
+
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`[AcfunDanmu] API调用失败: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+}
+
+// 创建模块工厂函数
+>>>>>>> 800cd5e (Add AcfunDanmu module and HTTP API integration)
 export function createAcfunDanmuModule(config: Partial<AcfunDanmuConfig> = {}): AppModule {
   return new AcfunDanmuModule(config);
 }

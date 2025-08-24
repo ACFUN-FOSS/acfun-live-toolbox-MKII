@@ -1,16 +1,22 @@
 import { ipcMain } from 'electron';
 import { getLogManager } from '../utils/LogManager.js';
 import { acfunDanmuModule } from '../modules/AcfunDanmuModule.js';
+<<<<<<< HEAD
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+=======
+>>>>>>> 800cd5e (Add AcfunDanmu module and HTTP API integration)
 
 // 窗口管理相关API实现
 // 应用管理相关API实现
 // Acfun弹幕模块管理API实现
+<<<<<<< HEAD
 // 进程管理API实现
 // 文件操作API实现
 // 认证相关API实现
+=======
+>>>>>>> 800cd5e (Add AcfunDanmu module and HTTP API integration)
 
     // 注册应用模块
     ipcMain.handle('app:registerModule', async (_, moduleName: string, modulePath: string) => {
