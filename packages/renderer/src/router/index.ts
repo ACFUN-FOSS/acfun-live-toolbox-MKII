@@ -1,10 +1,33 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
-// 使用preload脚本暴露的ipcRenderer
-const { ipcRenderer } = window;
 
+// 导入组件
 import Home from '../pages/index.vue';
 import AppView from '../pages/AppView.vue';
+import Dashboard from '../pages/Dashboard.vue';
+import Login from '../pages/Login.vue';
+import PasswordLogin from '../pages/PasswordLogin.vue';
+
+// 导航守卫：检查用户是否登录
+const checkAuth = async (to: any) => {
+  // 登录页不需要验证
+  if (to.name === 'login') {
+    return true;
+  }
+
+  // 检查用户是否已登录
+  const result = await window.api.auth.getUserInfo();
+  if (result.success && result.data) {
+    // 已登录，访问首页时重定向到仪表盘
+    if (to.name === 'home') {
+      return { name: 'dashboard' };
+    }
+    return true;
+  } else {
+    // 未登录，重定向到登录页
+    return { name: 'login' };
+  }
+};
 
 const routes: RouteRecordRaw[] = [
   {
@@ -20,7 +43,15 @@ const routes: RouteRecordRaw[] = [
     name: 'login',
     component: Login,
     meta: {
-      title: '登录',
+      title: '扫码登录',
+    },
+  },
+  {
+    path: '/login/password',
+    name: 'password-login',
+    component: PasswordLogin,
+    meta: {
+      title: '账号密码登录',
     },
   },
   {
@@ -30,7 +61,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '仪表盘',
     },
-  }
+  },
   {
     path: '/app/:appId',
     name: 'app-view',
@@ -73,6 +104,20 @@ const loadAppRoutes = async () => {
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
+});
+
+// 添加导航守卫
+router.beforeEach(async (to, from, next) => {
+  // 设置页面标题
+  document.title = to.meta.title || 'ACFUN直播工具箱';
+
+  // 检查登录状态
+  const authResult = await checkAuth(to);
+  if (authResult === true) {
+    next();
+  } else {
+    next(authResult);
+  }
 });
 
 // 初始化时加载应用路由

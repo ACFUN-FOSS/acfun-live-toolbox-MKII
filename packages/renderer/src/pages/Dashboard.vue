@@ -28,22 +28,22 @@
         <div class="stat-card">
           <div class="stat-title">今日观看人数</div>
           <div class="stat-value">{{ todayViews }}</div>
-          <div class="stat-change">{{ todayViewsChange > 0 ? '+' : '' }}{{ todayViewsChange }}% 较昨日</div>
+          <div class="stat-change" :data-positive="todayViewsChange > 0">{{ todayViewsChange > 0 ? '+' : '' }}{{ todayViewsChange }}% 较昨日</div>
         </div>
         <div class="stat-card">
           <div class="stat-title">今日新增粉丝</div>
           <div class="stat-value">{{ todayFollowers }}</div>
-          <div class="stat-change">{{ todayFollowersChange > 0 ? '+' : '' }}{{ todayFollowersChange }}% 较昨日</div>
+          <div class="stat-change" :data-positive="todayFollowersChange > 0">{{ todayFollowersChange > 0 ? '+' : '' }}{{ todayFollowersChange }}% 较昨日</div>
         </div>
         <div class="stat-card">
           <div class="stat-title">今日收入</div>
           <div class="stat-value">{{ todayIncome }} 元</div>
-          <div class="stat-change">{{ todayIncomeChange > 0 ? '+' : '' }}{{ todayIncomeChange }}% 较昨日</div>
+          <div class="stat-change" :data-positive="todayIncomeChange > 0">{{ todayIncomeChange > 0 ? '+' : '' }}{{ todayIncomeChange }}% 较昨日</div>
         </div>
         <div class="stat-card">
           <div class="stat-title">直播时长</div>
           <div class="stat-value">{{ liveDuration }}</div>
-          <div class="stat-change">{{ liveDurationChange > 0 ? '+' : '' }}{{ liveDurationChange }}% 较昨日</div>
+          <div class="stat-change" :data-positive="liveDurationChange > 0">{{ liveDurationChange > 0 ? '+' : '' }}{{ liveDurationChange }}% 较昨日</div>
         </div>
       </div>
 
@@ -123,101 +123,165 @@ const router = useRouter();
 // 初始化数据
 onMounted(async () => {
   // 获取用户信息
-  const userInfoResult = await window.api.auth.getUserInfo();
-  if (userInfoResult.success) {
-    userInfo.value = userInfoResult.data;
-  } else {
-    // 未登录，跳转到登录页面
+  try {
+    const userInfoResult = await window.api.auth.getUserInfo();
+    userInfo.value = userInfoResult;
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    // 未登录或获取失败，跳转到登录页面
     router.push('/login');
   }
 
   // 获取应用版本
   appVersion.value = window.api.versions.appVersion || '1.0.0';
 
-  // 模拟数据加载
+  // 加载真实数据
   await loadDashboardData();
 
   // 启动系统监控
   startSystemMonitor();
 
   // 监听登出事件
-  window.api.auth.onLogout(() => {
+  const logoutListener = () => {
     router.push('/login');
-  });
+  };
+  window.api.auth.onLogout(logoutListener);
+
+  // 监听认证状态变化事件
+  const authStatusListener = (status: any) => {
+    console.log('认证状态变化:', status);
+    if (!status.isAuthenticated) {
+      router.push('/login');
+    } else if (status.userInfo) {
+      userInfo.value = status.userInfo;
+    }
+  };
+  window.api.auth.onAuthStatusChanged(authStatusListener);
+
+  // 监听统计数据更新事件
+  const statsListener = (stats: any) => {
+    updateDashboardStats(stats);
+  };
+  window.api.stats.onStatsUpdated(statsListener);
+
+  // 监听直播状态更新事件
+  const liveStatusListener = (status: any) => {
+    isLive.value = status.isLive;
+    liveTitle.value = status.title;
+    viewersCount.value = status.viewers;
+  };
+  window.api.live.onStatusChange(liveStatusListener);
+
+  // 存储监听器以便后续清理
+  (window as any).dashboardListeners = {
+    logout: logoutListener,
+    authStatus: authStatusListener,
+    stats: statsListener,
+    liveStatus: liveStatusListener
+  };
 });
 
 // 清理
 onUnmounted(() => {
-  window.api.auth.off('auth:logout');
+  const listeners = (window as any).dashboardListeners;
+  if (listeners) {
+    window.api.auth.off('auth:logout', listeners.logout);
+    window.api.auth.off('auth:status-changed', listeners.authStatus);
+    window.api.stats.off('stats:stats-updated', listeners.stats);
+    window.api.live.off('live:status-change', listeners.liveStatus);
+  }
   stopSystemMonitor();
 });
 
 // 加载仪表盘数据
 async function loadDashboardData() {
-  // 模拟API请求延迟
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  // 模拟数据
-  isLive.value = false;
-  liveTitle.value = '测试直播标题';
-  viewersCount.value = 128;
-  todayViews.value = 1532;
-  todayViewsChange.value = 12;
-  todayFollowers.value = 56;
-  todayFollowersChange.value = 8;
-  todayIncome.value = 256.8;
-  todayIncomeChange.value = 23;
-  liveDuration.value = '02:35:42';
-  liveDurationChange.value = -5;
-
-  // 模拟直播记录
-  liveRecords.value = [
-    {
-      id: 1,
-      date: '2023-07-15',
-      title: '测试直播1',
-      duration: '02:35:42',
-      views: 1532,
-      income: 256.8
-    },
-    {
-      id: 2,
-      date: '2023-07-14',
-      title: '测试直播2',
-      duration: '03:12:56',
-      views: 1368,
-      income: 207.5
-    },
-    {
-      id: 3,
-      date: '2023-07-13',
-      title: '测试直播3',
-      duration: '01:45:23',
-      views: 987,
-      income: 156.3
+  try {
+    // 获取今日统计数据
+    const todayStats = await window.api.stats.getToday();
+    if (todayStats.success) {
+      todayViews.value = todayStats.data.views;
+      todayFollowers.value = todayStats.data.followers;
+      todayIncome.value = todayStats.data.income;
+      liveDuration.value = todayStats.data.duration;
     }
-  ];
+
+    // 获取对比数据
+    const comparisonStats = await window.api.stats.getComparison();
+    if (comparisonStats.success) {
+      todayViewsChange.value = comparisonStats.data.viewsChange;
+      todayFollowersChange.value = comparisonStats.data.followersChange;
+      todayIncomeChange.value = comparisonStats.data.incomeChange;
+      liveDurationChange.value = comparisonStats.data.durationChange;
+    }
+
+    // 获取直播历史记录
+    const history = await window.api.live.getHistory();
+    if (history.success) {
+      liveRecords.value = history.data.records;
+    }
+
+    // 获取当前直播状态
+    const liveStatus = await window.api.live.getStatus();
+    if (liveStatus.success) {
+      isLive.value = liveStatus.data.isLive;
+      liveTitle.value = liveStatus.data.title;
+      viewersCount.value = liveStatus.data.viewers;
+    }
+  } catch (error) {
+    console.error('加载仪表盘数据失败:', error);
+  }
+}
+
+// 更新仪表盘统计数据
+function updateDashboardStats(stats: any) {
+  todayViews.value = stats.today.views;
+  todayFollowers.value = stats.today.followers;
+  todayIncome.value = stats.today.income;
+  liveDuration.value = stats.today.duration;
+  todayViewsChange.value = stats.comparison.viewsChange;
+  todayFollowersChange.value = stats.comparison.followersChange;
+  todayIncomeChange.value = stats.comparison.incomeChange;
+  liveDurationChange.value = stats.comparison.durationChange;
 }
 
 // 切换直播状态
 async function toggleLive() {
-  isLive.value = !isLive.value;
-  if (isLive.value) {
-    // 开始直播逻辑
-    liveTitle.value = liveTitle.value || '未命名直播';
-    viewersCount.value = 0;
-    // 实际应用中，这里应该调用直播API开始直播
-  } else {
-    // 结束直播逻辑
-    // 实际应用中，这里应该调用直播API结束直播
+  try {
+    if (isLive.value) {
+      // 结束直播
+      const result = await window.api.live.end();
+      if (result.success) {
+        isLive.value = false;
+        viewersCount.value = 0;
+      } else {
+        alert('结束直播失败: ' + result.message);
+      }
+    } else {
+      // 开始直播
+      const result = await window.api.live.start({
+        title: liveTitle.value || '未命名直播'
+      });
+      if (result.success) {
+        isLive.value = true;
+        viewersCount.value = 0;
+      } else {
+        alert('开始直播失败: ' + result.message);
+      }
+    }
+  } catch (error) {
+    console.error('切换直播状态失败:', error);
+    alert('操作失败，请重试');
   }
 }
 
 // 登出
 async function logout() {
-  const result = await window.api.auth.logout();
-  if (result.success) {
-    router.push('/login');
+  try {
+    await window.api.auth.logout();
+    // 登出成功后，认证状态变化事件会触发并导航到登录页
+  } catch (error) {
+    console.error('登出失败:', error);
+    alert('登出失败: ' + (error instanceof Error ? error.message : '未知错误'));
   }
 }
 

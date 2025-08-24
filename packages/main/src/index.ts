@@ -12,7 +12,10 @@ import { ConfigManager } from './utils/ConfigManager.js';
 import { DataManager } from './utils/DataManager.js';
 import { AppManager } from './utils/AppManager.js';
 import { AuthManager } from './utils/AuthManager.js';
-import { initializeElectronApi } from './apis/electronApi.js';
+import { initializeElectronApi } from './apis/electronApi';
+import { initializeLiveApi } from './apis/liveApi';
+import { initializeStatsApi } from './apis/statsApi';
+import { initializeAuthApi } from './apis/authApi';
 import { httpApi } from './apis/httpApi.js';
 import { app, ipcMain } from "electron";
 
@@ -26,7 +29,16 @@ export async function initApp(initConfig: AppInitConfig) {
     // Install DevTools extension if needed
     // .init(chromeDevToolsExtension({extension: 'VUEJS3_DEVTOOLS'}))
     // 初始化Electron API
-    initializeElectronApi();
+initializeElectronApi();
+
+// 初始化直播API
+initializeLiveApi();
+
+// 初始化统计API
+initializeStatsApi();
+
+// 初始化认证API
+initializeAuthApi();
 
     globalThis.appName = app.getName();
     globalThis.appVersion = app.getVersion();

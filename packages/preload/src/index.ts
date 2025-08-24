@@ -52,30 +52,83 @@ export const api = {
     read: (path: string) => ipcRenderer.invoke('file:read', path),
     write: (path: string, content: string) => ipcRenderer.invoke('file:write', path, content),
     delete: (path: string) => ipcRenderer.invoke('file:delete', path),
-    list: (path: string) => ipcRenderer.invoke('file:list', path)
+    list: (path: string) => ipcRenderer.invoke('file:list', path),
+  },
+
+  // 直播相关API
+  live: {
+        getStatus: () => ipcRenderer.invoke('live:get-status'),
+        start: (params: { title: string, coverUrl?: string, categoryId?: number, tags?: string[] }) => 
+          ipcRenderer.invoke('live:start', params),
+        end: () => ipcRenderer.invoke('live:end'),
+        updateInfo: (params: { title?: string, coverUrl?: string, tags?: string[] }) => 
+          ipcRenderer.invoke('live:update-info', params),
+        getCategories: () => ipcRenderer.invoke('live:get-categories'),
+        getHistory: (params?: { page?: number, pageSize?: number }) => 
+          ipcRenderer.invoke('live:get-history', params),
+        onStatusChange: (callback: (status: any) => void) => {
+          const listener = (_event: any, status: any) => callback(status);
+          ipcRenderer.on('live:status-change', listener);
+          return () => ipcRenderer.removeListener('live:status-change', listener);
+        },
+      },
+
+  // 统计API
+  stats: {
+    getToday: () => ipcRenderer.invoke('stats:get-today'),
+    getComparison: () => ipcRenderer.invoke('stats:get-comparison'),
+    getAllTime: () => ipcRenderer.invoke('stats:get-all-time'),
+    refresh: () => ipcRenderer.invoke('stats:refresh'),
+    onStatsUpdated: (callback: (stats: any) => void) => {
+      const listener = (_event: any, stats: any) => callback(stats);
+      ipcRenderer.on('stats:stats-updated', listener);
+      return () => ipcRenderer.removeListener('stats:stats-updated', listener);
+    },
   },
 
   // 认证API
   auth: {
     login: () => ipcRenderer.invoke('auth:login'),
     logout: () => ipcRenderer.invoke('auth:logout'),
-    getUserInfo: () => ipcRenderer.invoke('auth:getUserInfo'),
-    checkPermission: (permission: string) => ipcRenderer.invoke('auth:checkPermission', permission),
-    refreshQrCode: (token: string) => ipcRenderer.invoke('auth:refreshQrCode', token),
+    getUserInfo: () => ipcRenderer.invoke('auth:get-user-info'),
+    refreshToken: () => ipcRenderer.invoke('auth:refresh-token'),
+    generateLoginQrCode: () => ipcRenderer.invoke('auth:generate-login-qr-code'),
+    checkQrCodeStatus: (token: string) => ipcRenderer.invoke('auth:check-qr-code-status', token),
+    // checkPermission: (permission: string) => ipcRenderer.invoke('auth:checkPermission', permission),
     onLoginSuccess: (callback: (userInfo: any) => void) => {
-      ipcRenderer.on('auth:login-success', (event, userInfo) => callback(userInfo));
+      const listener = (_event: any, userInfo: any) => callback(userInfo);
+      ipcRenderer.on('auth:login-success', listener);
+      return () => ipcRenderer.removeListener('auth:login-success', listener);
     },
     onLoginFailed: (callback: (error: any) => void) => {
-      ipcRenderer.on('auth:login-failed', (event, error) => callback(error));
+      const listener = (_event: any, error: any) => callback(error);
+      ipcRenderer.on('auth:login-failed', listener);
+      return () => ipcRenderer.removeListener('auth:login-failed', listener);
+    },
+    onQrCodeGenerated: (callback: (qrCodeData: any) => void) => {
+      const listener = (_event: any, qrCodeData: any) => callback(qrCodeData);
+      ipcRenderer.on('auth:qr-code-generated', listener);
+      return () => ipcRenderer.removeListener('auth:qr-code-generated', listener);
     },
     onQrScanned: (callback: () => void) => {
-      ipcRenderer.on('auth:qr-scanned', () => callback());
+      const listener = (_event: any) => callback();
+      ipcRenderer.on('auth:qr-scanned', listener);
+      return () => ipcRenderer.removeListener('auth:qr-scanned', listener);
+    },
+    onQrExpired: (callback: () => void) => {
+      const listener = (_event: any) => callback();
+      ipcRenderer.on('auth:qr-expired', listener);
+      return () => ipcRenderer.removeListener('auth:qr-expired', listener);
     },
     onLogout: (callback: () => void) => {
-      ipcRenderer.on('auth:logout', () => callback());
+      const listener = (_event: any) => callback();
+      ipcRenderer.on('auth:logout', listener);
+      return () => ipcRenderer.removeListener('auth:logout', listener);
     },
-    off: (channel: string, callback: (...args: any[]) => void) => {
-      ipcRenderer.removeListener(channel, callback);
+    onAuthStatusChanged: (callback: (status: any) => void) => {
+      const listener = (_event: any, status: any) => callback(status);
+      ipcRenderer.on('auth:status-changed', listener);
+      return () => ipcRenderer.removeListener('auth:status-changed', listener);
     }
   }
 };
