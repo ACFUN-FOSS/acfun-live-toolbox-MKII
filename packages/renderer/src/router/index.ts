@@ -16,6 +16,22 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/login',
+    name: 'login',
+    component: Login,
+    meta: {
+      title: '登录',
+    },
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: Dashboard,
+    meta: {
+      title: '仪表盘',
+    },
+  }
+  {
     path: '/app/:appId',
     name: 'app-view',
     component: AppView,

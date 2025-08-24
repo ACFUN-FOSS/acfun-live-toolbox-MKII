@@ -1,3 +1,5 @@
+//管理小程序
+
 import fs from "fs";
 import path from "path";
 import { promisify } from "util";

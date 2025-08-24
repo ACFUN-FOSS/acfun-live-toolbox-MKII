@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACFUN直播工具箱 - 登录</title>
+  <script src="/preload.js"></script>
+  <link rel="stylesheet" href="/assets/styles/login.css">
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo-container">
+      <img src="/assets/images/logo.png" alt="ACFUN直播工具箱" class="logo">
+      <h1 class="app-name">ACFUN直播工具箱</h1>
+    </div>
+    <div class="login-content">
+      <div class="qr-code-container">
+        <img id="qr-code" src="" alt="登录二维码">
+        <p class="qr-code-tip">请使用ACFUN手机客户端扫码登录</p>
+        <div id="qr-scanned-indicator" class="hidden">
+          <div class="scanned-icon"></div>
+          <p>已扫码，请在手机端确认登录</p>
+        </div>
+      </div>
+      <div class="status-container">
+        <p id="login-status" class="status-text"></p>
+      </div>
+      <div class="action-buttons">
+        <button id="refresh-qr" class="btn secondary">刷新二维码</button>
+        <button id="cancel-login" class="btn danger">取消登录</button>
+      </div>
+    </div>
+  </div>
+  <script src="/assets/js/login.js"></script>
+</body>
+</html>

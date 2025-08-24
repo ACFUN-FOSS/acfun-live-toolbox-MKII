@@ -1,0 +1,3 @@
+[submodule "packages/acfundanmu"]
+	path = packages/acfundanmu
+	url = https://github.com/ACFUN-FOSS/acfundanmu.js
