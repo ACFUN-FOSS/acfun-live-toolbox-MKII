@@ -1,5 +1,6 @@
 import type { AppInitConfig } from './AppInitConfig.js';
 import { createModuleRunner } from './ModuleRunner.js';
+import { createAcfunDanmuModule } from './modules/AcfunDanmuModule.js';
 import { disallowMultipleAppInstance } from './modules/SingleInstanceApp.js';
 import { createWindowManagerModule } from './modules/WindowManager.js';
 import { terminateAppOnLastWindowClose } from './modules/ApplicationTerminatorOnLastWindowClose.js';
@@ -11,6 +12,7 @@ import { ConfigManager } from './utils/ConfigManager.js';
 import { DataManager } from './utils/DataManager.js';
 import { AppManager } from './utils/AppManager.js';
 import { initializeElectronApi } from './apis/electronApi.js';
+import { initializeHttpApi } from './apis/httpApi.js';
 import { app } from "electron";
 
 export async function initApp(initConfig: AppInitConfig) {
@@ -19,6 +21,7 @@ export async function initApp(initConfig: AppInitConfig) {
         .init(terminateAppOnLastWindowClose())
         .init(hardwareAccelerationMode({ enable: true }))
         .init(autoUpdater())
+        .init(createAcfunDanmuModule({ debug: process.env.NODE_ENV === 'development' }))
     // Install DevTools extension if needed
     // .init(chromeDevToolsExtension({extension: 'VUEJS3_DEVTOOLS'}))
     // 初始化Electron API
@@ -37,6 +40,10 @@ export async function initApp(initConfig: AppInitConfig) {
     globalThis.httpManager = new HttpManager();
     // Initialize HTTP server to set APP_DIR before AppManager uses it
     await globalThis.httpManager.initializeServer(); // <-- Add this line
+
+    // 初始化HTTP API并挂载路由
+    const apiRouter = initializeHttpApi();
+    globalThis.httpManager.addApiRoutes('/api', apiRouter);
     // 初始化应用
     globalThis.appManager = new AppManager();
     await globalThis.appManager.init();

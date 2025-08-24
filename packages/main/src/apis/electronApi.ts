@@ -1,7 +1,10 @@
 import { ipcMain } from 'electron';
+import { getLogManager } from '../utils/LogManager.js';
+import { acfunDanmuModule } from '../modules/AcfunDanmuModule.js';
 
 // 窗口管理相关API实现
 // 应用管理相关API实现
+// Acfun弹幕模块管理API实现
 
     // 注册应用模块
     ipcMain.handle('app:registerModule', async (_, moduleName: string, modulePath: string) => {
@@ -28,6 +31,84 @@ import { ipcMain } from 'electron';
     });
 
 export function initializeElectronApi() {
+    // Acfun弹幕模块相关API
+    // 启动Acfun弹幕模块
+    ipcMain.handle('acfunDanmu:start', async () => {
+        try {
+            await acfunDanmuModule.start();
+            return { success: true };
+        } catch (error) {
+            console.error('Error starting acfun danmu module:', error);
+            return { success: false, error: 'Failed to start acfun danmu module' };
+        }
+    });
+
+    // 停止Acfun弹幕模块
+    ipcMain.handle('acfunDanmu:stop', async () => {
+        try {
+            await acfunDanmuModule.stop();
+            return { success: true };
+        } catch (error) {
+            console.error('Error stopping acfun danmu module:', error);
+            return { success: false, error: 'Failed to stop acfun danmu module' };
+        }
+    });
+
+    // 重启Acfun弹幕模块
+    ipcMain.handle('acfunDanmu:restart', async () => {
+        try {
+            await acfunDanmuModule.restart();
+            return { success: true };
+        } catch (error) {
+            console.error('Error restarting acfun danmu module:', error);
+            return { success: false, error: 'Failed to restart acfun danmu module' };
+        }
+    });
+
+    // 更新Acfun弹幕模块配置
+    ipcMain.handle('acfunDanmu:updateConfig', async (_, config: Partial<import('../modules/AcfunDanmuModule.js').AcfunDanmuConfig>) => {
+        try {
+            acfunDanmuModule.updateConfig(config);
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating acfun danmu module config:', error);
+            return { success: false, error: 'Failed to update acfun danmu module config' };
+        }
+    });
+
+    // 获取Acfun弹幕模块配置
+    ipcMain.handle('acfunDanmu:getConfig', async () => {
+        try {
+            const config = acfunDanmuModule.getConfig();
+            return { success: true, data: config };
+        } catch (error) {
+            console.error('Error getting acfun danmu module config:', error);
+            return { success: false, error: 'Failed to get acfun danmu module config' };
+        }
+    });
+
+    // 获取Acfun弹幕模块状态
+    ipcMain.handle('acfunDanmu:getStatus', async () => {
+        try {
+            const status = acfunDanmuModule.getStatus();
+            return { success: true, data: status };
+        } catch (error) {
+            console.error('Error getting acfun danmu module status:', error);
+            return { success: false, error: 'Failed to get acfun danmu module status' };
+        }
+    });
+
+    // 获取Acfun弹幕模块日志
+    ipcMain.handle('acfunDanmu:getLogs', async (_, limit: number = 100) => {
+        try {
+            const logManager = getLogManager();
+            const logs = logManager.getLogs('acfunDanmu', limit);
+            return { success: true, data: logs };
+        } catch (error) {
+            console.error('Error getting acfun danmu module logs:', error);
+            return { success: false, error: 'Failed to get acfun danmu module logs' };
+        }
+    });
     // 关闭窗口
     ipcMain.handle('window:close', async (_, windowId?: number) => {
         try {
