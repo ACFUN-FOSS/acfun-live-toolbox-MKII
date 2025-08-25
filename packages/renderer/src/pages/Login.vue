@@ -158,7 +158,7 @@ const openDisclaimer = () => {
   width: 350px;
   padding: 30px;
   background-color: #1e293b;
-  border-radius: 12px;
+  border-radius: 4px; /* 统一圆角 - UI规范 */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   color: #fff;
 }
@@ -168,7 +168,7 @@ const openDisclaimer = () => {
   font-weight: bold;
   margin-bottom: 20px;
   text-align: center;
-  color: #e2e8f0;
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .qr-code-container {
@@ -203,18 +203,18 @@ const openDisclaimer = () => {
 .login-status {
   text-align: center;
   margin-bottom: 20px;
-  color: #94a3b8;
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   min-height: 20px;
 }
 
 .terms-agreement {
   margin-bottom: 20px;
   font-size: 12px;
-  color: #94a3b8;
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
 }
 
 .link {
-  color: #3b82f6;
+  color: #1890ff; /* 主色调 - UI规范 */
   text-decoration: underline;
   cursor: pointer;
 }
@@ -230,16 +230,14 @@ const openDisclaimer = () => {
   color: #3b82f6;
   cursor: pointer;
   font-size: 14px;
-}
-
 .welcome-card {
   width: 400px;
   padding: 40px;
   background-color: #1e293b;
-  border-radius: 12px;
+  border-radius: 4px; /* 统一圆角 - UI规范 */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   color: #fff;
-  display: flex;
+} display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
@@ -266,7 +264,7 @@ const openDisclaimer = () => {
   font-size: 32px;
   font-weight: bold;
   margin-bottom: 10px;
-  color: #e2e8f0;
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .welcome-desc {
@@ -297,8 +295,8 @@ const openDisclaimer = () => {
   bottom: 0;
   right: 0;
   width: 500px;
-  height: 500px;
-  background-image: url('https://picsum.photos/500/500');
+ height: 500px;
+  background-image: url('https://i.gifer.com/ZZ5H.gif'); /* animated background image */
   background-size: cover;
   background-position: center;
   opacity: 0.1;

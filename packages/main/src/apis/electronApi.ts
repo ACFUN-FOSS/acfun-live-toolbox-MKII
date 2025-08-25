@@ -32,7 +32,7 @@ ipcMain.on('apps-ready', () => {
             return { success: true };
         } catch (error) {
             console.error('Error registering app module:', error);
-            return { success: false, error: 'Failed to register app module' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -44,7 +44,7 @@ ipcMain.on('apps-ready', () => {
             return { success: true };
         } catch (error) {
             console.error('Error enabling app module:', error);
-            return { success: false, error: 'Failed to enable app module' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -57,7 +57,7 @@ export function initializeElectronApi() {
             return { success: true, data: roomInfo };
         } catch (error) {
             console.error('Error getting room info:', error);
-            return { success: false, error: 'Failed to get room info' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -68,7 +68,7 @@ export function initializeElectronApi() {
             return { success: true };
         } catch (error) {
             console.error('Error updating room info:', error);
-            return { success: false, error: 'Failed to update room info' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -79,7 +79,7 @@ export function initializeElectronApi() {
             return { success: true, data: streamKeyInfo };
         } catch (error) {
             console.error('Error getting stream key:', error);
-            return { success: false, error: 'Failed to get stream key' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -90,7 +90,7 @@ export function initializeElectronApi() {
             return { success: true, data: streamKeyInfo };
         } catch (error) {
             console.error('Error refreshing stream key:', error);
-            return { success: false, error: 'Failed to refresh stream key' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -101,7 +101,7 @@ export function initializeElectronApi() {
             return { success: true };
         } catch (error) {
             console.error('Error connecting to OBS:', error);
-            return { success: false, error: 'Failed to connect to OBS' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -112,7 +112,7 @@ export function initializeElectronApi() {
             return { success: true, data: { status } };
         } catch (error) {
             console.error('Error getting OBS status:', error);
-            return { success: false, error: 'Failed to get OBS status' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -123,7 +123,7 @@ export function initializeElectronApi() {
             return { success: true, data: { status } };
         } catch (error) {
             console.error('Error getting stream status:', error);
-            return { success: false, error: 'Failed to get stream status' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -134,7 +134,7 @@ export function initializeElectronApi() {
             return { success: true };
         } catch (error) {
             console.error('Error stopping stream:', error);
-            return { success: false, error: 'Failed to stop stream' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
@@ -145,11 +145,88 @@ export function initializeElectronApi() {
             return { success: true };
         } catch (error) {
             console.error('Error starting stream:', error);
-            return { success: false, error: 'Failed to start stream' };
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
         }
     });
 
     // Acfun弹幕模块相关API
+    // 发送弹幕
+    ipcMain.handle('acfunDanmu:sendDanmu', async (_, liveId: number, content: string) => {
+        try {
+            await acfunDanmuModule.sendDanmu(liveId, content);
+            return { success: true };
+        } catch (error) {
+            console.error('Error sending danmu:', error);
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
+
+    // 获取房管列表
+    ipcMain.handle('acfunDanmu:getManagerList', async (_, uid: number, page: number = 1, pageSize: number = 20) => {
+        try {
+            const result = await acfunDanmuModule.getManagerList(uid, page, pageSize);
+            return { success: true, data: result };
+        } catch (error) {
+            console.error('Error getting manager list:', error);
+            return { success: false, error: 'Failed to get manager list' };
+        }
+    });
+
+    // 添加房管
+    ipcMain.handle('acfunDanmu:addManager', async (_, uid: number, targetId: number) => {
+        try {
+            await acfunDanmuModule.addManager(uid, targetId);
+            return { success: true };
+        } catch (error) {
+            console.error('Error adding manager:', error);
+            return { success: false, error: 'Failed to add manager' };
+        }
+    });
+
+    // 移除房管
+    ipcMain.handle('acfunDanmu:removeManager', async (_, uid: number, targetId: number) => {
+        try {
+            await acfunDanmuModule.removeManager(uid, targetId);
+            return { success: true };
+        } catch (error) {
+            console.error('Error removing manager:', error);
+            return { success: false, error: 'Failed to remove manager' };
+        }
+    });
+
+    // 获取直播状态
+    ipcMain.handle('acfunDanmu:getLiveStatus', async (_, liveId: number) => {
+        try {
+            const result = await acfunDanmuModule.getLiveStatus(liveId);
+            return { success: true, data: result };
+        } catch (error) {
+            console.error('Error getting live status:', error);
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
+
+    // 启动直播
+    ipcMain.handle('acfunDanmu:startLive', async (_, categoryId: number, title: string, coverUrl: string) => {
+        try {
+            await acfunDanmuModule.startLive(categoryId, title, coverUrl);
+            return { success: true };
+        } catch (error) {
+            console.error('Error starting live:', error);
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
+
+    // 停止直播
+    ipcMain.handle('acfunDanmu:stopLive', async () => {
+        try {
+            await acfunDanmuModule.stopLive();
+            return { success: true };
+        } catch (error) {
+            console.error('Error stopping live:', error);
+            return { success: false, error: 'Failed to stop live' };
+        }
+    });
+
     // 设置模块相关API
     // 获取应用设置
     ipcMain.handle('settings:getSettings', async () => {

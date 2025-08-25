@@ -1,13 +1,25 @@
 import { singleton } from 'tsyringe';
 import { ConfigManager } from '../utils/ConfigManager';
 
+interface UserInfo {
+  name: string;
+  avatar: string;
+  userId: string;
+}
+
+const DEFAULT_USER_INFO: UserInfo = {
+  name: 'ACFUN主播',
+  avatar: 'https://picsum.photos/200',
+  userId: 'default_user'
+};
+
 /**
  * 用户模块 - 处理用户信息相关功能
  */
 @singleton()
 export default class UserModule {
   private configManager: ConfigManager;
-  private userInfo: { name: string; avatar: string; userId: string } | null = null;
+  private userInfo: UserInfo | null = null;
 
   constructor() {
     this.configManager = new ConfigManager('user');
@@ -24,21 +36,13 @@ export default class UserModule {
         this.userInfo = savedUserInfo;
       } else {
         // 默认用户信息
-        this.userInfo = {
-          name: 'ACFUN主播',
-          avatar: 'https://picsum.photos/200',
-          userId: 'default_user'
-        };
+        this.userInfo = DEFAULT_USER_INFO;
         this.saveUserInfo();
       }
     } catch (error) {
       console.error('Failed to load user info:', error);
       // 设置默认用户信息
-      this.userInfo = {
-        name: 'ACFUN主播',
-        avatar: 'https://picsum.photos/200',
-        userId: 'default_user'
-      };
+      this.userInfo = DEFAULT_USER_INFO;
     }
   }
 
@@ -59,15 +63,11 @@ export default class UserModule {
    * 获取用户信息
    * @returns 用户信息对象
    */
-  getUserInfo(): { name: string; avatar: string; userId: string } {
+  getUserInfo(): UserInfo {
     if (!this.userInfo) {
       this.loadUserInfo();
     }
-    return this.userInfo || {
-      name: 'ACFUN主播',
-      avatar: 'https://picsum.photos/200',
-      userId: 'default_user'
-    };
+    return this.userInfo || DEFAULT_USER_INFO;
   }
 
   /**
@@ -75,7 +75,7 @@ export default class UserModule {
    * @param info 新的用户信息
    * @returns 是否更新成功
    */
-  updateUserInfo(info: Partial<{ name: string; avatar: string; userId: string }>): boolean {
+  updateUserInfo(info: Partial<UserInfo>): boolean {
     try {
       if (!this.userInfo) {
         this.loadUserInfo();

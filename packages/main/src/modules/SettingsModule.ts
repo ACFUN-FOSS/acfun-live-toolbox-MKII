@@ -1,8 +1,9 @@
-import { ConfigManager } from '../utils/ConfigManager.js';
+import { ConfigManager } from '../utils/ConfigManager';
 import { existsSync, unlinkSync, readdirSync, rmdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { app } from 'electron';
+import { app, shell } from 'electron';
+
 
 // 定义应用设置接口
 interface AppSettings {
@@ -23,20 +24,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   cacheSize: '0 MB'
 };
 
-class SettingsModule {
+@singleton()
+export class SettingsModule {
   private configManager: ConfigManager;
-  private static instance: SettingsModule;
-
   private constructor() {
     this.configManager = new ConfigManager();
-  }
-
-  // 获取单例实例
-  public static getInstance(): SettingsModule {
-    if (!SettingsModule.instance) {
-      SettingsModule.instance = new SettingsModule();
-    }
-    return SettingsModule.instance;
   }
 
   // 获取应用设置
@@ -80,7 +72,7 @@ class SettingsModule {
           break;
       }
       // 使用electron的shell模块打开文件夹
-      require('electron').shell.openPath(folderPath);
+      shell.openPath(folderPath);
     } catch (error) {
       console.error('Error opening settings folder:', error);
     }

@@ -1,38 +1,52 @@
 import { singleton } from 'tsyringe';
-import { ConfigManager } from '../utils/ConfigManager';
+
 import { randomInt } from 'crypto';
+
+interface Stats {
+  viewerCount: number;
+  likeCount: number;
+  bananaCount: number;
+  acCoinCount: number;
+}
+
+interface DynamicBlock {
+  title: string;
+  type: 'string' | 'list' | 'html';
+  content: string | string[];
+}
+
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5分钟缓存有效期
 
 /**
  * 仪表盘模块 - 处理仪表盘相关数据和功能
  */
 @singleton()
 export default class DashboardModule {
-  private configManager: ConfigManager;
   private lastStatsUpdate: number = 0;
-  private statsCache: {
-    viewerCount: number;
-    likeCount: number;
-    bananaCount: number;
-    acCoinCount: number;
-  } | null = null;
+  private statsCache: Stats | null = null;
 
-  constructor() {
-    this.configManager = new ConfigManager('dashboard');
-  }
+  /**
+   * 根据当前时间生成系统通知
+   */
+ private getSystemNotice(currentHour: number): string {
+   if (currentHour < 10) {
+     return '早上好！祝您直播顺利，观众多多！';
+   } else if (currentHour < 18) {
+     return '下午好！今天直播数据不错,继续加油！';
+   } else {
+     return '晚上好！感谢您今天直播,早点休息！';
+   }
+ }
+
 
   /**
    * 获取仪表盘统计数据
    * @returns 统计数据对象
    */
-  getStats(): {
-    viewerCount: number;
-    likeCount: number;
-    bananaCount: number;
-    acCoinCount: number;
-  } {
+  getStats(): Stats {
     // 检查缓存是否有效（5分钟内）
     const now = Date.now();
-    if (this.statsCache && now - this.lastStatsUpdate < 5 * 60 * 1000) {
+    if (this.statsCache && now - this.lastStatsUpdate < CACHE_DURATION_MS) {
       return this.statsCache;
     }
 
@@ -56,23 +70,11 @@ export default class DashboardModule {
    * 获取动态内容块
    * @returns 动态内容块数组
    */
-  getDynamicBlocks(): Array<{
-    title: string;
-    type: 'string' | 'list' | 'html';
-    content: string | string[];
-  }> {
+  getDynamicBlocks(): DynamicBlock[] {
     // 模拟从服务器获取动态内容
     // 实际应用中应该调用真实的API
     const currentHour = new Date().getHours();
-    let systemNotice = '当前系统运行正常，无异常通知';
-
-    if (currentHour < 10) {
-      systemNotice = '早上好！祝您直播顺利，观众多多！';
-    } else if (currentHour < 18) {
-      systemNotice = '下午好！今天的直播数据不错，继续加油！';
-    } else {
-      systemNotice = '晚上好！感谢您今天的直播，早点休息！';
-    }
+    const systemNotice = this.getSystemNotice(currentHour);
 
     // 模拟最近直播数据
     const recentStreams = [

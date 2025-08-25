@@ -1,4 +1,47 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+
+// 基础响应接口
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+// 请求验证错误接口
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
+// 统一错误处理中间件
+const errorHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => 
+  (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch((error) => {
+      console.error('API Error:', error);
+      res.status(500).json<ApiResponse>({
+        success: false,
+        error: error.message || 'An unexpected error occurred'
+      });
+    });
+  };
+
+// 请求验证辅助函数
+const validateRequest = (validations: ((req: Request) => ValidationError[])[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const errors: ValidationError[] = [];
+    validations.forEach(validation => {
+      errors.push(...validation(req));
+    });
+    if (errors.length > 0) {
+      return res.status(400).json<ApiResponse<ValidationError[]>>({
+        success: false,
+        error: 'Validation failed',
+        data: errors
+      });
+    }
+    next();
+  };
+}
 import { initializeElectronApi } from './electronApi.js';
 import { acfunDanmuModule } from '../modules/AcfunDanmuModule.js';
 import { getLogManager } from '../utils/LogManager.js';
@@ -14,32 +57,51 @@ export function initializeHttpApi() {
 
 
   // 健康检查接口
-  router.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
+  router.get('/health', errorHandler(async (req: Request, res: Response) => {
+    res.json<ApiResponse<{ status: string; timestamp: string }>>({
+      success: true,
+      data: { status: 'ok', timestamp: new Date().toISOString() }
+    });
+  }));
+
+  // 窗口关闭验证函数
+  const validateWindowClose = (req: Request): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    if (req.body.windowId === undefined) {
+      errors.push({ field: 'windowId', message: 'windowId is required' });
+    }
+    return errors;
+  }
 
   // ====== 窗口管理相关HTTP接口 ======
   // 关闭窗口
-  router.post('/window/close', async (req, res) => {
-    try {
-      const { windowId } = req.body;
-      const result = await globalThis.windowManager.closeWindow(windowId);
-      res.json({ success: result });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+  router.post('/window/close', validateRequest([validateWindowClose]), errorHandler(async (req: Request, res: Response) => {
+    const { windowId } = req.body;
+    const result = await globalThis.windowManager.closeWindow(windowId);
+    res.json<ApiResponse<boolean>>({
+      success: true,
+      data: result
+    });
+  }));
+
+  // 窗口最小化验证函数
+  const validateWindowMinimize = (req: Request): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    if (req.body.windowId === undefined) {
+      errors.push({ field: 'windowId', message: 'windowId is required' });
     }
-  });
+    return errors;
+  };
 
   // 最小化窗口
-  router.post('/window/minimize', async (req, res) => {
-    try {
-      const { windowId } = req.body;
-      const result = await globalThis.windowManager.minimizeWindow(windowId);
-      res.json({ success: result });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
+  router.post('/window/minimize', validateRequest([validateWindowMinimize]), errorHandler(async (req: Request, res: Response) => {
+    const { windowId } = req.body;
+    const result = await globalThis.windowManager.minimizeWindow(windowId);
+    res.json<ApiResponse<boolean>>({
+      success: true,
+      data: result
+    });
+  }));
 
   // 置顶窗口切换
   router.post('/window/toggleAlwaysOnTop', async (req, res) => {
@@ -58,245 +120,358 @@ export function initializeHttpApi() {
     }
   });
 
-  // 设置窗口是否可聚焦
-  router.post('/window/setFocusable', async (req, res) => {
-    try {
-      const { windowId, focusable } = req.body;
-      if (windowId === undefined || focusable === undefined) {
-        return res.status(400).json({ success: false, error: 'windowId and focusable are required' });
-      }
-      const result = await globalThis.windowManager.updateWindowProperties(windowId, { focusable });
-      res.json({ success: result });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+  // 设置窗口可聚焦验证函数
+  const validateSetFocusable = (req: Request): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    if (req.body.windowId === undefined) {
+      errors.push({ field: 'windowId', message: 'windowId is required' });
     }
-  });
+    if (req.body.focusable === undefined) {
+      errors.push({ field: 'focusable', message: 'focusable is required' });
+    }
+    if (typeof req.body.focusable !== 'boolean' && req.body.focusable !== undefined) {
+      errors.push({ field: 'focusable', message: 'focusable must be a boolean' });
+    }
+    return errors;
+  };
+
+  // 设置窗口是否可聚焦
+  router.post('/window/setFocusable', validateRequest([validateSetFocusable]), errorHandler(async (req: Request, res: Response) => {
+    const { windowId, focusable } = req.body;
+    const result = await globalThis.windowManager.updateWindowProperties(windowId, { focusable });
+    res.json<ApiResponse<boolean>>({
+      success: true,
+      data: result
+    });
+  }));
+
+   // 获取窗口置顶状态验证函数
+  const validateIsAlwaysOnTop = (req: Request): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    if (req.query.windowId !== undefined && (typeof req.query.windowId !== 'string' || isNaN(Number(req.query.windowId)))) {
+      errors.push({ field: 'windowId', message: 'windowId must be a number if provided' });
+    }
+    return errors;
+  };
 
   // 获取窗口是否置顶
-  router.get('/window/isAlwaysOnTop', async (req, res) => {
-    try {
-      const { windowId } = req.query;
-      const result = await globalThis.windowManager.isWindowAlwaysOnTop(Number(windowId) || undefined);
-      res.json({ success: true, isAlwaysOnTop: result });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
+  router.get('/window/isAlwaysOnTop', validateRequest([validateIsAlwaysOnTop]), errorHandler(async (req: Request, res: Response) => {
+    const { windowId } = req.query;
+    const parsedWindowId = windowId !== undefined ? Number(windowId) : undefined;
+    const result = await globalThis.windowManager.isWindowAlwaysOnTop(parsedWindowId);
+    res.json<ApiResponse<{ isAlwaysOnTop: boolean }>>({
+      success: true,
+      data: { isAlwaysOnTop: result }
+    });
+  }));
 
   // 获取所有窗口
-  router.get('/window/getAllWindows', async (req, res) => {
-    try {
-      const result = await globalThis.windowManager.getAllWindowsInfo();
-      res.json({ success: true, data: result });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
+  router.get('/window/getAllWindows', errorHandler(async (req: Request, res: Response) => {
+    const result = await globalThis.windowManager.getAllWindowsInfo();
+    res.json<ApiResponse<WindowInfo[]>>({
+      success: true,
+      data: result
+    });
+  }));
 
   // ====== 应用管理相关HTTP接口 ======
   // 获取已安装应用
-  router.get('/app/getInstalledApps', async (req, res) => {
-    try {
-      const appManager = globalThis.appManager;
-      const apps = Array.from(appManager.apps.entries()).map(([id, config]) => ({
-        id,
-        ...config
-      }));
-      res.json({ success: true, data: apps });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+  router.get('/app/getInstalledApps', errorHandler(async (req: Request, res: Response) => {
+    const result = await globalThis.appManager.getInstalledApps();
+    res.json<ApiResponse<AppInfo[]>>({
+      success: true,
+      data: result
+    });
+  }));
+
+  // 启动应用验证函数
+  const validateStartApp = (req: Request): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    if (!req.body.appId) {
+      errors.push({ field: 'appId', message: 'appId is required' });
     }
-  });
+    if (req.body.displayType !== undefined && !['window', 'fullscreen', 'minimal'].includes(req.body.displayType)) {
+      errors.push({ field: 'displayType', message: 'displayType must be one of: window, fullscreen, minimal' });
+    }
+    return errors;
+  };
 
   // 启动应用
-  router.post('/app/startApp', async (req, res) => {
-    try {
-      const { appId, displayType } = req.body;
-      if (!appId) {
-        return res.status(400).json({ success: false, error: 'appId is required' });
-      }
-      const appManager = globalThis.appManager;
-      const window = await appManager.startApp(appId, displayType);
-      res.json({ success: true, windowId: window.id });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+  router.post('/app/startApp', validateRequest([validateStartApp]), errorHandler(async (req: Request, res: Response) => {
+    const { appId, displayType } = req.body;
+    const appManager = globalThis.appManager;
+    const window = await appManager.startApp(appId, displayType);
+    res.json<ApiResponse<{ windowId: number }>>({
+      success: true,
+      data: { windowId: window.id }
+    });
+  }));
+
+  // 注册应用模块验证函数
+  const validateRegisterModule = (req: Request): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    if (!req.body.moduleName) {
+      errors.push({ field: 'moduleName', message: 'moduleName is required' });
     }
-  });
+    if (!req.body.modulePath) {
+      errors.push({ field: 'modulePath', message: 'modulePath is required' });
+    }
+    return errors;
+  };
 
   // 注册应用模块
-  router.post('/app/registerModule', async (req, res) => {
-    try {
-      const { moduleName, modulePath } = req.body;
-      if (!moduleName || !modulePath) {
-        return res.status(400).json({ success: false, error: 'moduleName and modulePath are required' });
-      }
-      const appManager = globalThis.appManager;
-      await appManager.registerModule(moduleName, modulePath);
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+  router.post('/app/registerModule', validateRequest([validateRegisterModule]), errorHandler(async (req: Request, res: Response) => {
+    const { moduleName, modulePath } = req.body;
+    const appManager = globalThis.appManager;
+    await appManager.registerModule(moduleName, modulePath);
+    res.json<ApiResponse<{}>>({
+      success: true,
+      data: {}
+    });
+  }));
+
+  // 启用应用模块验证函数
+  const validateEnableModule = (req: Request): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    if (!req.body.moduleName) {
+      errors.push({ field: 'moduleName', message: 'moduleName is required' });
     }
-  });
+    return errors;
+  };
 
   // 启用应用模块
-  router.post('/app/enableModule', async (req, res) => {
-    try {
-      const { moduleName } = req.body;
-      if (!moduleName) {
-        return res.status(400).json({ success: false, error: 'moduleName is required' });
-      }
-      const appManager = globalThis.appManager;
-      await appManager.enableModule(moduleName);
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
+  router.post('/app/enableModule', validateRequest([validateEnableModule]), errorHandler(async (req: Request, res: Response) => {
+    const { moduleName } = req.body;
+    const appManager = globalThis.appManager;
+    await appManager.enableModule(moduleName);
+    res.json<ApiResponse<{}>>({
+      success: true,
+      data: {}
+    });
+  }));
 
   // ====== Acfun弹幕模块相关HTTP接口 ======
 // 启动Acfun弹幕模块
-router.post('/acfunDanmu/start', async (req, res) => {
-  try {
-    await acfunDanmuModule.start();
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.post('/acfunDanmu/start', errorHandler(async (req: Request, res: Response) => {
+  await acfunDanmuModule.start();
+  res.json<ApiResponse<{}>>({
+    success: true,
+    data: {}
+  });
+}));
 
 // 停止Acfun弹幕模块
-router.post('/acfunDanmu/stop', async (req, res) => {
-  try {
-    await acfunDanmuModule.stop();
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.post('/acfunDanmu/stop', errorHandler(async (req: Request, res: Response) => {
+  await acfunDanmuModule.stop();
+  res.json<ApiResponse<{}>>({
+    success: true,
+    data: {}
+  });
+}));
 
 // 重启Acfun弹幕模块
-router.post('/acfunDanmu/restart', async (req, res) => {
-  try {
-    await acfunDanmuModule.restart();
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+router.post('/acfunDanmu/restart', errorHandler(async (req: Request, res: Response) => {
+  await acfunDanmuModule.restart();
+  res.json<ApiResponse<{}>>({
+    success: true,
+    data: {}
+  });
+}));
+
+// 更新Acfun弹幕模块配置验证函数
+const validateUpdateConfig = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (!req.body || typeof req.body !== 'object') {
+    errors.push({ field: 'config', message: 'Valid config object is required' });
   }
-});
+  return errors;
+};
 
 // 更新Acfun弹幕模块配置
-router.post('/acfunDanmu/updateConfig', async (req, res) => {
-  try {
-    const config = req.body;
-    acfunDanmuModule.updateConfig(config);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.post('/acfunDanmu/updateConfig', validateRequest([validateUpdateConfig]), errorHandler(async (req: Request, res: Response) => {
+  const config = req.body;
+  acfunDanmuModule.updateConfig(config);
+  res.json<ApiResponse<{}>>({
+    success: true,
+    data: {}
+  });
+}));
 
 // 获取Acfun弹幕模块配置
-router.get('/acfunDanmu/getConfig', async (req, res) => {
-  try {
-    const config = acfunDanmuModule.getConfig();
-    res.json({ success: true, data: config });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.get('/acfunDanmu/getConfig', errorHandler(async (req: Request, res: Response) => {
+  const config = acfunDanmuModule.getConfig();
+  res.json<ApiResponse<Record<string, any>>>({
+    success: true,
+    data: config
+  });
+}));
 
 // 获取Acfun弹幕模块状态
-router.get('/acfunDanmu/getStatus', async (req, res) => {
-  try {
-    const status = acfunDanmuModule.getStatus();
-    res.json({ success: true, data: status });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+router.get('/acfunDanmu/getStatus', errorHandler(async (req: Request, res: Response) => {
+  const status = acfunDanmuModule.getStatus();
+  res.json<ApiResponse<Record<string, any>>>({
+    success: true,
+    data: status
+  });
+}));
+
+// 获取Acfun弹幕模块日志验证函数
+const validateGetLogs = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (req.query.limit !== undefined && (isNaN(Number(req.query.limit)) || Number(req.query.limit) < 1)) {
+    errors.push({ field: 'limit', message: 'limit must be a positive number' });
   }
-});
+  return errors;
+};
 
 // 获取Acfun弹幕模块日志
-router.get('/acfunDanmu/getLogs', async (req, res) => {
-  try {
-    const { limit } = req.query;
-    const logManager = getLogManager();
-    const logs = logManager.getLogs('acfunDanmu', Number(limit) || 100);
-    res.json({ success: true, data: logs });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.get('/acfunDanmu/getLogs', validateRequest([validateGetLogs]), errorHandler(async (req: Request, res: Response) => {
+  const { limit } = req.query;
+  const logManager = getLogManager();
+  const logs = logManager.getLogs('acfunDanmu', Number(limit) || 100);
+  res.json<ApiResponse<LogEntry[]>>({
+    success: true,
+    data: logs
+  });
+}));
 
 // ====== 房管相关HTTP接口 ======
-// 获取房管列表
-router.get('/acfunDanmu/manager/list', async (req, res) => {
-  try {
-    const { uid, page = 1, pageSize = 20 } = req.query;
-    if (!uid) {
-      return res.status(400).json({ success: false, error: 'uid is required' });
-    }
-    const result = await acfunDanmuModule.getManagerList(Number(uid), Number(page), Number(pageSize));
-    res.json({ success: true, data: result });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+// 获取房管列表验证函数
+const validateGetManagerList = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (!req.query.uid) {
+    errors.push({ field: 'uid', message: 'uid is required' });
+  } else if (isNaN(Number(req.query.uid))) {
+    errors.push({ field: 'uid', message: 'uid must be a number' });
   }
+  if (req.query.page !== undefined && (isNaN(Number(req.query.page)) || Number(req.query.page) < 1)) {
+    errors.push({ field: 'page', message: 'page must be a positive number' });
+  }
+  if (req.query.pageSize !== undefined && (isNaN(Number(req.query.pageSize)) || Number(req.query.pageSize) < 1 || Number(req.query.pageSize) > 100)) {
+    errors.push({ field: 'pageSize', message: 'pageSize must be between 1 and 100' });
+  }
+  return errors;
+};
+
+// 获取房管列表
+router.get('/acfunDanmu/manager/list', validateRequest([validateGetManagerList]), errorHandler(async (req: Request, res: Response) => {
+  const { uid, page = 1, pageSize = 20 } = req.query;
+  const result = await acfunDanmuModule.getManagerList(Number(uid), Number(page), Number(pageSize));
+  res.json<ApiResponse<Record<string, any>>>({
+    success: true,
+    data: result
+  });
 });
+
+// 添加房管验证函数
+const validateAddManager = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (!req.body.uid) {
+    errors.push({ field: 'uid', message: 'uid is required' });
+  } else if (isNaN(Number(req.body.uid))) {
+    errors.push({ field: 'uid', message: 'uid must be a number' });
+  }
+  if (!req.body.targetId) {
+    errors.push({ field: 'targetId', message: 'targetId is required' });
+  } else if (isNaN(Number(req.body.targetId))) {
+    errors.push({ field: 'targetId', message: 'targetId must be a number' });
+  }
+  return errors;
+};
 
 // 添加房管
-router.post('/acfunDanmu/manager/add', async (req, res) => {
-  try {
-    const { uid, targetId } = req.body;
-    if (!uid || !targetId) {
-      return res.status(400).json({ success: false, error: 'uid and targetId are required' });
-    }
-    const result = await acfunDanmuModule.addManager(Number(uid), Number(targetId));
-    res.json({ success: true, data: result });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+router.post('/acfunDanmu/manager/add', validateRequest([validateAddManager]), errorHandler(async (req: Request, res: Response) => {
+  const { uid, targetId } = req.body;
+  const result = await acfunDanmuModule.addManager(Number(uid), Number(targetId));
+  res.json<ApiResponse<Record<string, any>>>({
+    success: true,
+    data: result
+  });
+}));
+
+// 删除房管验证函数
+const validateRemoveManager = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (!req.body.uid) {
+    errors.push({ field: 'uid', message: 'uid is required' });
+  } else if (isNaN(Number(req.body.uid))) {
+    errors.push({ field: 'uid', message: 'uid must be a number' });
   }
-});
+  if (!req.body.targetId) {
+    errors.push({ field: 'targetId', message: 'targetId is required' });
+  } else if (isNaN(Number(req.body.targetId))) {
+    errors.push({ field: 'targetId', message: 'targetId must be a number' });
+  }
+  return errors;
+};
 
 // 删除房管
-router.post('/acfunDanmu/manager/remove', async (req, res) => {
-  try {
-    const { uid, targetId } = req.body;
-    if (!uid || !targetId) {
-      return res.status(400).json({ success: false, error: 'uid and targetId are required' });
-    }
-    const result = await acfunDanmuModule.removeManager(Number(uid), Number(targetId));
-    res.json({ success: true, data: result });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+router.post('/acfunDanmu/manager/remove', validateRequest([validateRemoveManager]), errorHandler(async (req: Request, res: Response) => {
+  const { uid, targetId } = req.body;
+  const result = await acfunDanmuModule.removeManager(Number(uid), Number(targetId));
+  res.json<ApiResponse<Record<string, any>>>({
+    success: true,
+    data: result
+  });
 });
+
+// 获取踢人记录验证函数
+const validateGetKickRecord = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (!req.query.uid) {
+    errors.push({ field: 'uid', message: 'uid is required' });
+  } else if (isNaN(Number(req.query.uid))) {
+    errors.push({ field: 'uid', message: 'uid must be a number' });
+  }
+  if (req.query.page !== undefined && (isNaN(Number(req.query.page)) || Number(req.query.page) < 1)) {
+    errors.push({ field: 'page', message: 'page must be a positive number' });
+  }
+  if (req.query.pageSize !== undefined && (isNaN(Number(req.query.pageSize)) || Number(req.query.pageSize) < 1 || Number(req.query.pageSize) > 100)) {
+    errors.push({ field: 'pageSize', message: 'pageSize must be between 1 and 100' });
+  }
+  return errors;
+};
 
 // 获取踢人记录
-router.get('/acfunDanmu/manager/kickRecord', async (req, res) => {
-  try {
-    const { uid, page = 1, pageSize = 20 } = req.query;
-    if (!uid) {
-      return res.status(400).json({ success: false, error: 'uid is required' });
-    }
-    const result = await acfunDanmuModule.getKickRecord(Number(uid), Number(page), Number(pageSize));
-    res.json({ success: true, data: result });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+router.get('/acfunDanmu/manager/kickRecord', validateRequest([validateGetKickRecord]), errorHandler(async (req: Request, res: Response) => {
+  const { uid, page = 1, pageSize = 20 } = req.query;
+  const result = await acfunDanmuModule.getKickRecord(Number(uid), Number(page), Number(pageSize));
+  res.json<ApiResponse<Record<string, any>>>({
+    success: true,
+    data: result
+  });
 });
 
-// 房管踢人
-router.post('/acfunDanmu/manager/kickUser', async (req, res) => {
-  try {
-    const { uid, targetId, reason = '', duration = 3600 } = req.body;
-    if (!uid || !targetId) {
-      return res.status(400).json({ success: false, error: 'uid and targetId are required' });
-    }
-    const result = await acfunDanmuModule.managerKickUser(Number(uid), Number(targetId), reason, Number(duration));
-    res.json({ success: true, data: result });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+// 房管踢人验证函数
+const validateKickUser = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (!req.body.uid) {
+    errors.push({ field: 'uid', message: 'uid is required' });
+  } else if (isNaN(Number(req.body.uid))) {
+    errors.push({ field: 'uid', message: 'uid must be a number' });
   }
-});
+  if (!req.body.targetId) {
+    errors.push({ field: 'targetId', message: 'targetId is required' });
+  } else if (isNaN(Number(req.body.targetId))) {
+    errors.push({ field: 'targetId', message: 'targetId must be a number' });
+  }
+  if (req.body.duration !== undefined && (isNaN(Number(req.body.duration)) || Number(req.body.duration) < 60 || Number(req.body.duration) > 86400)) {
+    errors.push({ field: 'duration', message: 'duration must be between 60 and 86400 seconds' });
+  }
+  return errors;
+};
+
+// 房管踢人
+router.post('/acfunDanmu/manager/kickUser', validateRequest([validateKickUser]), errorHandler(async (req: Request, res: Response) => {
+  const { uid, targetId, reason = '', duration = 3600 } = req.body;
+  // 注意：根据acfundanmu.js中的定义，managerKickUser只接受3个参数
+  // 这里假设targetId是liveID，duration参数可能不需要或需要调整
+  const result = await acfunDanmuModule.managerKickUser(Number(uid), Number(targetId), reason);
+  res.json<ApiResponse<Record<string, any>>>({
+    success: true,
+    data: result
+  });
+}));
 
 // 主播踢人
 router.post('/acfunDanmu/author/kickUser', async (req, res) => {

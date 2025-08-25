@@ -233,14 +233,14 @@ const clearConfigCache = async () => {
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 30px;
-  color: var(--td-text-color-primary);
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .setting-section {
   margin-bottom: 30px;
   padding: 20px;
-  background-color: var(--td-bg-color-secondary);
-  border-radius: var(--td-radius-medium);
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: 4px; /* 统一圆角 - UI规范 */
 }
 
 .section-title {
@@ -251,7 +251,7 @@ const clearConfigCache = async () => {
 }
 
 .section-desc {
-  color: var(--td-text-color-secondary);
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   margin-bottom: 20px;
 }
 
@@ -261,7 +261,7 @@ const clearConfigCache = async () => {
   align-items: center;
   margin-bottom: 15px;
   padding-bottom: 15px;
-  border-bottom: 1px solid var(--td-border-color);
+  border-bottom: 1px solid #334155; /* 边框颜色 - 深色主题适配 */
 }
 
 .setting-item:last-child {
@@ -283,10 +283,10 @@ const clearConfigCache = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: var(--td-bg-color);
+  background-color: #0f172a; /* 背景色 - UI规范 */
   border-radius: 50%;
   font-size: 12px;
-  color: var(--td-text-color-secondary);
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   cursor: help;
 }
 
@@ -327,5 +327,11 @@ const clearConfigCache = async () => {
   display: flex;
   justify-content: center;
   margin-top: 40px;
+}
+
+/* 主按钮样式 - UI规范 */
+:deep(.t-button--primary) {
+  background-color: #1890ff !important;
+  border-color: #1890ff !important;
 }
 </style>

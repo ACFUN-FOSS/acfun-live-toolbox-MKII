@@ -155,7 +155,7 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
    * 获取推流码
    * @returns 推流码信息
    */
-  async getStreamKey(): Promise<{ server: string; streamKey: string }> {
+  async getStreamKey(): Promise<{ server: string; key: string }> {
     try {
       // 实际应用中，这里应该调用API获取真实推流码
       // 如果没有推流码，则生成一个模拟的
@@ -164,7 +164,7 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
       }
       return {
         server: this.config.rtmpServer || 'rtmp://push.acfun.cn/live',
-        streamKey: this.config.streamKey
+        key: this.config.streamKey
       };
     } catch (error) {
       this.logger.error('Failed to get stream key:', error);
@@ -183,7 +183,7 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
       this.logger.info('Stream key refreshed');
       return {
         server: this.config.rtmpServer || 'rtmp://push.acfun.cn/live',
-        streamKey: this.config.streamKey
+        key: this.config.streamKey
       };
     } catch (error) {
       this.logger.error('Failed to refresh stream key:', error);
@@ -239,9 +239,15 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
     try {
       // 实际应用中，这里应该调用API停止推流
       if (this.streamStatus === 'live') {
-        this.streamStatus = 'offline';
-        this.logger.info('Stream stopped successfully');
-        this.emit('streamStatusChanged', { status: this.streamStatus });
+        // 实际应用中应先调用停止推流API
+        const stopResult = await this.callStopStreamApi();
+        if (stopResult.success) {
+          this.streamStatus = 'offline';
+          this.logger.info('Stream stopped successfully');
+          this.emit('streamStatusChanged', { status: this.streamStatus });
+        } else {
+          throw new Error(`Failed to stop stream: ${stopResult.error}`);
+        }
       }
       return true;
     } catch (error) {

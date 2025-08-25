@@ -315,7 +315,7 @@ export class AcfunDanmuModule implements AppModule {
     return this.callAcfunDanmuApi(
       `/live/watchingList`,
       'GET',
-      { liveId: liveID }
+      { liveId }
     );
   }
 
@@ -427,8 +427,24 @@ export class AcfunDanmuModule implements AppModule {
     );
   }
 
+  // 弹幕相关方法
+  async sendDanmu(liveId: number, content: string): Promise<DanmuSendResponse> {
+    if (!liveId || liveId <=0) throw new Error('Invalid liveId');
+    if (!content || content.trim().length === 0 || content.length > 200) throw new Error('Invalid danmu content');
+    try {
+      return await this.callAcfunDanmuApi<DanmuSendResponse>(
+        `/danmu/send`,
+        'POST',
+        { liveId, content }
+      );
+    } catch (error) {
+      this.logger.error(`Failed to send danmu: ${error.message}`, { liveId, content });
+      throw error;
+    }
+  }
+
   // 直播状态相关方法
-  async getLiveStatus(liveID: number): Promise<any> {
+  async getLiveStatus(liveId: number): Promise<LiveStatusResponse> {
     return this.callAcfunDanmuApi(
       `/live/status`,
       'GET',
@@ -530,5 +546,14 @@ export function getAcfunDanmuModule(): AcfunDanmuModule {
   }
   return instance;
 }
+
+// 兼容旧的导入方式
+import { app } from 'electron';
+
+// 延迟初始化模块
+app.on('ready', () => {
+  // 初始化模块
+  getAcfunDanmuModule();
+});
 
 export const acfunDanmuModule = getAcfunDanmuModule();

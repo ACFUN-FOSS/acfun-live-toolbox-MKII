@@ -218,7 +218,7 @@ onUnmounted(() => {
   position: relative;
   height: 100%;
   overflow: hidden;
-  background-color: var(--td-bg-color-primary);
+  background-color: #0f172a; /* 深色主题背景色 */
 }
 
 .loading-skeleton {
@@ -229,8 +229,9 @@ onUnmounted(() => {
 .welcome-area-skeleton {
   height: 120px;
   margin-bottom: 20px;
-  border-radius: var(--td-radius-medium);
-  background-color: var(--td-bg-color-secondary);
+  border-radius: 4px; /* 统一圆角 - UI规范 */
+  border-left: 4px solid #1890ff; /* 主色调边框 - UI规范 */
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
 }
 
 .stats-row-skeleton {
@@ -242,8 +243,15 @@ onUnmounted(() => {
 .stats-card-skeleton {
   flex: 1;
   height: 120px;
-  border-radius: var(--td-radius-medium);
-  background-color: var(--td-bg-color-secondary);
+  border-radius: 4px; /* 统一圆角 - UI规范 */
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  background: linear-gradient(90deg, #1e293b 25%, #2d3748 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading infinite;
+}
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .dynamic-blocks-skeleton {
@@ -254,8 +262,8 @@ onUnmounted(() => {
 
 .dynamic-card-skeleton {
   height: 150px;
-  border-radius: var(--td-radius-medium);
-  background-color: var(--td-bg-color-secondary);
+  border-radius: 4px; /* 统一圆角 - UI规范 */
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
 }
 
 .error-container {
@@ -271,8 +279,8 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 30px;
-  background-color: var(--td-bg-color-secondary);
-  border-radius: var(--td-radius-medium);
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: 4px; /* 统一圆角 - UI规范 */
   box-shadow: var(--td-shadow-2);
 }
 
@@ -284,23 +292,23 @@ onUnmounted(() => {
 
 .error-text {
   font-size: 16px;
-  color: var(--td-text-color-primary);
+  color: #f8fafc; /* 主要文本色 */
   margin-bottom: 20px;
   text-align: center;
 }
 
 .retry-button {
+  background-color: #1890ff; /* 主色调 - UI规范 */
   padding: 8px 16px;
-  background-color: var(--td-primary-color);
   color: white;
   border: none;
-  border-radius: var(--td-radius-medium);
+  border-radius: 4px; /* 统一圆角 - UI规范 */
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .retry-button:hover {
-  background-color: var(--td-primary-color-hover);
+  background-color: #096dd9; /* 主色调悬停色 - UI规范 */
 }
 
 .content-area {
@@ -313,20 +321,20 @@ onUnmounted(() => {
   align-items: center;
   padding: 20px;
   margin-bottom: 20px;
-  background-color: var(--td-bg-color-secondary);
-  border-radius: var(--td-radius-medium);
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: 4px; /* 统一圆角 - UI规范 */
 }
 
 .welcome-text h1 {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 8px;
-  color: var(--td-text-color-primary);
+ font-size: 24px;
+ font-weight: bold;
+ margin-bottom: 8px;
+ color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .welcome-text p {
   font-size: 16px;
-  color: var(--td-text-color-secondary);
+  color: #cbd5e1; /* 次要文本色 */
 }
 
 .user-avatar {
@@ -348,17 +356,21 @@ onUnmounted(() => {
 }
 
 .stats-card {
-  height: 120px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  background-color: var(--td-bg-color-secondary);
-  border-radius: var(--td-radius-medium);
-  box-shadow: var(--td-shadow-1);
-  transition: transform 0.3s, box-shadow 0.3s;
+ height:120px;
+ display: flex;
+ flex-direction: column;
+ justify-content: center;
+ background-color: #1e293b; /* 卡片背景色 - UI规范 */
+ border-radius:4px; /* 统一圆角 - UI规范 */
+ box-shadow: 0 4px 6px rgba(0, 0,0, 0.1);
+ transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+ overflow: hidden;
+ position: relative;
 }
 
 .stats-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   transform: translateY(-5px);
   box-shadow: var(--td-shadow-3);
 }
@@ -370,9 +382,14 @@ onUnmounted(() => {
 }
 
 .dynamic-card {
-  background-color: var(--td-bg-color-secondary);
-  border-radius: var(--td-radius-medium);
-  box-shadow: var(--td-shadow-1);
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: 4px; /* 统一圆角 - UI规范 */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.dynamic-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .block-list {
@@ -395,7 +412,7 @@ onUnmounted(() => {
   left: 0;
   width: 300px;
   height: 300px;
-  background-image: url('https://picsum.photos/300/300');
+  background-image: url('https://i.gifer.com/ZZ5H.gif'); /* 动画背景GIF */
   background-size: cover;
   background-position: center;
   opacity: 0.1;
@@ -403,19 +420,20 @@ onUnmounted(() => {
 }
 
 /* 响应式设计 */
-@media screen and (max-width: 768px) {
+@media screen and (max-width:768px) {
   .welcome-area {
     flex-direction: column;
     text-align: center;
     gap: 16px;
-  }
-  
-  .stats-row-skeleton {
-    flex-direction: column;
-  }
-  
-  .stats-card-skeleton {
-    width: 100%;
-  }
+    padding:16px;
+}
+.stats-row {flex-direction: column;}
+.stats-card {width:100%; margin-bottom:16px;}
+.dynamic-blocks {padding:0;}
+}
+@media screen and (max-width:480px) {
+.welcome-text h1 {font-size:20px;}
+.stats-card {height:100px;}
+.background-image {width:200px;height:200px;}
 }
 </style>

@@ -6,7 +6,29 @@
       </template>
     </t-card>
 
-    <t-row :gutter="20" class="mt-4">
+    <!-- 弹幕发送区域 -->
+  <t-card class="mt-4" title="弹幕发送">
+    <div class="danmu-send-container">
+      <t-input v-model="danmuContent" placeholder="输入弹幕内容" class="danmu-input" :disabled="isSendingDanmu" />
+      <t-button @click="sendDanmu" theme="primary" class="danmu-send-button" :loading="isSendingDanmu">
+        <template #icon v-if="isSendingDanmu">
+          <t-loading size="small" /></template>
+        发送弹幕
+      </t-button>
+    </div>
+    <div class="tips mt-2">
+      <p>• 弹幕发送间隔至少1秒</p>
+      <p>• 请勿发送违规内容</p>
+    </div>
+    <div v-if="danmuHistory.length > 0" class="danmu-history mt-3">
+      <p class="history-title">最近发送:</p>
+      <div class="history-items">
+        <span v-for="(item, index) in danmuHistory" :key="index" @click="danmuContent = item" class="history-item">{{ item }}</span>
+      </div>
+    </div>
+  </t-card>
+
+  <t-row :gutter="20" class="mt-4">
       <t-col :span="24" :md="16">
         <t-card title="房间信息" :loading="loading.roomInfo">
           <div v-if="error.roomInfo" class="error-message">{{ error.roomInfo }}</div>
@@ -132,6 +154,11 @@ const roomInfo = ref<RoomInfo>({
   officialDanmuUrl: ''
 });
 
+const danmuContent = ref('');
+const isSendingDanmu = ref(false);
+const danmuHistory = ref<string[]>([]);
+const MAX_HISTORY = 10; // 最大历史记录条数
+
 const streamInfo = ref<StreamInfo>({
   server: '',
   key: ''
@@ -192,20 +219,20 @@ const subCategories = computed(() => {
 // 方法定义
 const fetchRoomInfo = async () => {
   loading.value.roomInfo = true;
-  error.value.roomInfo = null;
-  try {
-      const result = await ipcRenderer.invoke('live:getRoomInfo');
-      if (result.success) {
-        roomInfo.value = result.data;
-      } else {
-        error.value.roomInfo = `获取房间信息失败: ${result.error || '未知错误'}`;
-      }
-    } catch (err) {
-    error.value.roomInfo = `获取房间信息失败: ${err instanceof Error ? err.message : String(err)}`;
-    console.error('Failed to fetch room info:', err);
-  } finally {
-    loading.value.roomInfo = false;
-  }
+    error.value.roomInfo = null;
+    try {
+        const result = await ipcRenderer.invoke('live:getRoomInfo');
+        if (result.success) {
+          roomInfo.value = result.data;
+        } else {
+          error.value.roomInfo = `获取房间信息失败: ${result.error || '未知错误'}`;
+        }
+      } catch (err) {
+      error.value.roomInfo = `获取房间信息失败: ${err instanceof Error ? err.message : String(err)}`;
+      console.error('Failed to fetch room info:', err);
+    } finally {
+      loading.value.roomInfo = false;
+    }
 };
 
 const fetchStreamInfo = async () => {
@@ -349,6 +376,44 @@ const setupListeners = () => {
   };
 };
 
+// 发送弹幕
+const sendDanmu = async () => {
+  if (isSendingDanmu.value) return; // 防止重复发送
+
+  if (!danmuContent.value.trim()) {
+    TMessage.warning('请输入弹幕内容');
+    return;
+  }
+
+  try {
+    // 从房间信息中获取liveId
+    const liveId = roomInfo.value?.liveId || 0;
+    if (!liveId) {
+      TMessage.warning('未获取到直播ID，请先加载房间信息');
+      return;
+    }
+    const result = await ipcRenderer.invoke('acfunDanmu:sendDanmu', liveId, danmuContent.value);
+    if (result.success) {
+        TMessage.success('弹幕发送成功');
+        // 添加到历史记录
+        if (danmuHistory.value.indexOf(danmuContent.value) === -1) {
+          danmuHistory.value.unshift(danmuContent.value);
+          if (danmuHistory.value.length > MAX_HISTORY) {
+            danmuHistory.value.pop();
+          }
+        }
+        danmuContent.value = '';
+      } else {
+      TMessage.error(`弹幕发送失败: ${result.error || '未知错误'}`);
+    }
+  } catch (err) {
+    TMessage.error(`发送弹幕时发生错误: ${err instanceof Error ? err.message : String(err)}`);
+    console.error('Failed to send danmu:', err);
+  } finally {
+    isSendingDanmu.value = false;
+  }
+};
+
 // 组件挂载时
 onMounted(() => {
   fetchRoomInfo();
@@ -438,7 +503,7 @@ const fetchStreamStatus = async () => {
   align-items: center;
   margin-top: 10px;
   padding: 10px;
-  background-color: #f5f5f5;
+  background-color: #1e293b;
   border-radius: 4px;
   word-break: break-all;
 }
@@ -459,7 +524,7 @@ const fetchStreamStatus = async () => {
   background-position: center;
   border-radius: 4px;
   margin-right: 10px;
-  border: 1px solid #eee;
+  border: 1px solid #334155;
 }
 
 .room-cover {
@@ -467,9 +532,9 @@ const fetchStreamStatus = async () => {
 }
 
 .error-message {
-  color: #f53f3f;
+  color: #ff4d4f;
   padding: 10px;
-  background-color: #fff1f0;
+  background-color: #1e293b;
   border-radius: 4px;
   margin-bottom: 10px;
 }
@@ -488,16 +553,85 @@ const fetchStreamStatus = async () => {
 }
 
 .online {
-  background-color: #00b42a;
+  background-color: #52c41a; /* 在线/成功状态 - UI规范 */
   color: white;
 }
 
 .offline {
-  background-color: #86909c;
+  background-color: #ff4d4f; /* 离线/失败状态 - UI规范 */
   color: white;
 }
 
 .connecting,
+.waiting {
+  background-color: #faad14; /* 连接中/警告/等待中状态 - UI规范 */
+  color: white;
+}
+
+.danmu-history {
+  padding-top: 10px;
+}
+
+.history-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.history-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-item {
+  padding: 4px 8px;
+  background-color: #1e293b;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.history-item:hover {
+  background-color: #e5e5e5;
+}
+
+.tips {
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
+  font-size: 12px;
+}
+
+.danmu-send-container {
+  display: flex;
+  gap: 10px;
+}
+
+.danmu-input {
+  flex: 1;
+}
+
+.danmu-send-button {
+  white-space: nowrap;
+}
+
+.tips {
+  color: #86909c;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .room-basic-info > div,
+  .stream-info-container > div {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .label {
+    margin-bottom: 8px;
+  }
+}
+
 .waiting {
   background-color: #ff7d00;
   color: white;

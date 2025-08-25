@@ -17,7 +17,9 @@ export interface LogEntry {
 export class LogManager extends EventEmitter {
   private logs: Map<string, LogEntry[]> = new Map();
   private maxLogEntries: number = 1000;
+  private maxFileSize: number = 5 * 1024 * 1024; // 5MB
   private logFilePath: string;
+  private currentFileSize: number = 0;
 
   constructor() {
     super();
@@ -28,7 +30,18 @@ export class LogManager extends EventEmitter {
     }
     // 设置日志文件路径
     this.logFilePath = path.join(logDir, 'app.log');
+    // 获取当前日志文件大小
+    this.getCurrentFileSize();
   }
+
+  // 获取当前日志文件大小
+ private getCurrentFileSize(): void {
+   try {
+     const stats = fs.statSync(this.logFilePath);
+     this.currentFileSize = stats.size;
+   } catch (error) {
+     this.currentFileSize = 0;
+   }
 
   // 添加日志条目
   addLog(source: string, message: string, level: LogLevel = 'info'): void {
@@ -63,12 +76,48 @@ export class LogManager extends EventEmitter {
   // 写入日志到文件
   private writeLogToFile(entry: LogEntry): void {
     const logLine = `[${entry.timestamp.toISOString()}] [${entry.level}] [${entry.source}] ${entry.message}\n`;
-    fs.appendFile(this.logFilePath, logLine, (err) => {
-      if (err) {
-        console.error('Failed to write log to file:', err);
-      }
+    const lineSize = Buffer.byteLength(logLine);
+
+    // 如果添加此行将超过最大文件大小，则轮转日志
+    if (this.currentFileSize + lineSize > this.maxFileSize) {
+      this.rotateLogFile();
+    }
+
+    // 使用fs.promises重写为异步/等待模式并添加重试逻辑
+    this.appendLogWithRetry(logLine, 3).catch(err => {
+      console.error('Failed to write log to file after retries:', err);
     });
-  }
+ }
+
+ // 添加日志带重试机制
+ private async appendLogWithRetry(logLine: string, retries: number): Promise<void> {
+   try {
+     await fs.promises.appendFile(this.logFilePath, logLine);
+     this.currentFileSize += Buffer.byteLength(logLine);
+   } catch (error) {
+     if (retries > 0) {
+       // 指数退避重试
+       await new Promise(resolve => setTimeout(resolve, (4 - retries) * 100));
+       return this.appendLogWithRetry(logLine, retries - 1);
+     }
+     throw error;
+   }
+ }
+
+ //轮转日志文件
+ private rotateLogFile(): void {
+   try {
+     // 如果日志文件存在，则重命名为带时间戳格式
+     if (fs.existsSync(this.logFilePath)) {
+       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+       const rotatedPath = `${this.logFilePath}.${timestamp}`;
+       fs.renameSync(this.logFilePath, rotatedPath);
+       this.currentFileSize = 0;
+       // 可以添加旧日志文件的压缩或清理逻辑
+     }
+   } catch (error) {
+     console.error('Failed to rotate log file:', error);
+   }
 
   // 获取特定源的日志
   getLogs(source: string, limit: number = 100): LogEntry[] {

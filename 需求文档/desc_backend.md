@@ -90,37 +90,12 @@ export async function initApp(initConfig: AppInitConfig) {
 - 提供完整的**配置管理和日志收集机制**，方便问题排查和功能优化
 - 实现**弹幕流处理、过滤、展示控制**一体化解决方案
 - 基于**EventSource**实现单向实时数据流，减少资源消耗
+- 弹幕的保存基于sqlite数据库，支持历史弹幕查询，可自定义保存路径。
 
 #### 2.2.3 对外提供的HTTP接口
 弹幕系统模块通过HTTP服务器提供以下接口供渲染进程调用：
 
-1. **GET /api/danmu/config**
-   - 作用：获取当前弹幕配置
-   - 参数：无
-   - 返回：弹幕配置对象（包含过滤规则、显示参数等）
-   - 对应需求：3.8.5 弹幕流设置
-
-2. **POST /api/danmu/config**
-   - 作用：更新弹幕配置
-   - 参数：
-     ```json
-     {
-       "filterRules": ["关键词1", "关键词2"],  // 过滤关键词
-       "display": {
-         "speed": 100,  // 弹幕速度
-         "fontSize": 16,  // 字体大小
-         "color": "#FFFFFF"  // 字体颜色
-       },
-       "connection": {
-         "timeout": 12000,  // 连接超时设置
-         "reconnectInterval": 5000  // 重连间隔
-       }
-     }
-     ```
-   - 返回：{ success: boolean, message: string }
-   - 对应需求：3.8.5 弹幕流设置
-
-3. **GET /api/danmu/connect**
+1. **GET /api/danmu/connect**
    - 作用：建立弹幕连接
    - 参数：
      - roomId: 房间ID
@@ -128,38 +103,27 @@ export async function initApp(initConfig: AppInitConfig) {
    - 返回：{ success: boolean, message: string }
    - 对应需求：3.3.1 弹幕系统小程序（EventSource连接管理）
 
-4. **GET /api/danmu/disconnect**
+2. **GET /api/danmu/disconnect**
    - 作用：断开弹幕连接
    - 参数：无
    - 返回：{ success: boolean, message: string }
    - 对应需求：3.3.1 弹幕系统小程序
 
-5. **GET /api/events/danmu**
+3. **GET /api/events/danmu**
    - 作用：获取实时弹幕流（SSE）
    - 参数：无
    - 返回：实时弹幕事件流
    - 对应需求：3.3.1 弹幕系统小程序（弹幕流处理、弹幕展示）
 
-6. **POST /api/danmu/filter**
-   - 作用：手动添加过滤关键词
-   - 参数：{ keyword: string }
-   - 返回：{ success: boolean, message: string }
-   - 对应需求：3.8.5 弹幕流设置（配置弹幕过滤规则）
-
-7. **DELETE /api/danmu/filter/:keyword**
-   - 作用：删除过滤关键词
-   - 参数：keyword: 关键词
-   - 返回：{ success: boolean, message: string }
-   - 对应需求：3.8.5 弹幕流设置
-
-8. **GET /api/danmu/history**
+4. **GET /api/danmu/history**
    - 作用：获取历史弹幕
    - 参数：
      - roomId: 房间ID
-     - limit: 获取数量
-     - offset: 偏移量
+     - liveId: 直播ID
+     - startTime: 开始时间
+     - endTime: 结束时间
    - 返回：{ success: boolean, data: DanmuEntry[] }
-   - 对应需求：3.3.1 弹幕系统小程序
+
 
 #### 2.2.4 核心实现
 ```typescript

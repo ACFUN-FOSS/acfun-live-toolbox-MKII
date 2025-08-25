@@ -186,13 +186,14 @@ onUnmounted(() => {
 <style scoped>
 .stream-monitor-container {
   padding: 20px;
+  background-color: #0f172a; /* 页面背景色 - UI规范 */
 }
 
 .page-title {
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 30px;
-  color: var(--td-text-color-primary);
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .room-info-card {
@@ -214,7 +215,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: var(--td-radius-medium);
+  border-radius: 4px; /* 统一圆角 - UI规范 */
 }
 
 .live-badge {
@@ -223,7 +224,7 @@ onUnmounted(() => {
   left: 10px;
   display: flex;
   align-items: center;
-  background-color: rgba(245, 34, 45, 0.8);
+  background-color: #52c41a; /* 在线/成功状态色 - UI规范 */
   color: #fff;
   padding: 4px 8px;
   border-radius: 4px;
@@ -254,20 +255,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-}
-
 .room-title {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 10px;
-  color: var(--td-text-color-primary);
-  white-space: nowrap;
+  color: #f8fafc; /* 主要文本色 - UI规范 */
+} white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .room-category {
-  color: var(--td-text-color-secondary);
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   margin-bottom: 15px;
 }
 
@@ -284,14 +283,14 @@ onUnmounted(() => {
 
 .stat-label {
   font-size: 12px;
-  color: var(--td-text-color-secondary);
-  margin-bottom: 4px;
+  color: #cbd5e1; /*次要文本色 - UI规范 */
+  margin-bottom:4px;
 }
 
 .stat-value {
   font-size: 14px;
-  font-weight: bold;
-  color: var(--td-text-color-primary);
+ font-weight: bold;
+ color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .stats-row {
@@ -313,7 +312,7 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 20px;
-  color: var(--td-text-color-primary);
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .chart-container {
@@ -324,13 +323,13 @@ onUnmounted(() => {
 }
 
 .chart-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: var(--td-bg-color-secondary);
-  border-radius: var(--td-radius-medium);
-  color: var(--td-text-color-secondary);
+ width: 100%;
+ height:100%;
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ background-color: #1e293b; /* 卡片背景色 - UI规范 */
+ border-radius:4px; /* 统一圆角 - UI规范 */
+ color: #cbd5e1; /* 次要文本色 - UI规范 */
 }
 </style>

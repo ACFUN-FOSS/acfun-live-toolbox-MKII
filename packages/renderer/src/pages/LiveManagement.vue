@@ -593,7 +593,7 @@ onMounted(() => {
 }
 
 .page-description {
-  color: var(--td-text-color-secondary);
+  color: #cbd5e1; /* 次要文本色 */
   font-size: 14px;
 }
 
@@ -611,7 +611,7 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 16px;
-  color: var(--td-text-color-primary);
+  color: #f8fafc; /* 主要文本色 */
 }
 
 .form-group {
@@ -644,7 +644,7 @@ onMounted(() => {
   width: 320px;
   height: 180px;
   border: 1px dashed var(--td-border-color);
-  border-radius: var(--td-radius-medium);
+  border-radius: 4px; /* 统一圆角 */
   overflow: hidden;
   position: relative;
   display: flex;
@@ -665,7 +665,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   color: var(--td-text-color-placeholder);
-  background-color: var(--td-bg-color-secondary);
+  background-color: #1e293b; /* 卡片背景色 */
 }
 
 .upload-controls {
@@ -706,23 +706,23 @@ onMounted(() => {
 }
 
 .status-online {
-  color: var(--td-success-color);
+ color: #52c41a; /* 在线/成功状态色 */
 }
 
 .status-offline {
-  color: var(--td-error-color);
+ color: #ff4d4f; /* 离线/失败状态色 */
 }
 
 .status-connecting {
-  color: var(--td-warning-color);
+ color: #faad14; /* 连接中/警告状态色 */
 }
 
 .status-live {
-  color: var(--td-success-color);
+ color: #52c41a; /* 直播中状态色 */
 }
 
 .status-waiting {
-  color: var(--td-warning-color);
+ color: #faad14; /* 等待中状态色 */
 }
 
 .obs-status-container,

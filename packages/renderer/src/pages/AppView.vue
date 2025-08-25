@@ -75,6 +75,7 @@ onMounted(async () => {
   height: 100%;
   min-height: 400px;
   position: relative;
+  background-color: #0f172a; /* 页面背景色 - UI规范 */
 }
 
 .loading-state {
@@ -84,6 +85,7 @@ onMounted(async () => {
   height: 100%;
   flex-direction: column;
   gap: 16px;
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .error-state {
@@ -92,6 +94,6 @@ onMounted(async () => {
 
 .app-iframe {
   border: none;
-  background-color: white;
+  background-color: transparent; /* 透明背景以适配深色主题 */
 }
 </style>
