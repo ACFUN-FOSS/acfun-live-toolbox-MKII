@@ -9,6 +9,7 @@ import { app } from "electron";
 import { EventEmitter } from "events";
 import { BrowserWindow, ipcMain } from 'electron';
 import { DataManager } from './DataManager';
+import { AppModule } from '../AppModule.js';
 
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
@@ -30,9 +31,38 @@ export class AppManager extends EventEmitter {
   private windowManager: WindowManager = globalThis.windowManager;
   private appDir: string = "";
   private configManager: ConfigManager = globalThis.configManager;
+  private modules: Map<string, AppModule> = new Map();
 
   constructor() {
     super();
+  }
+
+  /**
+   * 注册模块
+   * @param moduleId 模块ID
+   * @param module 模块实例
+   */
+  registerModule(moduleId: string, module: AppModule): void {
+    this.modules.set(moduleId, module);
+    this.emit('module-registered', moduleId);
+    console.log(`Module ${moduleId} registered successfully`);
+  }
+
+  /**
+   * 获取模块实例
+   * @param moduleId 模块ID
+   * @returns 模块实例或undefined
+   */
+  getModule(moduleId: string): AppModule | undefined {
+    return this.modules.get(moduleId);
+  }
+
+  /**
+   * 获取所有已注册的模块
+   * @returns 模块ID和实例的映射
+   */
+  getAllModules(): Map<string, AppModule> {
+    return this.modules;
   }
   // 修正：直接使用 HttpManager 初始化的应用目录
   private async getAppDirectory(): Promise<string> {

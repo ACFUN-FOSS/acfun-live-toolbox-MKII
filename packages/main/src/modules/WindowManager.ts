@@ -247,6 +247,34 @@ export class WindowManager implements AppModule {
         const window = windowId ? this.getWindowById(windowId) : BrowserWindow.getFocusedWindow();
         return window?.isAlwaysOnTop() ?? false;
     }
+
+    /**
+     * 关闭窗口
+     * @param windowId 窗口ID，未指定则关闭当前聚焦窗口
+     * @returns 是否成功关闭
+     */
+    async closeWindow(windowId?: number): Promise<boolean> {
+        const window = windowId ? this.getWindowById(windowId) : BrowserWindow.getFocusedWindow();
+        if (!window) {
+            return false;
+        }
+        window.close();
+        return true;
+    }
+
+    /**
+     * 最小化窗口
+     * @param windowId 窗口ID，未指定则最小化当前聚焦窗口
+     * @returns 是否成功最小化
+     */
+    async minimizeWindow(windowId?: number): Promise<boolean> {
+        const window = windowId ? this.getWindowById(windowId) : BrowserWindow.getFocusedWindow();
+        if (!window) {
+            return false;
+        }
+        window.minimize();
+        return true;
+    }
 }
 
 export function createWindowManagerModule(

@@ -90,11 +90,25 @@ onMounted(() => {
       :multiple="false"
     >
       <!-- 未命名分组 -->
-      <TMenuItem value="home" :to="{ name: 'home' }">
+      <TMenuItem value="dashboard" :to="{ name: 'dashboard' }">
         <template #icon>
-          <Icon name="home" />
+          <Icon name="dashboard" />
         </template>
-        <span class="menu-text">首页</span>
+        <span class="menu-text">仪表盘</span>
+      </TMenuItem>
+
+      <TMenuItem value="live-management" :to="{ name: 'liveManagement' }">
+        <template #icon>
+          <Icon name="video-play" />
+        </template>
+        <span class="menu-text">直播管理</span>
+      </TMenuItem>
+
+      <TMenuItem value="stream-monitor" :to="{ name: 'streamMonitor' }">
+        <template #icon>
+          <Icon name="line-chart" />
+        </template>
+        <span class="menu-text">直播监控</span>
       </TMenuItem>
 
       <!-- 应用分组 -->
@@ -122,7 +136,7 @@ onMounted(() => {
 
       <!-- 其它分组 -->
       <TMenuGroup title="其它">
-        <TMenuItem value="settings">
+        <TMenuItem value="settings" :to="{ name: 'settings' }">
           <template #icon>
             <Icon name="setting" />
           </template>

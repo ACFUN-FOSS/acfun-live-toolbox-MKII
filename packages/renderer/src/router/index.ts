@@ -3,16 +3,30 @@ import type { RouteRecordRaw } from 'vue-router';
 // 使用preload脚本暴露的ipcRenderer
 const { ipcRenderer } = window;
 
+import Login from '../pages/Login.vue';
+import Dashboard from '../pages/Dashboard.vue';
 import Home from '../pages/index.vue';
 import AppView from '../pages/AppView.vue';
+import LiveManagement from '../pages/LiveManagement.vue';
+import Settings from '../pages/Settings.vue';
+import StreamMonitor from '../pages/StreamMonitor.vue';
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/',
-    name: 'home',
-    component: Home,
+    path: '/login',
+    name: 'login',
+    component: Login,
     meta: {
-      title: '首页',
+      title: '登录',
+    },
+  },
+  {
+    path: '/',
+    name: 'dashboard',
+    component: Dashboard,
+    meta: {
+      title: '仪表盘',
+      requiresAuth: true
     },
   },
   {
@@ -23,6 +37,33 @@ const routes: RouteRecordRaw[] = [
       title: '应用视图',
     },
     props: true
+  },
+  {
+    path: '/live-management',
+    name: 'liveManagement',
+    component: LiveManagement,
+    meta: {
+      title: '直播管理',
+      requiresAuth: true
+    },
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: Settings,
+    meta: {
+      title: '系统设置',
+      requiresAuth: true
+    },
+  },
+  {
+    path: '/stream-monitor',
+    name: 'streamMonitor',
+    component: StreamMonitor,
+    meta: {
+      title: '直播监控',
+      requiresAuth: true
+    },
   },
 ];
 
@@ -57,6 +98,23 @@ const loadAppRoutes = async () => {
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
+});
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+  // 检查页面是否需要认证
+  if (to.meta.requiresAuth) {
+    // 模拟检查登录状态
+    const isLoggedIn = !!window.sessionStorage.getItem('token');
+    if (isLoggedIn) {
+      next();
+    } else {
+      // 未登录，重定向到登录页
+      next({ name: 'login' });
+    }
+  } else {
+    next();
+  }
 });
 
 // 初始化时加载应用路由

@@ -1,3 +1,5 @@
+//本程序用于小程序之间以及小程序与主程序之间的数据协同
+
 import { EventEmitter } from 'events';
 import { AppManager } from './AppManager';
 

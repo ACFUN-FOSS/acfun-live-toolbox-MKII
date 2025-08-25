@@ -1,6 +1,12 @@
 import type { AppInitConfig } from './AppInitConfig.js';
 import { createModuleRunner } from './ModuleRunner.js';
 import { createAcfunDanmuModule } from './modules/AcfunDanmuModule.js';
+import { LiveManagementModule } from './modules/LiveManagementModule.js';
+
+// 创建直播管理模块的工厂函数
+function createLiveManagementModule(config: { debug?: boolean } = {}): LiveManagementModule {
+  return new LiveManagementModule(config);
+}
 import { disallowMultipleAppInstance } from './modules/SingleInstanceApp.js';
 import { createWindowManagerModule } from './modules/WindowManager.js';
 import { terminateAppOnLastWindowClose } from './modules/ApplicationTerminatorOnLastWindowClose.js';
@@ -44,10 +50,27 @@ export async function initApp(initConfig: AppInitConfig) {
     // 初始化HTTP API并挂载路由
     const apiRouter = initializeHttpApi();
     globalThis.httpManager.addApiRoutes('/api', apiRouter);
+    
+    // 初始化EventSource服务
+    import('./initEventSource.js')
+      .then(({ initEventSourceServices }) => {
+        initEventSourceServices();
+      })
+      .catch(error => {
+        console.error('Failed to initialize EventSource services:', error);
+      });
+
     // 初始化应用
     globalThis.appManager = new AppManager();
     await globalThis.appManager.init();
     globalThis.dataManager.setAppManager(globalThis.appManager);
+
+    // 创建LiveManagementModule实例
+    const liveManagementModule = createLiveManagementModule({ debug: process.env.NODE_ENV === 'development' });
+    // 初始化模块
+    moduleRunner.init(liveManagementModule);
+    // 注册到AppManager
+    globalThis.appManager.registerModule('LiveManagementModule', liveManagementModule);
 
     await moduleRunner;
 

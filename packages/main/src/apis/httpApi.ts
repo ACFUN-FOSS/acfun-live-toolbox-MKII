@@ -2,10 +2,16 @@ import express from 'express';
 import { initializeElectronApi } from './electronApi.js';
 import { acfunDanmuModule } from '../modules/AcfunDanmuModule.js';
 import { getLogManager } from '../utils/LogManager.js';
+import { setupEventSourceRoutes } from './eventSourceApi.js';
+
 
 export function initializeHttpApi() {
   // 创建路由
   const router = express.Router();
+
+  // 设置EventSource路由
+  setupEventSourceRoutes(router);
+
 
   // 健康检查接口
   router.get('/health', (req, res) => {
