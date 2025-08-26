@@ -325,8 +325,8 @@ onUnmounted(() => {
 <style scoped>
 /* 基础样式 */
 .home-page {
-  background-color: var(--td-bg-color);
-  color: var(--td-text-color-primary);
+  background-color: #0f172a; /* 页面背景色 - UI规范 */
+  color: #f8fafc; /* 主要文本色 - UI规范 */
   display: flex;
   flex-direction: column;
   padding: 0 1.5rem;
@@ -337,7 +337,7 @@ onUnmounted(() => {
   position: relative;
   padding: 2.5rem 2rem;
   margin-bottom: 1.5rem;
-  border-radius: var(--td-radius-large);
+  border-radius:4px; /*统一圆角 - UI规范 */
   color: white;
   text-align: center;
   overflow: hidden;
@@ -358,10 +358,10 @@ onUnmounted(() => {
 
 /* 毛玻璃效果 */
 .acrylic-effect {
-  background: linear-gradient(135deg, rgba(54, 98, 227, 0.8), rgba(83, 91, 242, 0.8));
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8)); /* 深色主题渐变 - UI规范 */
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: var(--td-shadow-3);
+ -webkit-backdrop-filter: blur(10px);
+ box-shadow: var(--td-shadow-3);
 }
 
 .welcome-content {
@@ -424,8 +424,8 @@ onUnmounted(() => {
 
 /* 内容区块样式 */
 .content-section {
-  background-color: var(--td-bg-color-secondary);
-  border-radius: var(--td-radius-large);
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: 4px; /* 统一圆角 - UI规范 */
   padding: 1.2rem;
   margin: 0 1rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -433,7 +433,7 @@ onUnmounted(() => {
   max-height: 100%;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--td-brand-color) transparent;
+  scrollbar-color: #1890ff transparent; /* 主色调 - UI规范 */
   box-shadow: var(--td-shadow-1);
 }
 
@@ -461,7 +461,7 @@ onUnmounted(() => {
   gap: 0.5rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--td-border-color);
+  border-bottom: 1px solid #334155; /* 边框色 - UI规范 */
 }
 
 .section-icon {
@@ -472,6 +472,7 @@ onUnmounted(() => {
   font-size: 1.5rem;
   font-weight: 600;
   margin: 0;
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .section-content {
@@ -483,7 +484,7 @@ onUnmounted(() => {
 .text-content {
   line-height: 1.8;
   white-space: pre-line;
-  color: var(--td-text-color-secondary);
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   font-size: 1rem;
 }
 

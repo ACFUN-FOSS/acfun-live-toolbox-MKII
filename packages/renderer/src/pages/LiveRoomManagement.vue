@@ -7,7 +7,7 @@
     </t-card>
 
     <!-- 弹幕发送区域 -->
-  <t-card class="mt-4" title="弹幕发送">
+  <t-card class="mt-4 row-frame" title="弹幕发送">
     <div class="danmu-send-container">
       <t-input v-model="danmuContent" placeholder="输入弹幕内容" class="danmu-input" :disabled="isSendingDanmu" />
       <t-button @click="sendDanmu" theme="primary" class="danmu-send-button" :loading="isSendingDanmu">
@@ -30,7 +30,7 @@
 
   <t-row :gutter="20" class="mt-4">
       <t-col :span="24" :md="16">
-        <t-card title="房间信息" :loading="loading.roomInfo">
+        <t-card title="房间信息" :loading="loading.roomInfo" class="row-frame">
           <div v-if="error.roomInfo" class="error-message">{{ error.roomInfo }}</div>
           <div v-else class="room-info-container">
             <div class="room-basic-info">
@@ -39,21 +39,36 @@
                 <t-input v-model="roomInfo.title" placeholder="输入房间标题" />
               </div>
               <div class="room-cover">
-                <span class="label">封面:</span>
-                <div class="cover-preview" :style="{ backgroundImage: `url(${roomInfo.coverUrl || defaultCover})` }"></div>
-                <t-button theme="default" @click="openFileDialog">上传封面</t-button>
-              </div>
+  <span class="label">封面:</span>
+  <div class="cover-preview" :style="{ backgroundImage: `url(${roomInfo.coverUrl || defaultCover})` }"></div>
+  <Upload
+    action="#"
+    :show-file-list="false"
+    :on-change="handleCoverUpload"
+    accept="image/*"
+    class="cover-upload-btn"
+  >
+    <TButton size="small" variant="primary">更换封面</TButton>
+  </Upload>
+</div>
               <div class="room-category">
-                <span class="label">分类:</span>
-                <t-select v-model="roomInfo.category" :options="categories" placeholder="选择分类" />
-              </div>
-              <div class="room-subcategory">
-                <span class="label">子分类:</span>
-                <t-select v-model="roomInfo.subCategory" :options="subCategories" placeholder="选择子分类" />
+                <span class="label">直播分区:</span>
+                <t-cascader
+                  v-model="[roomInfo.category, roomInfo.subCategory]"
+                  :options="categoryOptions"
+                  placeholder="选择分类"
+                  @change="handleCategoryChange"
+                />
               </div>
               <div class="room-clip">
                 <span class="label">允许剪辑:</span>
                 <t-switch v-model="roomInfo.allowClip" />
+              </div>
+              <div class="room-danmu-links">
+                <span class="label">自定义弹幕链接:</span>
+                <t-input v-model="roomInfo.customDanmuUrl" placeholder="输入自定义弹幕链接" />
+                <span class="label">官方弹幕链接:</span>
+                <t-input v-model="roomInfo.officialDanmuUrl" placeholder="输入官方弹幕链接" readonly />
               </div>
             </div>
             <t-button @click="updateRoomInfo" theme="primary" class="mt-4">保存修改</t-button>
@@ -62,7 +77,7 @@
       </t-col>
 
       <t-col :span="24" :md="8">
-        <t-card title="推流信息" :loading="loading.streamInfo">
+        <t-card title="推流信息" :loading="loading.streamInfo" class="row-frame mb-4">
           <div v-if="error.streamInfo" class="error-message">{{ error.streamInfo }}</div>
           <div v-else class="stream-info-container">
             <div class="stream-server">
@@ -80,12 +95,12 @@
           </div>
         </t-card>
 
-        <t-card title="推流状态" class="mt-4">
+        <t-card title="推流状态" class="mt-4 row-frame">
           <div class="status-container">
             <div class="obs-status">
-              <span class="label">OBS状态:</span>
-              <span class="status-badge" :class="obsStatus === 'online' ? 'online' : obsStatus === 'connecting' ? 'connecting' : 'offline'">{{ obsStatus === 'online' ? '在线' : obsStatus === 'connecting' ? '连接中' : '离线' }}</span>
-              <t-button @click="connectOBS" theme="default" size="small" class="ml-2" :disabled="obsStatus === 'online' || obsStatus === 'connecting'">连接OBS</t-button>
+              <span class="label">OBS同步:</span>
+              <t-switch v-model="obsSyncEnabled" @change="toggleOBSSync" />
+              <span class="status-badge ml-2" :class="obsStatus === 'online' ? 'online' : obsStatus === 'connecting' ? 'connecting' : 'offline'">{{ obsStatus === 'online' ? '已同步' : obsStatus === 'connecting' ? '同步中' : '未同步' }}</span>
             </div>
             <div class="stream-status">
               <span class="label">推流状态:</span>
@@ -110,10 +125,24 @@
       <p class="tips mt-2">请将推流码配置到OBS等推流软件中</p>
     </div>
   </t-dialog>
+
+  <!-- 封面裁剪对话框 -->
+  <t-dialog v-model:visible="showCropper" title="裁剪封面" width="600px">
+    <Cropper
+      :image="cropperImage"
+      :aspect-ratio="cropperRatio"
+      class="cover-cropper"
+    />
+    <template #footer>
+      <t-button @click="showCropper = false">取消</t-button>
+      <t-button @click="confirmCrop" theme="primary">确认裁剪</t-button>
+    </template>
+  </t-dialog>
 </template>
 
 <script lang="ts" setup>
 import { ref, onMounted, computed } from 'vue';
+import { Upload, TButton, TCascader, Cropper } from 'tdesign-vue-next';
 import { ipcRenderer } from 'electron';
 import { TMessage } from 'tdesign-vue-next';
 
@@ -155,6 +184,69 @@ const roomInfo = ref<RoomInfo>({
 });
 
 const danmuContent = ref('');
+const showCropper = ref(false);
+const cropperImage = ref('');
+const cropperRatio = 16 / 9;
+const categoryOptions = ref([
+  { label: '游戏', value: 'game', children: [
+    { label: '英雄联盟', value: 'lol' },
+    { label: '王者荣耀', value: 'honor' },
+    { label: '原神', value: 'genshin' },
+    { label: '绝地求生', value: 'pubg' }
+  ]},
+  { label: '娱乐', value: 'entertainment', children: [
+    { label: '聊天', value: 'chat' },
+    { label: '颜值', value: 'beauty' },
+    { label: '美食', value: 'food' },
+    { label: '旅行', value: 'travel' }
+  ]},
+  { label: '音乐', value: 'music', children: [
+    { label: '流行', value: 'pop' },
+    { label: '摇滚', value: 'rock' },
+    { label: '古典', value: 'classic' }
+  ]},
+  { label: '科技', value: 'technology', children: [
+    { label: '数码', value: 'digital' },
+    { label: '编程', value: 'programming' },
+    { label: 'AI', value: 'ai' }
+  ]},
+  { label: '生活', value: 'life', children: [
+    { label: '日常', value: 'daily' },
+    { label: '健身', value: 'fitness' },
+    { label: '教育', value: 'education' }
+  ]}
+]);
+
+const handleCategoryChange = (value) => {
+  roomInfo.value.category = value?.[0] || '';
+  roomInfo.value.subCategory = value?.[1] || '';
+};
+
+const handleCoverUpload = (file) => {
+  if (file.raw) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      cropperImage.value = e.target.result;
+      showCropper.value = true;
+    };
+    reader.readAsDataURL(file.raw);
+  }
+};
+
+const confirmCrop = async () => {
+  // Implement cropped image upload logic
+  const croppedCanvas = document.querySelector('.t-cropper__canvas canvas');
+  if (croppedCanvas) {
+    croppedCanvas.toBlob(async (blob) => {
+      // Here you would typically upload the blob to your server
+      // For demo, we'll just update the coverUrl directly
+      roomInfo.value.coverUrl = croppedCanvas.toDataURL('image/jpeg');
+      TMessage.success('封面裁剪并上传成功');
+      showCropper.value = false;
+    }, 'image/jpeg');
+  }
+};
+
 const isSendingDanmu = ref(false);
 const danmuHistory = ref<string[]>([]);
 const MAX_HISTORY = 10; // 最大历史记录条数
@@ -485,6 +577,12 @@ const fetchStreamStatus = async () => {
 .stream-info-container {
   display: flex;
   flex-direction: column;
+  padding: var(--td-comp-padding-horizontal-lg);
+}
+
+.row-frame {
+  box-shadow: var(--td-shadow-2);
+  border-radius: var(--td-radius-medium);
 }
 
 .room-basic-info > div,
@@ -509,6 +607,7 @@ const fetchStreamStatus = async () => {
 }
 
 .label {
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   width: 80px;
   font-weight: bold;
 }
@@ -616,7 +715,7 @@ const fetchStreamStatus = async () => {
 }
 
 .tips {
-  color: #86909c;
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   font-size: 12px;
 }
 
@@ -635,5 +734,14 @@ const fetchStreamStatus = async () => {
 .waiting {
   background-color: #ff7d00;
   color: white;
+}
+
+.page-header-card, .content-card {
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: 4px; /* 统一圆角 - UI规范 */
+}
+
+.history-title {
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 </style>

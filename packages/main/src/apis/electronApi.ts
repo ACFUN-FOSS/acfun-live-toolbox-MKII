@@ -149,6 +149,26 @@ export function initializeElectronApi() {
         }
     });
 
+    ipcMain.handle('live:saveOBSConfig', async (_, config) => {
+        try {
+            const result = await liveManagementModule.saveOBSConfig(config);
+            return { success: true, data: result };
+        } catch (error) {
+            console.error('Error saving OBS config:', error);
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
+
+    ipcMain.handle('live:getOBSConfig', async () => {
+        try {
+            const result = await liveManagementModule.getOBSConfig();
+            return { success: true, data: result };
+        } catch (error) {
+            console.error('Error getting OBS config:', error);
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
+
     // Acfun弹幕模块相关API
     // 发送弹幕
     ipcMain.handle('acfunDanmu:sendDanmu', async (_, liveId: number, content: string) => {
@@ -319,7 +339,7 @@ export function initializeElectronApi() {
     // 仪表盘相关API
     ipcMain.handle('dashboard:getStats', async () => {
         try {
-            const stats = dashboardModule.getStats();
+            const stats = await dashboardModule.getStats();
             return { success: true, data: stats };
         } catch (error) {
             console.error('Error getting dashboard stats:', error);
@@ -329,7 +349,7 @@ export function initializeElectronApi() {
 
     ipcMain.handle('dashboard:getDynamicBlocks', async () => {
         try {
-            const blocks = dashboardModule.getDynamicBlocks();
+            const blocks = await dashboardModule.getDynamicBlocks();
             return { success: true, data: blocks };
         } catch (error) {
             console.error('Error getting dynamic blocks:', error);

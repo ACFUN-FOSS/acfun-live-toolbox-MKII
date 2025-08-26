@@ -155,11 +155,12 @@ const openDisclaimer = () => {
 }
 
 .login-card {
-  width: 350px;
+  width: 100%;
+  max-width: 350px;
   padding: 30px;
   background-color: #1e293b;
-  border-radius: 4px; /* 统一圆角 - UI规范 */
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  border-radius: var(--td-radius-medium); /* 使用主题变量统一圆角 */
+  box-shadow: var(--td-shadow-4);
   color: #fff;
 }
 
@@ -234,7 +235,7 @@ const openDisclaimer = () => {
   width: 400px;
   padding: 40px;
   background-color: #1e293b;
-  border-radius: 4px; /* 统一圆角 - UI规范 */
+  border-radius: var(--td-radius-medium); /* 使用主题变量统一圆角 */
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   color: #fff;
 } display: flex;
@@ -296,10 +297,10 @@ const openDisclaimer = () => {
   right: 0;
   width: 500px;
  height: 500px;
-  background-image: url('https://i.gifer.com/ZZ5H.gif'); /* animated background image */
+  background-image: var(--td-bg-image);
   background-size: cover;
   background-position: center;
-  opacity: 0.1;
+  opacity: var(--td-bg-opacity);
   z-index: 0;
 }
 </style>

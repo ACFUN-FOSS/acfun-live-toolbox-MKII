@@ -16,7 +16,8 @@
     "@app/preload": "*",
     "@app/renderer": "*",
     "electron-updater": "6.6.2",
-    "electron-data": "^2.1.2"
+    "electron-data": "^2.1.2",
+    "obs-websocket-js": "^5.0.0"
   },
   "devDependencies": {
     "@app/electron-versions": "*",

@@ -54,34 +54,24 @@ const fetchDashboardData = async () => {
 
     // 调用API获取统计数据
     const statsResult = await ipcRenderer.invoke('dashboard:getStats');
-    if (statsResult) {
-      statsData.value = {
-        viewerCount: statsResult.viewerCount || 0,
-        likeCount: statsResult.likeCount || 0,
-        bananaCount: statsResult.bananaCount || 0,
-        acCoinCount: statsResult.acCoinCount || 0
-      };
-    }
+if (statsResult.success) {
+  statsData.value = {
+    viewerCount: statsResult.data.viewerCount || 0,
+    likeCount: statsResult.data.likeCount || 0,
+    bananaCount: statsResult.data.bananaCount || 0,
+    acCoinCount: statsResult.data.acCoinCount || 0
+  };
+} else {
+  throw new Error(statsResult.error || '获取统计数据失败');
+}
 
     // 调用API获取动态内容块
     const blocksResult = await ipcRenderer.invoke('dashboard:getDynamicBlocks');
-    if (blocksResult && Array.isArray(blocksResult)) {
-      dynamicBlocks.value = blocksResult;
-    } else {
-      // 默认内容块
-      dynamicBlocks.value = [
-        {
-          title: '系统通知',
-          type: 'string',
-          content: '当前系统运行正常，无异常通知'
-        },
-        {
-          title: '最近直播',
-          type: 'list',
-          content: ['暂无直播记录']
-        }
-      ];
-    }
+if (blocksResult.success) {
+  dynamicBlocks.value = blocksResult.data;
+} else {
+  throw new Error(blocksResult.error || '获取动态内容失败');
+}
   } catch (error) {
     console.error('获取仪表盘数据失败:', error);
     errorMessage.value = '获取数据失败，请稍后重试';
@@ -138,7 +128,7 @@ onUnmounted(() => {
     <!-- 内容区域 -->
     <div v-else class="content-area">
       <!-- 欢迎区域 -->
-      <div class="welcome-area">
+      <div class="welcome-area row-frame">
         <div class="welcome-text">
           <h1>{{ welcomeMessage }}</h1>
           <p>你好, {{ userInfo.name }} 👋</p>
@@ -149,13 +139,13 @@ onUnmounted(() => {
       </div>
 
       <!-- 统计数据区域 -->
-      <Row gutter="20" class="stats-row">
+      <Row gutter="20" class="stats-row row-frame">
         <Col xs="24" sm="12" md="6">
           <Card class="stats-card">
             <Statistic
               title="观众数"
               :value="statsData.viewerCount"
-              :value-style="{ color: '#1890ff' }"
+              :value-style="{ color: 'var(--td-brand-color)' }"
             />
           </Card>
         </Col>
@@ -164,7 +154,7 @@ onUnmounted(() => {
             <Statistic
               title="点赞数"
               :value="statsData.likeCount"
-              :value-style="{ color: '#f7ba1e' }"
+              :value-style="{ color: 'var(--td-warning-color)' }"
             />
           </Card>
         </Col>
@@ -173,7 +163,7 @@ onUnmounted(() => {
             <Statistic
               title="香蕉数"
               :value="statsData.bananaCount"
-              :value-style="{ color: '#722ed1' }"
+              :value-style="{ color: 'var(--td-purple-color)' }"
             />
           </Card>
         </Col>
@@ -182,7 +172,7 @@ onUnmounted(() => {
             <Statistic
               title="AC币"
               :value="statsData.acCoinCount"
-              :value-style="{ color: '#f5222d' }"
+              :value-style="{ color: 'var(--td-danger-color)' }"
             />
           </Card>
         </Col>
@@ -229,9 +219,9 @@ onUnmounted(() => {
 .welcome-area-skeleton {
   height: 120px;
   margin-bottom: 20px;
-  border-radius: 4px; /* 统一圆角 - UI规范 */
-  border-left: 4px solid #1890ff; /* 主色调边框 - UI规范 */
-  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: var(--td-radius-medium);
+  border-left: 4px solid var(--td-brand-color);
+  background-color: var(--td-bg-color-container);
 }
 
 .stats-row-skeleton {
@@ -279,8 +269,8 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   padding: 30px;
-  background-color: #1e293b; /* 卡片背景色 - UI规范 */
-  border-radius: 4px; /* 统一圆角 - UI规范 */
+  background-color: var(--td-bg-color-container);
+  border-radius: var(--td-radius-medium);
   box-shadow: var(--td-shadow-2);
 }
 
@@ -298,17 +288,17 @@ onUnmounted(() => {
 }
 
 .retry-button {
-  background-color: #1890ff; /* 主色调 - UI规范 */
+  background-color: var(--td-brand-color);
   padding: 8px 16px;
   color: white;
   border: none;
-  border-radius: 4px; /* 统一圆角 - UI规范 */
+  border-radius: var(--td-radius-medium);
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .retry-button:hover {
-  background-color: #096dd9; /* 主色调悬停色 - UI规范 */
+  background-color: var(--td-brand-color-hover)
 }
 
 .content-area {
@@ -360,12 +350,14 @@ onUnmounted(() => {
  display: flex;
  flex-direction: column;
  justify-content: center;
- background-color: #1e293b; /* 卡片背景色 - UI规范 */
- border-radius:4px; /* 统一圆角 - UI规范 */
- box-shadow: 0 4px 6px rgba(0, 0,0, 0.1);
+ background-color: var(--td-bg-color-container);
+ border-radius: var(--td-radius-medium);
+ box-shadow: var(--td-shadow-4);
+ box-shadow: var(--td-shadow-2);
  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
  overflow: hidden;
  position: relative;
+ border: 1px solid var(--td-border-color);
 }
 
 .stats-card:hover {
@@ -376,15 +368,19 @@ onUnmounted(() => {
 }
 
 .dynamic-blocks {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+ display: flex;
+ flex-direction: column;
+ gap: 20px;
+ padding: 16px;
+ border: 1px solid var(--td-border-color);
+ border-radius: var(--td-radius-medium);
+ box-shadow: var(--td-shadow-4);
 }
 
 .dynamic-card {
-  background-color: #1e293b; /* 卡片背景色 - UI规范 */
-  border-radius: 4px; /* 统一圆角 - UI规范 */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: var(--td-bg-color-container);
+  border-radius: var(--td-radius-medium);
+  box-shadow: var(--td-shadow-4);
   transition: transform 0.3s, box-shadow 0.3s;
 }
 .dynamic-card:hover {
@@ -412,10 +408,12 @@ onUnmounted(() => {
   left: 0;
   width: 300px;
   height: 300px;
-  background-image: url('https://i.gifer.com/ZZ5H.gif'); /* 动画背景GIF */
+  background-image: var(--td-bg-image);
   background-size: cover;
   background-position: center;
-  opacity: 0.1;
+  opacity: var(--td-bg-opacity);
+  right: 0;
+  left: auto;
   z-index: -1;
 }
 

@@ -95,7 +95,7 @@ onUnmounted(() => {
     <h1 class="page-title">直播监控</h1>
 
     <!-- 房间信息区域 -->
-    <Card class="room-info-card">
+    <Card class="room-info-card row-frame">
       <div class="room-info-content">
         <div class="cover-container">
           <img :src="roomInfo.cover" alt="房间封面" class="room-cover">
@@ -130,7 +130,7 @@ onUnmounted(() => {
     <!-- 数据统计区域 -->
     <Row gutter="20" class="stats-row">
       <Col span="6">
-        <Card class="stats-card">
+        <Card class="stats-card row-frame">
           <Statistic
             title="观众数"
             :value="statsData.viewerCount"
@@ -171,7 +171,7 @@ onUnmounted(() => {
     </Row>
 
     <!-- 更多数据区域 -->
-    <Card class="more-data-card">
+    <Card class="more-data-card row-frame">
       <h2 class="section-title">更多数据统计</h2>
       <div class="chart-container">
         <!-- 这里应该是图表组件，暂时用占位符表示 -->
@@ -224,10 +224,10 @@ onUnmounted(() => {
   left: 10px;
   display: flex;
   align-items: center;
-  background-color: #52c41a; /* 在线/成功状态色 - UI规范 */
-  color: #fff;
-  padding: 4px 8px;
-  border-radius: 4px;
+  background-color: var(--td-success-color);
+ color: var(--td-text-color-primary);
+ padding: var(--td-comp-padding-xs);
+ border-radius: var(--td-radius-medium);
   font-size: 12px;
 }
 
@@ -298,10 +298,14 @@ onUnmounted(() => {
 }
 
 .stats-card {
-  height: 120px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+ height: auto;
+ min-height: var(--td-card-height);
+ display: flex;
+ flex-direction: column;
+ justify-content: center;
+ box-shadow: var(--td-shadow-2);
+ border-radius: var(--td-radius-medium);
+ padding: var(--td-comp-padding-lg);
 }
 
 .more-data-card {

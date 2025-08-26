@@ -90,6 +90,9 @@ onMounted(async () => {
 
 .error-state {
   padding: 20px;
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: 4px; /* 统一圆角 - UI规范 */
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
 }
 
 .app-iframe {

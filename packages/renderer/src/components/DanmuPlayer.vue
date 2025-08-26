@@ -283,8 +283,8 @@ onUnmounted(() => {
       </div>
 
       <div class="control-buttons">
-        <TButton size="small" @click="clearDanmu" variant="outline">清屏</TButton>
-        <TButton size="small" @click="showSendPanel = !showSendPanel" variant="outline">
+        <TButton size="small" @click="clearDanmu" variant="secondary">清屏</TButton>
+        <TButton size="small" @click="showSendPanel = !showSendPanel" variant="secondary">
           {{ showSendPanel ? '关闭发送' : '发送弹幕' }}
         </TButton>
       </div>
@@ -334,9 +334,10 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   position: relative;
-  background-color: rgba(0, 0, 0, 0.5);
-  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .danmu-screen {
@@ -452,14 +453,14 @@ onUnmounted(() => {
 }
 
 .status-connected {
-  color: #00b42a;
+  color: #52c41a;
 }
 
 .status-connecting {
-  color: #ff7d00;
+  color: #faad14;
 }
 
 .status-disconnected {
-  color: #f53f3f;
+  color: #ff4d4f;
 }
 </style>

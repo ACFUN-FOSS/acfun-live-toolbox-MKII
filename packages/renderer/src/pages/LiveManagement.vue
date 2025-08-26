@@ -15,11 +15,13 @@ declare global {
         updateRoomInfo: (info: any) => Promise<any>;
         getStreamKey: () => Promise<any>;
         refreshStreamKey: () => Promise<any>;
-        connectOBS: () => Promise<any>;
+        connectOBS: (config: {obsIp: string, obsPort: number, obsPassword: string}) => Promise<any>;
         getOBSStatus: () => Promise<any>;
         getStreamStatus: () => Promise<any>;
         stopStream: () => Promise<any>;
         startStream: () => Promise<any>;
+        saveOBSConfig: (config: {obsIp: string, obsPort: number, obsPassword: string}) => Promise<any>;
+        getOBSConfig: () => Promise<any>;
       };
     };
   }
@@ -27,6 +29,10 @@ declare global {
 
 const router = useRouter();
 const roomInfo = reactive<{
+  obsIp: string;
+  obsPort: number;
+  obsPassword: string;
+
   title: string;
   coverUrl: string;
   allowClip: boolean;
@@ -160,11 +166,64 @@ const refreshStreamKey = async () => {
   }
 };
 
+// 保存OBS配置
+const saveOBSConfig = async () => {
+  try {
+    loading.value = true;
+    const response = await window.api.live.saveOBSConfig({
+      obsIp: roomInfo.obsIp,
+      obsPort: roomInfo.obsPort,
+      obsPassword: roomInfo.obsPassword
+    });
+    if (response.success) {
+      TMessage.success('OBS配置保存成功');
+    } else {
+      errorHandler.handleError(
+        errorHandler.createApiError('保存OBS配置失败: ' + response.error, 'SAVE_OBS_CONFIG_FAILED')
+      );
+    }
+  } catch (error) {
+    console.error('保存OBS配置失败:', error);
+    errorHandler.handleError(
+      errorHandler.createNetworkError('保存OBS配置失败，请重试', 'SAVE_OBS_CONFIG_FAILED', error)
+    );
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 获取OBS配置
+const getOBSConfig = async () => {
+  try {
+    const response = await window.api.live.getOBSConfig();
+    if (response.success) {
+      roomInfo.obsIp = response.data.obsIp;
+      roomInfo.obsPort = response.data.obsPort;
+      roomInfo.obsPassword = response.data.obsPassword;
+    } else {
+      errorHandler.handleError(
+        errorHandler.createApiError('获取OBS配置失败: ' + response.error, 'GET_OBS_CONFIG_FAILED')
+      );
+    }
+  } catch (error) {
+    console.error('获取OBS配置失败:', error);
+    errorHandler.handleError(
+      errorHandler.createNetworkError('获取OBS配置失败，请重试', 'GET_OBS_CONFIG_FAILED', error)
+    );
+  }
+};
+
 // 连接OBS
 const connectOBS = async () => {
   try {
     roomInfo.obsStatus = 'connecting';
-    const response = await window.api.live.connectOBS();
+    // 先保存配置再连接
+    await saveOBSConfig();
+    const response = await window.api.live.connectOBS({
+      obsIp: roomInfo.obsIp,
+      obsPort: roomInfo.obsPort,
+      obsPassword: roomInfo.obsPassword
+    });
     if (response.success) {
       roomInfo.obsStatus = 'online';
       TMessage.success('OBS连接成功');
@@ -334,6 +393,7 @@ onMounted(() => {
   getStreamKey();
   getOBSStatus();
   getStreamStatus();
+  getOBSConfig();
   
   // 定期更新状态
   const interval = setInterval(() => {
@@ -356,7 +416,7 @@ onMounted(() => {
 
     <TCard class="content-card" :loading="loading">
       <!-- 封面设置区域 -->
-      <div class="setting-section">
+      <div class="setting-section row-frame">
         <h2 class="section-title">封面设置</h2>
         <div class="cover-upload-container">
           <div class="cover-preview">
@@ -378,6 +438,7 @@ onMounted(() => {
               :show-file-list="false"
               @change="handleCoverUpload"
               class="upload-button"
+              :cropper="{ aspectRatio: 16/9 }"
             >
               <TButton variant="primary" size="small">上传封面</TButton>
             </TUpload>
@@ -389,7 +450,7 @@ onMounted(() => {
       <TDivider />
 
       <!-- 房间信息区域 -->
-      <div class="setting-section">
+      <div class="setting-section row-frame">
         <h2 class="section-title">房间信息</h2>
         <div class="form-group">
           <label class="form-label">房间标题</label>
@@ -405,19 +466,15 @@ onMounted(() => {
         </div>
         <div class="form-group">
           <label class="form-label">直播分区</label>
-          <TSelect
-            v-model="roomInfo.category"
-            placeholder="选择一级分类"
+          <TCascader
+            v-model="[roomInfo.category, roomInfo.subCategory]"
+            placeholder="选择直播分区"
             :options="categories"
-          />
-        </div>
-        <div class="form-group">
-          <label class="form-label">二级分区</label>
-          <TSelect
-            v-model="roomInfo.subCategory"
-            placeholder="选择二级分类"
-            :options="categories.find(cat => cat.value === roomInfo.category)?.children || []"
-            :disabled="!roomInfo.category"
+            :field-names="{ label: 'label', value: 'value', children: 'children' }"
+            @change="(value) => {
+              roomInfo.category = value[0];
+              roomInfo.subCategory = value[1];
+            }"
           />
         </div>
         <TButton @click="saveRoomInfo" variant="primary" class="save-button">保存设置</TButton>
@@ -426,7 +483,7 @@ onMounted(() => {
       <TDivider />
 
       <!-- 弹幕流链接区域 -->
-      <div class="setting-section">
+      <div class="setting-section row-frame">
         <h2 class="section-title">弹幕流链接</h2>
         <div class="form-group">
           <label class="form-label">自定义弹幕链接</label>
@@ -455,8 +512,47 @@ onMounted(() => {
       <TDivider />
 
       <!-- OBS同步设置区域 -->
-      <div class="setting-section">
+      <div class="setting-section row-frame">
         <h2 class="section-title">OBS同步设置</h2>
+        <div class="obs-config-form">
+          <div class="form-group">
+            <label class="form-label">OBS IP地址</label>
+            <TInput
+              v-model="roomInfo.obsIp"
+              placeholder="输入OBS服务器IP地址"
+              type="text"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">OBS端口</label>
+            <TInput
+              v-model="roomInfo.obsPort"
+              placeholder="输入OBS端口号"
+              type="number"
+              min="1"
+              max="65535"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label">OBS密码</label>
+            <TInput
+              v-model="roomInfo.obsPassword"
+              placeholder="输入OBS连接密码"
+              type="password"
+            />
+          </div>
+          <div class="obs-actions">
+            <TButton @click="saveOBSConfig" variant="secondary" size="small">保存配置</TButton>
+            <TButton
+              @click="connectOBS"
+              variant="primary"
+              size="small"
+              :disabled="roomInfo.obsStatus === 'online' || roomInfo.obsStatus === 'connecting' || !roomInfo.obsIp || !roomInfo.obsPort"
+            >
+              {{ roomInfo.obsStatus === 'connecting' ? '连接中...' : '连接OBS' }}
+            </TButton>
+          </div>
+        </div>
         <div class="obs-status-container">
           <div class="status-item">
             <span class="status-label">OBS连接状态：</span>
@@ -469,21 +565,13 @@ onMounted(() => {
               {{ roomInfo.obsStatus === 'online' ? '在线' : roomInfo.obsStatus === 'connecting' ? '连接中' : '离线' }}
             </span>
           </div>
-          <TButton
-            @click="connectOBS"
-            variant="primary"
-            size="small"
-            :disabled="roomInfo.obsStatus === 'online' || roomInfo.obsStatus === 'connecting'"
-          >
-            连接OBS
-          </TButton>
         </div>
       </div>
 
       <TDivider />
 
       <!-- RTMP设置区域 -->
-      <div class="setting-section">
+      <div class="setting-section row-frame">
         <h2 class="section-title">RTMP设置</h2>
         <div class="form-group">
           <label class="form-label">RTMP服务器地址</label>
@@ -577,6 +665,7 @@ onMounted(() => {
 
 <style scoped>
 .live-management-container {
+  background-color: #0f172a; /* 页面背景色 - UI规范 */
   padding: 20px;
   height: 100%;
   overflow-y: auto;
@@ -586,21 +675,34 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
-.page-header h1 {
+.page-header {
+  h1 {
+    color: #f8fafc; /* 主要文本色 - UI规范 */
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 8px;
 }
 
 .page-description {
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   color: #cbd5e1; /* 次要文本色 */
   font-size: 14px;
 }
 
 .content-card {
+  background-color: #1e293b; /* 卡片背景色 - UI规范 */
+  border-radius: 4px; /* 统一圆角 - UI规范 */
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.row-frame {
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius:4px;
+  background-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .setting-section {
@@ -608,6 +710,7 @@ onMounted(() => {
 }
 
 .section-title {
+  color: #f8fafc; /* 主要文本色 - UI规范 */
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 16px;
@@ -619,6 +722,7 @@ onMounted(() => {
 }
 
 .form-label {
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
@@ -698,6 +802,7 @@ onMounted(() => {
 }
 
 .status-label {
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
   color: var(--td-text-color-secondary);
 }
 
@@ -710,7 +815,7 @@ onMounted(() => {
 }
 
 .status-offline {
- color: #ff4d4f; /* 离线/失败状态色 */
+  color: #ff4d4f; /* 未开播/离线状态色 - UI规范 */
 }
 
 .status-connecting {
@@ -718,11 +823,11 @@ onMounted(() => {
 }
 
 .status-live {
- color: #52c41a; /* 直播中状态色 */
+  color: #52c41a; /* 直播中状态色 - UI规范 */
 }
 
 .status-waiting {
- color: #faad14; /* 等待中状态色 */
+  color: #faad14; /* 等待中状态色 - UI规范 */
 }
 
 .obs-status-container,

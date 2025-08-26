@@ -111,7 +111,7 @@ const clearConfigCache = async () => {
     <h1 class="page-title">通用设置</h1>
 
     <!-- 使用说明区域 -->
-    <div class="setting-section">
+    <div class="setting-section row-frame">
       <h2 class="section-title">使用说明</h2>
       <p class="section-desc">查看详细的使用文档和帮助指南</p>
       <Button @click="openFolder('文档')" class="action-btn">
@@ -227,6 +227,7 @@ const clearConfigCache = async () => {
 <style scoped>
 .settings-container {
   padding: 20px;
+  background-color: #0f172a; /* 页面背景色 - UI规范 */
 }
 
 .page-title {
@@ -247,7 +248,7 @@ const clearConfigCache = async () => {
   font-size: 18px;
   font-weight: bold;
   margin-bottom: 10px;
-  color: var(--td-text-color-primary);
+  color: #f8fafc; /* 主要文本色 - UI规范 */
 }
 
 .section-desc {
@@ -273,7 +274,7 @@ const clearConfigCache = async () => {
 .setting-label {
   display: flex;
   align-items: center;
-  color: var(--td-text-color-primary);
+  color: #cbd5e1; /* 次要文本色 - UI规范 */
 }
 
 .question-icon {
@@ -292,7 +293,8 @@ const clearConfigCache = async () => {
 
 .path-input-container {
   display: flex;
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
 }
 
 .path-input {
@@ -325,8 +327,11 @@ const clearConfigCache = async () => {
 
 .save-button-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   margin-top: 40px;
+  padding: 20px;
+  background-color: #1e293b;
+  border-radius: 4px;
 }
 
 /* 主按钮样式 - UI规范 */

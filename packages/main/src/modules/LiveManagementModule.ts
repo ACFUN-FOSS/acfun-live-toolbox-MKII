@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { getLogManager } from '../utils/LogManager.js';
 import { AppModule } from '../AppModule.js';
 import { ModuleContext } from '../ModuleContext.js';
+import OBSWebSocket from 'obs-websocket-js';
 
 // 直播管理模块配置接口
 export interface LiveManagementConfig {
@@ -34,7 +35,8 @@ export type StreamStatus = 'live' | 'waiting' | 'offline';
 export class LiveManagementModule extends EventEmitter implements AppModule {
   private config: LiveManagementConfig;
   private logger = getLogManager().getLogger('LiveManagementModule');
-  private obsStatus: OBSStatus = 'offline';
+private obsWebSocket = new OBSWebSocket();
+private obsStatus: OBSStatus = 'offline';
   private streamStatus: StreamStatus = 'offline';
   private roomInfo: RoomInfo = {
     title: '未设置标题',
@@ -71,11 +73,6 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
       customDanmuUrl: 'ws://localhost:8080/danmu',
       officialDanmuUrl: 'wss://danmu.acfun.cn:7000'
     };
-
-    // 模拟OBS连接状态检查
-    setInterval(() => {
-      this.checkOBSStatus();
-    }, 5000);
 
     // 模拟推流状态检查
     setInterval(() => {
@@ -196,24 +193,33 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
    * @returns 是否成功
    */
   async connectOBS(): Promise<boolean> {
-    try {
-      this.obsStatus = 'connecting';
-      this.logger.info('Connecting to OBS...');
+  try {
+    this.obsStatus = 'connecting';
+    this.logger.info('Connecting to OBS...');
 
-      // 模拟连接过程
-      await new Promise(resolve => setTimeout(resolve, 1500));
+    // 构建OBS WebSocket连接地址
+    const address = `ws://${this.config.obsIp || 'localhost'}:${this.config.obsPort || 4455}`;
+    
+    // 连接到OBS
+    await this.obsWebSocket.connect(address, this.config.obsPassword);
 
-      // 实际应用中，这里应该使用obs-websocket-js等库连接OBS
-      // 这里模拟连接成功
-      this.obsStatus = 'online';
-      this.logger.info('Connected to OBS successfully');
-      return true;
-    } catch (error) {
+    this.obsStatus = 'online';
+    this.logger.info('Connected to OBS successfully');
+
+    // 设置连接关闭监听器
+    this.obsWebSocket.on('ConnectionClosed', () => {
       this.obsStatus = 'offline';
-      this.logger.error('Failed to connect to OBS:', error);
-      throw error;
-    }
+      this.logger.warn('OBS connection closed');
+      this.emit('obsStatusChanged', { status: this.obsStatus });
+    });
+
+    return true;
+  } catch (error) {
+    this.obsStatus = 'offline';
+    this.logger.error('Failed to connect to OBS:', error);
+    throw error;
   }
+}
 
   /**
    * 获取OBS状态
@@ -232,29 +238,44 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
   }
 
   /**
-   * 停止推流
+   * 保存OBS配置
+   * @param config OBS配置
    * @returns 是否成功
    */
-  async stopStream(): Promise<boolean> {
+  async saveOBSConfig(config: { obsIp?: string; obsPort?: number; obsPassword?: string }): Promise<boolean> {
     try {
-      // 实际应用中，这里应该调用API停止推流
-      if (this.streamStatus === 'live') {
-        // 实际应用中应先调用停止推流API
-        const stopResult = await this.callStopStreamApi();
-        if (stopResult.success) {
-          this.streamStatus = 'offline';
-          this.logger.info('Stream stopped successfully');
-          this.emit('streamStatusChanged', { status: this.streamStatus });
-        } else {
-          throw new Error(`Failed to stop stream: ${stopResult.error}`);
-        }
-      }
+      this.updateConfig(config);
+      this.logger.info('OBS config saved successfully');
       return true;
     } catch (error) {
-      this.logger.error('Failed to stop stream:', error);
+      this.logger.error('Failed to save OBS config:', error);
       throw error;
     }
   }
+
+  /**
+   * 获取OBS配置
+   * @returns OBS配置对象
+   */
+  async getOBSConfig(): Promise<{ obsIp?: string; obsPort?: number; obsPassword?: string }> {
+    try {
+      const config = this.getConfig();
+      return {
+        obsIp: config.obsIp,
+        obsPort: config.obsPort,
+        obsPassword: config.obsPassword
+      };
+    } catch (error) {
+      this.logger.error('Failed to get OBS config:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 停止推流
+   * @returns 是否成功
+   */
+
 
   // 实现AppModule接口的enable方法
   enable(context: ModuleContext): void {
@@ -269,23 +290,33 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
 
   // 清理资源
   private cleanup(): void {
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-    }
-    this.logger.info('LiveManagementModule cleanup done');
+  if (this.reconnectTimeout) {
+    clearTimeout(this.reconnectTimeout);
   }
+  
+  // 断开OBS连接
+  if (this.obsWebSocket && this.obsStatus === 'online') {
+    this.obsWebSocket.disconnect().catch(error => {
+      this.logger.error('Error disconnecting OBS:', error);
+    });
+  }
+  
+  this.logger.info('LiveManagementModule cleanup done');
+}
 
   async stopStream(): Promise<boolean> {
     try {
-      // 实际应用中，这里应该调用API停止推流
-      if (this.streamStatus === 'live') {
+      // 检查OBS是否连接且正在推流
+      if (this.obsStatus === 'online' && this.streamStatus === 'live') {
+        // 发送停止推流命令到OBS
+        await this.obsWebSocket.call('StopStream');
         this.streamStatus = 'offline';
-        this.logger.info('Stream stopped successfully');
+        this.logger.info('Stream stopped successfully via OBS');
         this.emit('streamStatusChanged', { status: this.streamStatus });
       }
       return true;
     } catch (error) {
-      this.logger.error('Failed to stop stream:', error);
+      this.logger.error('Failed to stop stream via OBS:', error);
       throw error;
     }
   }
@@ -295,24 +326,24 @@ export class LiveManagementModule extends EventEmitter implements AppModule {
    * @returns 是否成功
    */
   async startStream(): Promise<boolean> {
-    try {
-      // 检查OBS是否连接
-      if (this.obsStatus !== 'online') {
-        this.logger.warn('Cannot start stream: OBS is not connected');
-        return false;
-      }
+      try {
+        // 检查OBS是否连接
+        if (this.obsStatus !== 'online') {
+          this.logger.warn('Cannot start stream: OBS is not connected');
+          return false;
+        }
 
-      // 实际应用中，这里应该调用API或OBS WebSocket启动推流
-      // 模拟启动推流
-      this.streamStatus = 'live';
-      this.logger.info('Stream started successfully');
-      this.emit('streamStatusChanged', { status: this.streamStatus });
-      return true;
-    } catch (error) {
-      this.logger.error('Failed to start stream:', error);
-      throw error;
+        // 发送开始推流命令到OBS
+        await this.obsWebSocket.call('StartStream');
+        this.streamStatus = 'live';
+        this.logger.info('Stream started successfully via OBS');
+        this.emit('streamStatusChanged', { status: this.streamStatus });
+        return true;
+      } catch (error) {
+        this.logger.error('Failed to start stream via OBS:', error);
+        throw error;
+      }
     }
-  }
 
   /**
    * 检查OBS状态
