@@ -174,7 +174,268 @@ export function initializeHttpApi() {
     });
   }));
 
-  // ====== 应用管理相关HTTP接口 ======
+  // ====== 小程序管理相关HTTP接口 ======
+  // 获取小程序列表
+  router.get('/miniProgram/list', errorHandler(async (req: Request, res: Response) => {
+    const result = await globalThis.appManager.getMiniPrograms();
+    res.json<ApiResponse<MiniProgramInfo[]>>({ success: true, data: result });
+  }));
+
+  // 添加小程序验证函数
+  const validateAddMiniProgram = (req: Request): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    if (!req.body.name) errors.push({ field: 'name', message: '小程序名称必填' });
+    if (!req.body.path) errors.push({ field: 'path', message: '小程序路径必填' });
+    return errors;
+  };
+
+  // 添加小程序
+  router.post('/miniProgram/add', validateRequest([validateAddMiniProgram]), errorHandler(async (req: Request, res: Response) => {
+    const { name, path, config } = req.body;
+    const result = await globalThis.appManager.addMiniProgram(name, path, config);
+    res.json<ApiResponse<{ id: string }>>({ success: true, data: { id: result } });
+  }));
+
+  // 更新小程序配置
+  router.post('/miniProgram/update', errorHandler(async (req: Request, res: Response) => {
+    const { id, config } = req.body;
+    await globalThis.appManager.updateMiniProgramConfig(id, config);
+    res.json<ApiResponse<{}>>({ success: true, data: {} });
+  }));
+
+  // 删除小程序
+  router.delete('/miniProgram/:id', errorHandler(async (req: Request, res: Response) => {
+    await globalThis.appManager.removeMiniProgram(req.params.id);
+    res.json<ApiResponse<{}>>({ success: true, data: {} });
+  }));
+
+  // 数据分析模块API
+router.get('/analytics/live-stats', async (req, res) => {
+  try {
+    const stats = await appManager.getLiveStatistics();
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/analytics/audience', async (req, res) => {
+  try {
+    const audienceData = await appManager.getAudienceAnalysis();
+    res.json({ success: true, data: audienceData });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/analytics/gifts', async (req, res) => {
+// 快捷键设置相关接口
+router.get('/settings/shortcuts', async (req, res) => {
+  try {
+    const shortcuts = await appManager.getShortcuts();
+    res.json({ success: true, data: shortcuts });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/settings/shortcuts', async (req, res) => {
+  try {
+    const { shortcuts } = req.body;
+    await appManager.setShortcuts(shortcuts);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/settings/shortcuts/reset', async (req, res) => {
+  try {
+    await appManager.resetShortcuts();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 小程序市场相关接口
+router.get('/mini-programs/marketplace', async (req, res) => {
+  try {
+    const marketplaceApps = await appManager.getMarketplaceApps();
+    res.json({ success: true, data: marketplaceApps });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/mini-programs/install', async (req, res) => {
+  try {
+    const { name, source } = req.body;
+    await appManager.installMiniProgram(name, source);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/mini-programs/update', async (req, res) => {
+  try {
+    const { name } = req.body;
+    await appManager.updateMiniProgram(name);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 弹幕系统相关接口
+router.get('/danmu/send', async (req, res) => {
+  try {
+    const { roomId, content, userId, nickname } = req.query;
+    const result = await acfunDanmuModule.sendDanmu(Number(roomId), Number(userId), nickname as string, content as string);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/danmu/history', async (req, res) => {
+  try {
+    const { roomId, page = 1, pageSize = 20 } = req.query;
+    const history = await acfunDanmuModule.getDanmuHistory(Number(roomId), Number(page), Number(pageSize));
+    res.json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/danmu/block', async (req, res) => {
+  try {
+    const { roomId, userId, duration = 3600 } = req.body;
+    await acfunDanmuModule.blockUser(Number(roomId), Number(userId), Number(duration));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 房间管理相关接口
+router.get('/room/managers', async (req, res) => {
+  try {
+    const { uid, page = 1, pageSize = 20 } = req.query;
+    const managers = await acfunDanmuModule.getManagerList(Number(uid), Number(page), Number(pageSize));
+    res.json({ success: true, data: managers });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/room/managers/add', async (req, res) => {
+  try {
+    const { uid, targetId } = req.body;
+    await acfunDanmuModule.addManager(Number(uid), Number(targetId));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/room/managers/remove', async (req, res) => {
+  try {
+    const { uid, targetId } = req.body;
+    await acfunDanmuModule.removeManager(Number(uid), Number(targetId));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/room/kick', async (req, res) => {
+  try {
+    const { uid, targetId, reason, duration = 3600 } = req.body;
+    await acfunDanmuModule.managerKickUser(Number(uid), Number(targetId), reason, Number(duration));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 推流管理相关接口
+router.post('/stream/start', async (req, res) => {
+  try {
+    const { roomId, streamKey, quality = 'medium' } = req.body;
+    const result = await acfunDanmuModule.startStream(Number(roomId), streamKey, quality);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/stream/stop', async (req, res) => {
+  try {
+    const { roomId } = req.body;
+    await acfunDanmuModule.stopStream(Number(roomId));
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/stream/status', async (req, res) => {
+  try {
+    const { roomId } = req.query;
+    const status = await acfunDanmuModule.getStreamStatus(Number(roomId));
+    res.json({ success: true, data: status });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 日志系统相关接口
+router.get('/logs', async (req, res) => {
+  try {
+    const { source, level, limit = 100 } = req.query;
+    const logs = getLogManager().getLogs(source as string, Number(limit));
+    res.json({ success: true, data: logs });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.delete('/logs', async (req, res) => {
+  try {
+    const { source } = req.body;
+    if (source) {
+      getLogManager().clearLogs(source);
+    } else {
+      getLogManager().clearAllLogs();
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 系统功能相关接口
+router.get('/system/network-check', async (req, res) => {
+  try {
+    const status = await appManager.checkNetworkStatus();
+    res.json({ success: true, data: { connected: status } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/mini-programs/status', async (req, res) => {
+  try {
+    const statuses = await appManager.getMiniProgramStatuses();
+    res.json({ success: true, data: statuses });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ====== 应用管理相关HTTP接口 ======
   // 获取已安装应用
   router.get('/app/getInstalledApps', errorHandler(async (req: Request, res: Response) => {
     const result = await globalThis.appManager.getInstalledApps();

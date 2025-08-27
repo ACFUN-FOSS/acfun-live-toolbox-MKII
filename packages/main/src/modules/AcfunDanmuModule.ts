@@ -196,6 +196,31 @@ export class AcfunDanmuModule implements AppModule {
   }
 }
 
+  // 弹幕相关方法
+  async sendDanmu(roomId: number, userId: number, nickname: string, content: string): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/danmu/send`,
+      'POST',
+      { roomId, userId, nickname, content }
+    );
+  }
+
+  async getDanmuHistory(roomId: number, page: number = 1, pageSize: number = 20): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/danmu/history`,
+      'GET',
+      { roomId, page, pageSize }
+    );
+  }
+
+  async blockUser(roomId: number, userId: number, duration: number = 3600): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/danmu/block`,
+      'POST',
+      { roomId, userId, duration }
+    );
+  }
+
   // 房管相关方法
   async getManagerList(uid: number, page: number = 1, pageSize: number = 20): Promise<any> {
     return this.callAcfunDanmuApi(
@@ -291,6 +316,31 @@ export class AcfunDanmuModule implements AppModule {
       `/medal/unwear`,
       'POST',
       { uid }
+    );
+  }
+
+  // 推流管理相关方法
+  async startStream(roomId: number, streamKey: string, quality: string): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/stream/start`,
+      'POST',
+      { roomId, streamKey, quality }
+    );
+  }
+
+  async stopStream(roomId: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/stream/stop`,
+      'POST',
+      { roomId }
+    );
+  }
+
+  async getStreamStatus(roomId: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/stream/status`,
+      'GET',
+      { roomId }
     );
   }
 

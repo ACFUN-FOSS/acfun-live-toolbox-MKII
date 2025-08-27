@@ -204,7 +204,7 @@ const clearConfigCache = async () => {
         <div class="setting-label">配置缓存大小</div>
         <div class="cache-info">
           {{ settings.cacheSize }}
-          <Button @click="clearConfigCache" class="action-btn">清理缓存</Button>
+          <Button @click="clearConfigCache" class="action-btn" :disabled="true">清理缓存</Button>
         </div>
       </div>
       <div class="setting-item">
