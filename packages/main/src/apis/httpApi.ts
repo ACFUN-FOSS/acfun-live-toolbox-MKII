@@ -57,12 +57,44 @@ export function initializeHttpApi() {
 
 
   // 健康检查接口
-  router.get('/health', errorHandler(async (req: Request, res: Response) => {
-    res.json<ApiResponse<{ status: string; timestamp: string }>>({
-      success: true,
-      data: { status: 'ok', timestamp: new Date().toISOString() }
-    });
-  }));
+router.get('/health', errorHandler(async (req: Request, res: Response) => {
+  res.json<ApiResponse<{ status: string; timestamp: string }>>({
+    success: true,
+    data: { status: 'ok', timestamp: new Date().toISOString() }
+  });
+}));
+
+// 用户认证相关接口
+const validateLogin = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (!req.body.username) errors.push({ field: 'username', message: '用户名必填' });
+  if (!req.body.password) errors.push({ field: 'password', message: '密码必填' });
+  return errors;
+};
+
+// 用户登录
+router.post('/auth/login', validateRequest([validateLogin]), errorHandler(async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  const token = await acfunDanmuModule.login(username, password);
+  res.json<ApiResponse<{ token }>>({ success: true, data: { token } });
+}));
+
+// 用户注销
+router.post('/auth/logout', errorHandler(async (req: Request, res: Response) => {
+  const { token } = req.body;
+  await acfunDanmuModule.logout(token);
+  res.json<ApiResponse<{}>>({ success: true, data: {} });
+}));
+
+// 验证用户令牌
+router.get('/auth/verify', errorHandler(async (req: Request, res: Response) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json<ApiResponse>({ success: false, error: '未提供令牌' });
+  }
+  const isValid = await acfunDanmuModule.verifyToken(token);
+  res.json<ApiResponse<{ valid: boolean }>>({ success: true, data: { valid: isValid } });
+}));
 
   // 窗口关闭验证函数
   const validateWindowClose = (req: Request): ValidationError[] => {
@@ -209,27 +241,7 @@ export function initializeHttpApi() {
     res.json<ApiResponse<{}>>({ success: true, data: {} });
   }));
 
-  // 数据分析模块API
-router.get('/analytics/live-stats', async (req, res) => {
-  try {
-    const stats = await appManager.getLiveStatistics();
-    res.json({ success: true, data: stats });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.get('/analytics/audience', async (req, res) => {
-  try {
-    const audienceData = await appManager.getAudienceAnalysis();
-    res.json({ success: true, data: audienceData });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-router.get('/analytics/gifts', async (req, res) => {
-// 快捷键设置相关接口
+  // 快捷键设置相关接口
 router.get('/settings/shortcuts', async (req, res) => {
   try {
     const shortcuts = await appManager.getShortcuts();
@@ -391,6 +403,38 @@ router.get('/stream/status', async (req, res) => {
   }
 });
 
+// RTMP配置管理
+router.post('/stream/saveRtmpConfig', async (req, res) => {
+  try {
+    const { roomId, rtmpUrl, streamKey } = req.body;
+    const result = await acfunDanmuModule.saveRtmpConfig(Number(roomId), rtmpUrl, streamKey);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/stream/getRtmpConfig', async (req, res) => {
+  try {
+    const { roomId } = req.query;
+    const config = await acfunDanmuModule.getRtmpConfig(Number(roomId));
+    res.json({ success: true, data: config });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// OBS连接状态监控
+router.get('/stream/obsStatus', async (req, res) => {
+  try {
+    const { roomId } = req.query;
+    const status = await acfunDanmuModule.getObsConnectionStatus(Number(roomId));
+    res.json({ success: true, data: status });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // 日志系统相关接口
 router.get('/logs', async (req, res) => {
   try {
@@ -430,6 +474,28 @@ router.get('/mini-programs/status', async (req, res) => {
   try {
     const statuses = await appManager.getMiniProgramStatuses();
     res.json({ success: true, data: statuses });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 小程序安装接口
+router.post('/mini-program/install', async (req, res) => {
+  try {
+    const { packageUrl, version } = req.body;
+    const result = await appManager.installMiniProgram(packageUrl, version);
+    res.json({ success: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 小程序更新接口
+router.post('/mini-program/update', async (req, res) => {
+  try {
+    const { appId } = req.body;
+    const result = await appManager.updateMiniProgram(appId);
+    res.json({ success: result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

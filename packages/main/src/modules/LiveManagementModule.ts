@@ -3,6 +3,7 @@ import { getLogManager } from '../utils/LogManager.js';
 import { AppModule } from '../AppModule.js';
 import { ModuleContext } from '../ModuleContext.js';
 import OBSWebSocket from 'obs-websocket-js';
+import fetch from 'node-fetch';
 
 // 直播管理模块配置接口
 export interface LiveManagementConfig {
@@ -157,8 +158,8 @@ private obsStatus: OBSStatus = 'offline';
       // 实际应用中，这里应该调用API获取真实推流码
       // 如果没有推流码，则生成一个模拟的
       if (!this.config.streamKey) {
-        this.config.streamKey = this.generateMockStreamKey();
-      }
+      this.config.streamKey = await this.fetchStreamKeyFromAPI();
+    }
       return {
         server: this.config.rtmpServer || 'rtmp://push.acfun.cn/live',
         key: this.config.streamKey
@@ -176,7 +177,7 @@ private obsStatus: OBSStatus = 'offline';
   async refreshStreamKey(): Promise<{ server: string; streamKey: string }> {
     try {
       // 实际应用中，这里应该调用API刷新推流码
-      this.config.streamKey = this.generateMockStreamKey();
+      this.config.streamKey = await this.fetchStreamKeyFromAPI();
       this.logger.info('Stream key refreshed');
       return {
         server: this.config.rtmpServer || 'rtmp://push.acfun.cn/live',
@@ -192,6 +193,39 @@ private obsStatus: OBSStatus = 'offline';
    * 连接OBS
    * @returns 是否成功
    */
+  private async fetchStreamKeyFromAPI(attempt = 0): Promise<string> {
+    try {
+      if (!this.config.roomId) {
+        throw new Error('Room ID is not configured');
+      }
+      
+      // 调用真实API获取推流码
+      const response = await fetch(`https://api.acfun.cn/v2/rooms/${this.config.roomId}/stream-key`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${global.authToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stream key: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      this.reconnectAttempts = 0; // 重置重试计数器
+      return data.streamKey;
+    } catch (error) {
+      if (attempt < this.maxReconnectAttempts) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), this.maxReconnectDelay);
+        this.logger.warn(`Stream key fetch failed, retrying in ${delay}ms (attempt ${attempt + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.fetchStreamKeyFromAPI(attempt + 1);
+      }
+      this.logger.error('Max retries reached for stream key fetch');
+      throw error;
+    }
+  }
+
   async connectOBS(): Promise<boolean> {
   try {
     this.obsStatus = 'connecting';
@@ -220,6 +254,43 @@ private obsStatus: OBSStatus = 'offline';
     throw error;
   }
 }
+
+  /**
+   * 同步推流配置到OBS并开始直播
+   */
+  async syncStartBroadcast(): Promise<boolean> {
+    try {
+      if (this.obsStatus !== 'online') {
+        await this.connectOBS();
+      }
+
+      // 获取推流码
+      const { server, key } = await this.getStreamKey();
+      if (!server || !key) {
+        throw new Error('推流码获取失败');
+      }
+
+      // 设置OBS推流配置
+      await this.obsWebSocket.call('SetStreamServiceSettings', {
+        streamServiceType: 'rtmp_custom',
+        streamServiceSettings: {
+          server,
+          key,
+          useAuth: false
+        }
+      });
+
+      // 开始推流
+      await this.obsWebSocket.call('StartStream');
+      this.streamStatus = 'live';
+      this.logger.info('直播已同步开始');
+      this.emit('streamStatusChanged', { status: this.streamStatus });
+      return true;
+    } catch (error) {
+      this.logger.error('同步开播失败:', error);
+      throw error;
+    }
+  }
 
   /**
    * 获取OBS状态

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import { Card, Row, Col, Statistic, Message, Skeleton } from 'tdesign-vue-next';
+import { ref, onMounted, onUnmounted, reactive } from 'vue';
+import { LineChart, BarChart, PieChart, Card, Select, Table } from 'tdesign-vue-next';
+import { Card, Row, Col, Statistic, Message, Skeleton, LineChart, PieChart, PieChartItem, LineChartSeries, LineChartXAxis, LineChartYAxis, LineChartTooltip, BarChart, BarChartXAxis, BarChartYAxis, BarChartSeries, BarChartTooltip, Table } from 'tdesign-vue-next';
 import { ipcRenderer } from 'electron';
 
 // 状态数据
@@ -9,6 +10,22 @@ const userInfo = ref<{ name: string, avatar: string }>({
   name: '未登录',
   avatar: 'https://picsum.photos/200'
 });
+
+// 图表数据
+const chartData = ref<{
+  audienceTrend: Array<{
+    time: string,
+    viewers: number
+  }>,
+  giftStats: Array<{
+    name: string,
+    value: number
+  }>
+}>({
+  audienceTrend: [],
+  giftStats: [],
+    topViewers: []
+  });
 
 // 统计数据
 const statsData = ref<{
@@ -66,7 +83,30 @@ if (statsResult.success) {
 }
 
     // 调用API获取动态内容块
-    const blocksResult = await ipcRenderer.invoke('dashboard:getDynamicBlocks');
+const blocksResult = await ipcRenderer.invoke('dashboard:getDynamicBlocks');
+
+// 获取观众趋势数据
+const trendResult = await ipcRenderer.invoke('dashboard:getAudienceTrend');
+if (trendResult.success) {
+  chartData.value.audienceTrend = trendResult.data || [];
+} else {
+  console.warn('获取观众趋势数据失败:', trendResult.error);
+}
+
+// 获取礼物统计数据
+const giftResult = await ipcRenderer.invoke('dashboard:getGiftStats');
+if (giftResult.success) {
+  chartData.value.giftStats = giftResult.data?.giftStats || [];
+  // 处理观众排行数据
+  chartData.value.topViewers = giftResult.data?.topViewers.map((item: any) => ({
+    rank: item.rank,
+    username: item.username,
+    watchTime: item.duration,
+    gifts: item.giftCount
+  })) || [];
+} else {
+  console.warn('获取礼物统计数据失败:', giftResult.error);
+}
 if (blocksResult.success) {
   dynamicBlocks.value = blocksResult.data;
 } else {
@@ -148,7 +188,15 @@ onUnmounted(() => {
               :value-style="{ color: 'var(--td-brand-color)' }"
             />
           </Card>
-        </Col>
+        <Card title="观众贡献排行" style="margin-top: 16px;">
+          <Table :data="chartData.topViewers" :columns="[
+            { title: '排名', dataKey: 'rank', width: 80 },
+            { title: '用户名', dataKey: 'username' },
+            { title: '观看时长(分钟)', dataKey: 'watchTime' },
+            { title: '礼物数量', dataKey: 'gifts' }
+          ]" />
+        </Card>
+      </Col>
         <Col xs="24" sm="12" md="6">
           <Card class="stats-card">
             <Statistic
@@ -174,6 +222,39 @@ onUnmounted(() => {
               :value="statsData.acCoinCount"
               :value-style="{ color: 'var(--td-danger-color)' }"
             />
+          </Card>
+        </Col>
+      </Row>
+
+      <!-- 数据图表区域 -->
+      <Row gutter="20" class="charts-row row-frame">
+        <Col xs="24" md="12">
+          <Card class="chart-card">
+            <h3>观众趋势图</h3>
+            <LineChart :data="chartData.audienceTrend" height="300">
+          <LineChartXAxis field="time" />
+          <LineChartYAxis field="viewers" />
+          <LineChartSeries field="viewers" smooth />
+          <LineChartTooltip />
+        </LineChart>
+
+        <Card title="小时数据对比" style="margin-top: 16px;">
+          <BarChart :data="chartData.hourlyComparison" height="300">
+            <BarChartXAxis field="hour" />
+            <BarChartYAxis />
+            <BarChartSeries field="current" name="当前小时" />
+            <BarChartSeries field="previous" name="昨日同期" />
+            <BarChartTooltip />
+          </BarChart>
+        </Card>
+          </Card>
+        </Col>
+        <Col xs="24" md="12">
+          <Card class="chart-card">
+            <h3>礼物统计</h3>
+            <PieChart :data="chartData.giftStats" height="300">
+              <PieChartItem nameField="name" valueField="value" radius="40%" />
+            </PieChart>
           </Card>
         </Col>
       </Row>

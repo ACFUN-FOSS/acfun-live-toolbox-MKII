@@ -360,15 +360,19 @@ const saveRoomInfo = async () => {
 const handleCoverUpload = async (file: File) => {
   try {
     uploadLoading.value = true;
-    // 模拟上传，实际应调用API
-    // 这里只是将文件转换为base64预览
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      roomInfo.coverUrl = e.target?.result as string;
+    const formData = new FormData();
+    formData.append('cover', file);
+    
+    // 调用实际上传API
+    const response = await window.api.live.uploadCover(formData);
+    if (response.success) {
+      roomInfo.coverUrl = response.data.coverUrl;
       uploadLoading.value = false;
       TMessage.success('封面上传成功');
-    };
-    reader.readAsDataURL(file);
+    } else {
+      uploadLoading.value = false;
+      TMessage.error('上传封面失败: ' + response.error);
+    }
   } catch (error) {
     console.error('上传封面失败:', error);
     uploadLoading.value = false;

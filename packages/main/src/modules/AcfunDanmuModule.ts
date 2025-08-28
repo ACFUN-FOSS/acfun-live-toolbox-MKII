@@ -5,6 +5,7 @@ import path from 'path';
 import { app } from 'electron';
 import { getPackageJson } from '../utils/Devars.js';
 import { getLogManager } from '../utils/LogManager.js';
+import WebSocket from 'ws';
 
 // 定义配置接口
 interface AcfunDanmuConfig {
@@ -24,6 +25,8 @@ const DEFAULT_CONFIG: AcfunDanmuConfig = {
 
 export class AcfunDanmuModule implements AppModule {
   private process: ChildProcess | null = null;
+  private obsWebSocket: WebSocket | null = null;
+  private obsConnectionStatus: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
   private config: AcfunDanmuConfig;
   private logCallback: ((message: string, type: 'info' | 'error') => void) | null = null;
   private logManager: ReturnType<typeof getLogManager>;
@@ -317,6 +320,112 @@ export class AcfunDanmuModule implements AppModule {
       'POST',
       { uid }
     );
+  }
+
+  // RTMP地址管理
+  async saveRtmpConfig(roomId: number, rtmpUrl: string, streamKey: string): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/stream/saveRtmpConfig`,
+      'POST',
+      { roomId, rtmpUrl, streamKey }
+    );
+  }
+
+  async getRtmpConfig(roomId: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/stream/getRtmpConfig`,
+      'GET',
+      { roomId }
+    );
+  }
+
+  // OBS连接状态监控
+  async getObsConnectionStatus(roomId: number): Promise<any> {
+    return this.callAcfunDanmuApi(
+      `/stream/obsStatus`,
+      'GET',
+      { roomId }
+    );
+  }
+
+  // RTMP配置管理
+  async saveRtmpConfig(roomId: number, rtmpUrl: string, streamKey: string): Promise<boolean> {
+    try {
+      const rtmpConfigs = this.configManager.readConfig().rtmpConfigs || {};
+      rtmpConfigs[roomId] = { rtmpUrl, streamKey, updatedAt: new Date().toISOString() };
+      this.configManager.writeConfig({ rtmpConfigs });
+      return true;
+    } catch (error) {
+      this.logManager.addLog('AcfunDanmuModule', `Failed to save RTMP config: ${error.message}`, 'error');
+      return false;
+    }
+  }
+
+  async getRtmpConfig(roomId: number): Promise<{rtmpUrl: string, streamKey: string} | null> {
+    try {
+      const rtmpConfigs = this.configManager.readConfig().rtmpConfigs || {};
+      return rtmpConfigs[roomId] || null;
+    } catch (error) {
+      this.logManager.addLog('AcfunDanmuModule', `Failed to get RTMP config: ${error.message}`, 'error');
+      return null;
+    }
+  }
+
+  // OBS连接管理
+  private setupOBSWebSocket(obsHost: string, obsPort: number, password: string): void {
+    const wsUrl = `ws://${obsHost}:${obsPort}/ws`;
+    this.obsWebSocket = new WebSocket(wsUrl);
+    this.obsConnectionStatus = 'connecting';
+
+    this.obsWebSocket.on('open', () => {
+      this.logManager.addLog('AcfunDanmuModule', 'OBS WebSocket connected', 'info');
+      this.obsConnectionStatus = 'connected';
+      // 发送认证请求
+      this.obsWebSocket?.send(JSON.stringify({
+        "op": 1,
+        "d": {
+          "rpcVersion": 1,
+          "authentication": password
+        }
+      }));
+    });
+
+    this.obsWebSocket.on('close', () => {
+      this.logManager.addLog('AcfunDanmuModule', 'OBS WebSocket disconnected', 'info');
+      this.obsConnectionStatus = 'disconnected';
+      // 自动重连逻辑
+      setTimeout(() => this.setupOBSWebSocket(obsHost, obsPort, password), 5000);
+    });
+
+    this.obsWebSocket.on('error', (error) => {
+      this.logManager.addLog('AcfunDanmuModule', `OBS WebSocket error: ${error.message}`, 'error');
+      this.obsConnectionStatus = 'disconnected';
+    });
+
+    this.obsWebSocket.on('message', (data) => {
+      const message = JSON.parse(data.toString());
+      // 处理OBS事件通知
+      if (message.op === 5) {
+        this.logManager.addLog('AcfunDanmuModule', `OBS event: ${message.d.eventType}`, 'info');
+        // 可扩展处理具体事件（如流状态变化）
+      }
+    });
+  }
+
+  connectToOBS(obsHost: string = 'localhost', obsPort: number = 4455, password: string = ''): void {
+    this.setupOBSWebSocket(obsHost, obsPort, password);
+  }
+
+  disconnectFromOBS(): void {
+    if (this.obsWebSocket) {
+      this.obsWebSocket.close();
+      this.obsWebSocket = null;
+      this.obsConnectionStatus = 'disconnected';
+    }
+  }
+
+  getOBSConnectionStatus(): 'disconnected' | 'connecting' | 'connected' {
+    return this.obsConnectionStatus;
   }
 
   // 推流管理相关方法

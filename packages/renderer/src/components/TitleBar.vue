@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { DialogPlugin, Button as TButton } from "tdesign-vue-next";
+import { ipcRenderer } from 'electron';
+import { darkMode, toggleTheme } from '../composables/useTheme';
+import { DialogPlugin, Button as TButton, Switch } from "tdesign-vue-next";
 
 // 扩展Window接口以包含我们的API
 declare global {
@@ -69,7 +71,10 @@ const closeWindow = () => {
 <template>
   <div class="title-bar">
     <div class="app-title">AcFrame直播框架</div>
-    <div class="window-controls">
+    <div class="theme-toggle">
+  <Switch v-model="darkMode" @change="toggleTheme" />
+</div>
+<div class="window-controls">
       <div style="margin-right: 8px; display: flex; align-items: center">
         <span style="margin-right: 4px; font-size: 12px" class="dark-mode"
           >深色模式</span

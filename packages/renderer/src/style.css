@@ -29,8 +29,9 @@
 
   /* 边框色 */
   --td-border-color: #E5E6EB;
-  --td-border-color-light: #F2F3F5;
-  --td-border-color-dark: #C9CDD4;
+  --td-bg-color: #ffffff;
+--td-text-color: #1d2129;
+--td-border-color: #e5e6eb;
 
   /* 尺寸变量 */
   --td-radius-small: 2px;
@@ -50,7 +51,13 @@
 }
 
 /* 深色模式主题变量 */
-:root[theme-mode="dark"] {
+:root[data-theme="light"] {}
+:root[data-theme="dark"] {
+  --td-bg-color: #1e293b;
+  --td-text-color: #f8fafc;
+  --td-border-color: #334155;
+}
+
   /* 品牌色保持不变 */
   --td-brand-color: #1890ff;
   --td-brand-color: #1890ff;

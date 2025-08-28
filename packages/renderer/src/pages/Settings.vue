@@ -9,20 +9,57 @@ const settings = ref<{
   streamToolPath: string,
   serverPort: number,
   signalingPort: number,
-  cacheSize: string
+  cacheSize: string,
+  theme: string,
+  logLevel: string,
+  apiDebugMode: boolean,
+  toolbarActions?: Array<{ name: string; icon: string; tooltip: string }>
 }>({
   syncStreamTool: false,
   streamToolPath: '',
   serverPort: 1299,
   signalingPort: 4396,
-  cacheSize: '0 MB'
+  cacheSize: '0 MB',
+  theme: 'light',
+  toolbarActions: []
 });
+const themeOptions = [
+  { label: '浅色主题', value: 'light' },
+  { label: '深色主题', value: 'dark' }
+];
+
+const handleThemeChange = (theme: string) => {
+  document.documentElement.setAttribute('data-theme', theme);
+};
+
+const selectedActions = ref<string[]>([]);
+const activeNames = ref<string[]>(['toolbar']);
+const toolbarActionOptions = [
+  { name: 'startLive', icon: 'play-circle', tooltip: '开始直播' },
+  { name: 'stopLive', icon: 'pause-circle', tooltip: '停止直播' },
+  { name: 'refreshData', icon: 'refresh', tooltip: '刷新数据' },
+  { name: 'settings', icon: 'setting', tooltip: '设置' },
+  { name: 'help', icon: 'question-circle', tooltip: '帮助' },
+];
+
+const loadToolbarSettings = () => {
+  selectedActions.value = settings.value.toolbarActions?.map(action => action.name) || [];
+};
+
+const saveToolbarSettings = async () => {
+  settings.value.toolbarActions = toolbarActionOptions.filter(option =>
+    selectedActions.value.includes(option.name)
+  );
+  await saveSettings();
+  Message.success('工具栏配置保存成功');
+};
 
 // 页面加载时获取设置
 onMounted(async () => {
   try {
     const data = await ipcRenderer.invoke('settings:getSettings');
     settings.value = data;
+    loadToolbarSettings(); // 加载工具栏设置
   } catch (error) {
     Message.error(`获取设置失败: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -121,11 +158,39 @@ const clearConfigCache = async () => {
 
     <!-- 系统区域 -->
     <div class="setting-section">
-      <h2 class="section-title">系统</h2>
-      <p class="section-desc">系统相关设置和操作</p>
-      <Button @click="openFolder('控制台')" class="action-btn">
-        打开控制台
-      </Button>
+  <h2 class="section-title">系统</h2>
+  <p class="section-desc">系统相关设置和操作</p>
+  <div class="setting-item">
+    <div class="setting-label">主题模式</div>
+    <Select v-model="settings.theme" :options="themeOptions" @change="handleThemeChange" />
+  </div>
+  <Button @click="openFolder('控制台')" class="action-btn">
+    打开控制台
+  </Button>
+</div>
+
+    <!-- 快捷工具栏配置区域 -->
+    <div class="setting-section">
+      <h2 class="section-title">快捷工具栏配置</h2>
+      <div class="toolbar-settings">
+        <Collapse v-model="activeNames" class="setting-section">
+          <CollapsePanel name="toolbar" header="快捷工具栏配置">
+            <div class="toolbar-settings-content">
+              <Space direction="vertical" size="large">
+                <CheckboxGroup v-model="selectedActions" :options="toolbarActionOptions">
+                  <template #label="{ option }">
+                    <div class="action-item">
+                      <Icon :name="option.icon" class="action-icon" />
+                      <span>{{ option.tooltip }}</span>
+                    </div>
+                  </template>
+                </CheckboxGroup>
+                <Button @click="saveToolbarSettings" type="primary">保存配置</Button>
+              </Space>
+            </div>
+          </CollapsePanel>
+        </Collapse>
+      </div>
     </div>
 
     <!-- 推流工具路径区域 -->

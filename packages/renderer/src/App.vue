@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import QuickToolbar from './components/QuickToolbar.vue';
 import { Layout as TLayout, Content as TContent } from "tdesign-vue-next";
 import TitleBar from "./components/TitleBar.vue";
 import Sidebar from "./components/Sidebar.vue";
 </script>
 
 <template>
+  <QuickToolbar />
   <div class="app-container">
     <!-- 标题栏组件 -->
     <TitleBar />

@@ -3,7 +3,8 @@
     <t-card class="page-header-card" title="小程序管理中心">
       <template #extra>
         <t-input placeholder="搜索小程序..." class="search-input" />
-        <t-button icon="plus" theme="primary" class="ml-2">添加小程序</t-button>
+        <t-button icon="plus" theme="primary" class="ml-2" @click="showInstallModal = true">添加小程序</t-button>
+          <t-button icon="download" theme="default" class="ml-2" @click="checkUpdates">检查更新</t-button>
       </template>
     </t-card>
 
@@ -12,10 +13,31 @@
       <t-tab-panel value="live" label="直播工具">直播相关小程序</t-tab-panel>
       <t-tab-panel value="utility" label="实用工具">实用工具类小程序</t-tab-panel>
       <t-tab-panel value="custom" label="自定义">自定义开发小程序</t-tab-panel>
+      <t-tab-panel value="marketplace" label="小程序市场">探索更多小程序</t-tab-panel>
     </t-tabs>
 
     <div class="program-grid mt-4">
-      <t-card class="program-card" v-for="program in programList" :key="program.id">
+      <t-skeleton v-if="isLoading" :rows="6" :columns="3" />
+      <template v-else-if="activeTab === 'marketplace'">
+        <t-card class="program-card" v-for="app in marketplaceApps" :key="app.id">
+          <div class="program-icon">
+            <img :src="app.icon || '/icons/default.png'" alt="{{ app.name }}" />
+          </div>
+          <div class="program-info">
+            <h3 class="program-name">{{ app.name }}</h3>
+            <p class="program-desc">{{ app.description }}</p>
+            <div class="program-meta">
+              <span class="version">v{{ app.version }}</span>
+              <span class="category">{{ app.category }}</span>
+            </div>
+          </div>
+          <div class="program-actions">
+            <t-button @click="handleMarketplaceInstall(app)" theme="primary">安装</t-button>
+          </div>
+        </t-card>
+      </template>
+      <template v-else>
+        <t-card class="program-card" v-for="program in programList" :key="program.id">
         <div class="program-icon">
           <img :src="program.icon" alt="{{ program.name }}" />
         </div>
@@ -50,11 +72,57 @@
       <span>共 {{ programList.length }} 个小程序</span>
       <t-pagination :total="programList.length" :page-size="8" />
     </div>
+      <!-- 小程序安装模态框 -->
+      <t-dialog
+        v-model:visible="showInstallModal"
+        header="安装小程序"
+        :width="500"
+      >
+        <div class="install-form">
+          <t-input
+            v-model="newProgramUrl"
+            placeholder="输入小程序URL或上传本地包"
+            class="mb-4"
+          />
+          <t-input
+            v-model="newProgramName"
+            placeholder="小程序名称"
+            class="mb-4"
+          />
+        </div>
+        <template #footer>
+          <t-button @click="showInstallModal = false">取消</t-button>
+          <t-button theme="primary" @click="handleInstall">安装</t-button>
+        </template>
+      </t-dialog>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue';
+const showInstallModal = ref(false);
+const newProgramUrl = ref('');
+const newProgramName = ref('');
+
+const handleInstall = () => {
+  if (!newProgramUrl.value) {
+    TMessage.error('请输入小程序URL');
+    return;
+  }
+  const newProgram = {
+    id: Date.now().toString(),
+    name: newProgramName.value || '新小程序',
+    description: '新安装的小程序',
+    icon: '/icons/default.png',
+    version: '1.0.0',
+    status: 'stopped',
+    category: 'custom'
+  };
+  programList.value.push(newProgram);
+  showInstallModal.value = false;
+  TMessage.success(`已成功安装 ${newProgram.name}`);
+};
+  import { TDialog, TInput, TButton, TMessage } from 'tdesign-vue-next';
 import { TCard, TInput, TButton, TTabs, TTabPanel, TDropdown, TDropdownItem, TPagination } from 'tdesign-vue-next';
 import { ipcRenderer } from 'electron';
 import { TMessage } from 'tdesign-vue-next';
@@ -73,35 +141,47 @@ interface MiniProgram {
   };
 }
 
-const programList = ref<MiniProgram[]>([
-  {
-    id: '1',
-    name: '弹幕助手',
-    description: '增强弹幕互动体验的工具',
-    icon: '/icons/danmu-assistant.png',
-    version: '1.2.0',
-    status: 'running',
-    category: 'live'
-  },
-  {
-    id: '2',
-    name: '自动回复',
-    description: '设置关键词自动回复',
-    icon: '/icons/auto-reply.png',
-    version: '1.0.3',
-    status: 'stopped',
-    category: 'utility'
-  },
-  {
-    id: '3',
-    name: '数据统计',
-    description: '详细的直播数据分析工具',
-    icon: '/icons/statistics.png',
-    version: '2.1.0',
-    status: 'stopped',
-    category: 'utility'
+const programList = ref<MiniProgram[]>([]);
+const marketplaceApps = ref<any[]>([]);
+const activeTab = ref('all');
+const isLoading = ref(false);
+
+// 初始化加载已安装小程序
+onMounted(async () => {
+  fetchInstalledPrograms();
+});
+
+const fetchInstalledPrograms = async () => {
+  isLoading.value = true;
+  try {
+    // 实际项目中应替换为真实API调用
+    const response = await window.api.getInstalledMiniPrograms();
+    programList.value = response;
+  } catch (error) {
+    TMessage.error('获取已安装小程序失败');
+    console.error(error);
+  } finally {
+    isLoading.value = false;
   }
-]);
+};
+
+const fetchMarketplaceApps = async () => {
+  isLoading.value = true;
+  try {
+    marketplaceApps.value = await window.api.getMarketplaceApps();
+  } catch (error) {
+    TMessage.error('获取小程序市场列表失败');
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+watch(activeTab, (newVal) => {
+  if (newVal === 'marketplace') {
+    fetchMarketplaceApps();
+  }
+});
 
 const formatStatus = (status: string) => {
   const statusMap = {
@@ -111,6 +191,12 @@ const formatStatus = (status: string) => {
     updating: '更新中'
   };
   return statusMap[status] || status;
+};
+
+const handleMarketplaceInstall = async (app: any) => {
+  newProgramName.value = app.name;
+  newProgramUrl.value = app.packageUrl;
+  showInstallModal.value = true;
 };
 
 const handleAction = async (program: MiniProgram, action: string) => {
