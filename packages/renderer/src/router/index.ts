@@ -1,71 +1,39 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
-import type { RouteRecordRaw } from 'vue-router';
-// 使用preload脚本暴露的ipcRenderer
-const { ipcRenderer } = window;
-
-import Login from '../pages/Login.vue';
-import Dashboard from '../pages/Dashboard.vue';
+import { createRouter, createWebHashHistory, RouteRecordRaw } from 'vue-router';
+import Login from '../views/Login.vue';
+import Dashboard from '../views/Dashboard.vue';
+import { ipcRenderer } from 'electron';
 import Home from '../pages/index.vue';
 import AppView from '../pages/AppView.vue';
 import LiveManagement from '../pages/LiveManagement.vue';
 import Settings from '../pages/Settings.vue';
 import StreamMonitor from '../pages/StreamMonitor.vue';
 
-const routes: RouteRecordRaw[] = [
+const routes: Array<RouteRecordRaw> = [
   {
     path: '/login',
-    name: 'login',
+    name: 'Login',
     component: Login,
     meta: {
-      title: '登录',
-    },
+      requiresAuth: false
+    }
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: Dashboard,
+    meta: {
+      requiresAuth: true
+    }
   },
   {
     path: '/',
-    name: 'dashboard',
-    component: Dashboard,
-    meta: {
-      title: '仪表盘',
-      requiresAuth: true
-    },
+    redirect: '/login'
   },
   {
-    path: '/app/:appId',
-    name: 'app-view',
-    component: AppView,
-    meta: {
-      title: '应用视图',
-    },
-    props: true
-  },
-  {
-    path: '/live-management',
-    name: 'liveManagement',
-    component: LiveManagement,
-    meta: {
-      title: '直播管理',
-      requiresAuth: true
-    },
-  },
-  {
-    path: '/settings',
-    name: 'settings',
-    component: Settings,
-    meta: {
-      title: '系统设置',
-      requiresAuth: true
-    },
-  },
-  {
-    path: '/stream-monitor',
-    name: 'streamMonitor',
-    component: StreamMonitor,
-    meta: {
-      title: '直播监控',
-      requiresAuth: true
-    },
-  },
-];
+    path: '/:pathMatch(.*)*',
+    redirect: '/login'
+  }
+]
 
 // 动态加载应用路由
 const loadAppRoutes = async () => {
@@ -97,7 +65,41 @@ const loadAppRoutes = async () => {
 
 const router = createRouter({
   history: createWebHashHistory(),
-  routes,
+  routes
+});
+
+// 路由守卫
+router.beforeEach(async (to, from, next) => {
+  // 检查是否需要认证
+  if (to.meta.requiresAuth) {
+    try {
+      // 获取存储的会话令牌
+      const sessionStr = localStorage.getItem('session') || sessionStorage.getItem('session');
+      if (!sessionStr) {
+        next('/login');
+        return;
+      }
+
+      const session = JSON.parse(sessionStr);
+      // 检查会话状态
+      const authStatus = await ipcRenderer.invoke('checkAuthStatus', session.token);
+      if (authStatus.success && authStatus.status) {
+        // 会话有效，继续访问
+        next();
+      } else {
+        // 会话无效，重定向到登录页
+        localStorage.removeItem('session');
+        sessionStorage.removeItem('session');
+        next('/login');
+      }
+    } catch (error) {
+      console.error('路由守卫错误:', error);
+      next('/login');
+    }
+  } else {
+    // 不需要认证的页面
+    next();
+  }
 });
 
 // 路由守卫

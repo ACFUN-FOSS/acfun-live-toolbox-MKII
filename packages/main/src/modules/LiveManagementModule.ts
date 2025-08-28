@@ -280,6 +280,9 @@ private obsStatus: OBSStatus = 'offline';
         }
       });
 
+      // 自动配置OBS场景和源
+      await this.configureOBSScene();
+
       // 开始推流
       await this.obsWebSocket.call('StartStream');
       this.streamStatus = 'live';
@@ -291,6 +294,74 @@ private obsStatus: OBSStatus = 'offline';
       throw error;
     }
   }
+
+  /**
+   * 配置OBS场景和源
+   */
+  private async configureOBSScene(): Promise<void> {
+    try {
+      // 检查场景是否存在，不存在则创建
+      const sceneName = 'ACFun直播场景';
+      const scenes = await this.obsWebSocket.call('GetSceneList');
+      const sceneExists = scenes.scenes.some(s => s.sceneName === sceneName);
+
+      if (!sceneExists) {
+        await this.obsWebSocket.call('CreateScene', { sceneName });
+        this.logger.info(`创建OBS场景: ${sceneName}`);
+      }
+
+      // 设置当前场景
+      await this.obsWebSocket.call('SetCurrentScene', { sceneName });
+
+      // 添加或更新显示器捕获源
+      const displaySourceName = '主显示器';
+      const sources = await this.obsWebSocket.call('GetSourcesList');
+      const displaySourceExists = sources.sources.some(s => s.sourceName === displaySourceName);
+
+      if (!displaySourceExists) {
+        await this.obsWebSocket.call('CreateSource', {
+          sceneName,
+          sourceName: displaySourceName,
+          sourceKind: 'monitor_capture',
+          sourceSettings: {
+            monitor: 0 // 使用第一个显示器
+          }
+        });
+        this.logger.info(`添加显示器捕获源: ${displaySourceName}`);
+      }
+
+      // 添加或更新文本源显示直播标题
+      const titleSourceName = '直播标题';
+      const titleSourceExists = sources.sources.some(s => s.sourceName === titleSourceName);
+      const roomInfo = await this.getRoomInfo();
+
+      if (!titleSourceExists) {
+        await this.obsWebSocket.call('CreateSource', {
+          sceneName,
+          sourceName: titleSourceName,
+          sourceKind: 'text_gdiplus',
+          sourceSettings: {
+            text: roomInfo.title || 'ACFun直播',
+            font: { face: 'Microsoft YaHei', size: 36 },
+            color: 0xFFFFFF,
+            position: { x: 50, y: 50 }
+          }
+        });
+        this.logger.info(`添加文本源: ${titleSourceName}`);
+      } else {
+        await this.obsWebSocket.call('SetSourceSettings', {
+          sourceName: titleSourceName,
+          sourceSettings: {
+            text: roomInfo.title || 'ACFun直播'
+          }
+        });
+      }
+
+      this.logger.info('OBS场景配置完成');
+    } catch (error) {
+      this.logger.error('配置OBS场景失败:', error);
+      throw error;
+    }
 
   /**
    * 获取OBS状态

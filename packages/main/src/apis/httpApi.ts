@@ -605,6 +605,23 @@ router.post('/acfunDanmu/restart', errorHandler(async (req: Request, res: Respon
   });
 }));
 
+// 上传直播封面
+const validateUploadCover = (req: Request): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  if (!req.body.liveId || req.body.liveId <= 0) errors.push({ field: 'liveId', message: '有效的liveId必填' });
+  if (!req.body.imagePath) errors.push({ field: 'imagePath', message: '图片路径必填' });
+  return errors;
+};
+
+router.post('/acfunDanmu/uploadCover', validateRequest([validateUploadCover]), errorHandler(async (req: Request, res: Response) => {
+  const { liveId, imagePath } = req.body;
+  const result = await acfunDanmuModule.uploadCover(Number(liveId), imagePath);
+  res.json<ApiResponse<{}>>({
+    success: true,
+    data: result
+  });
+}));
+
 // 更新Acfun弹幕模块配置验证函数
 const validateUpdateConfig = (req: Request): ValidationError[] => {
   const errors: ValidationError[] = [];

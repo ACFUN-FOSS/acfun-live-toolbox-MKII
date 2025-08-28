@@ -1,7 +1,6 @@
 import { singleton } from 'tsyringe';
-
-import { randomInt } from 'crypto';
-import { acfunLiveAPI } from 'acfundanmu';
+import { authService } from '../utils/AuthService';
+import fetch from 'node-fetch';
 
 interface Stats {
     viewerCount: number;
@@ -53,15 +52,30 @@ export default class DashboardModule {
         }
 
         try {
-          // 调用ACFUN直播API获取真实数据
-            const liveData = await acfunLiveAPI.getLiveData(1); // 获取最近1天数据
-            
+          // 获取认证令牌
+            const token = await authService.getCurrentToken();
+            if (!token) {
+                throw new Error('用户未登录，无法获取统计数据');
+            }
+
+            // 调用ACFUN直播API获取真实数据
+            const response = await fetch('https://api.acfun.cn/v2/live/stats', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`获取统计数据失败: ${response.statusText}`);
+            }
+
+            const liveData = await response.json();
             const statsData = {
                 viewerCount: liveData.viewerCount || 0,
                 likeCount: liveData.interactionStats?.likeCount || 0,
                 bananaCount: liveData.giftStats?.bananaCount || 0,
                 acCoinCount: liveData.virtualCurrencyStats?.acCoinCount || 0,
-                // 添加额外的安全检查
                 totalIncome: liveData.incomeStats?.total || 0
             };
 
@@ -103,29 +117,39 @@ export default class DashboardModule {
     }
 
     try {
-      // 模拟从服务器获取动态内容
-      // 实际应用中应该调用真实的API
+      // 获取认证令牌
+      const token = await authService.getCurrentToken();
+      if (!token) {
+          throw new Error('用户未登录，无法获取动态内容');
+      }
+
+      // 调用API获取动态内容
+      const response = await fetch('https://api.acfun.cn/v2/dashboard/blocks', {
+          method: 'GET',
+          headers: {
+              'Authorization': `Bearer ${token}`
+          }
+      });
+
+      if (!response.ok) {
+          throw new Error(`获取动态内容失败: ${response.statusText}`);
+      }
+
+      const data = await response.json();
       const currentHour = new Date().getHours();
       const systemNotice = this.getSystemNotice(currentHour);
 
-      // 模拟最近直播数据
-      const recentStreams = [
-        '直播标题: 今天我们聊聊前端技术 | 观众数: 1,280 | 时长: 2小时30分',
-        '直播标题: 我的游戏日常 | 观众数: 850 | 时长: 3小时15分',
-        '直播标题: 周末闲聊 | 观众数: 620 | 时长: 1小时45分'
-      ];
+      // 处理API返回的最近直播数据
+      const recentStreams = data.recentStreams.map((stream: any) => 
+          `直播标题: ${stream.title} | 观众数: ${stream.viewerCount.toLocaleString()} | 时长: ${stream.duration}`
+      );
 
-      // 随机决定是否显示活动通知
-      const showActivity = Math.random() > 0.5;
-      let activityNotice: DynamicBlock[] = [];
-
-      if (showActivity) {
-        activityNotice = [{
+      // 处理平台活动通知
+      const activityNotice = data.platformActivity ? [{
           title: '平台活动',
           type: 'string',
-          content: '本周末有直播挑战赛活动，参与即可获得丰厚奖励！详情请查看活动中心。'
-        }];
-      }
+          content: data.platformActivity
+      }] : [];
 
       const blocks = [
         {

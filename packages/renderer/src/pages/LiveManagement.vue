@@ -22,6 +22,7 @@ declare global {
         startStream: () => Promise<any>;
         saveOBSConfig: (config: {obsIp: string, obsPort: number, obsPassword: string}) => Promise<any>;
         getOBSConfig: () => Promise<any>;
+        syncStartBroadcast: () => Promise<any>;
       };
     };
   }
@@ -326,6 +327,29 @@ const startStream = async () => {
     console.error('开始推流失败:', error);
     errorHandler.handleError(
       errorHandler.createNetworkError('开始推流失败，请重试', 'START_STREAM_FAILED', error)
+    );
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 同步开播（设置推流码并启动直播）
+const syncStartBroadcast = async () => {
+  try {
+    loading.value = true;
+    const response = await window.api.live.syncStartBroadcast();
+    if (response.success) {
+      roomInfo.streamStatus = 'live';
+      TMessage.success('已同步推流码并开始直播');
+    } else {
+      errorHandler.handleError(
+        errorHandler.createApiError('同步开播失败: ' + response.error, 'SYNC_START_BROADCAST_FAILED')
+      );
+    }
+  } catch (error) {
+    console.error('同步开播失败:', error);
+    errorHandler.handleError(
+      errorHandler.createNetworkError('同步开播失败，请重试', 'SYNC_START_BROADCAST_FAILED', error)
     );
   } finally {
     loading.value = false;
@@ -644,14 +668,23 @@ onMounted(() => {
             >
               下播
             </TButton>
-            <TButton
-              v-else-if="roomInfo.obsStatus === 'online'"
-              @click="startStream"
-              variant="primary"
-              size="small"
-            >
-              开播
-            </TButton>
+            <div v-else-if="roomInfo.obsStatus === 'online'">
+              <TButton
+                @click="startStream"
+                variant="primary"
+                size="small"
+                class="mr-2"
+              >
+                开播
+              </TButton>
+              <TButton
+                @click="syncStartBroadcast"
+                variant="default"
+                size="small"
+              >
+                同步开播
+              </TButton>
+            </div>
             <TButton
               v-else
               @click="connectOBS"

@@ -1,9 +1,41 @@
 import { ipcMain } from 'electron';
+import { authService } from '../utils/AuthService.js';
+import { errorHandlingService } from '../utils/ErrorHandlingService';
+import { notificationService } from '../utils/NotificationService';
+
+// 用户认证相关API
+ipcMain.handle('login', async (event, loginInfo) => {
+  try {
+    const session = await authService.login(loginInfo);
+    return { success: true, session };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('logout', async () => {
+  try {
+    await authService.logout();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('checkAuthStatus', async () => {
+  try {
+    const status = await authService.checkStatus();
+    return { success: true, status };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
 import { getLogManager } from '../utils/LogManager.js';
 import { acfunDanmuModule } from '../modules/AcfunDanmuModule.js';
 import settingsModule from '../modules/SettingsModule.js';
 import UserModule from '../modules/UserModule.js';
 import DashboardModule from '../modules/DashboardModule.js';
+import { appManager } from '../utils/AppManager';
 
 // 初始化用户模块和仪表盘模块
 const userModule = new UserModule();
@@ -149,6 +181,17 @@ export function initializeElectronApi() {
         }
     });
 
+    // 同步开播（设置推流码并启动直播）
+    ipcMain.handle('live:syncStartBroadcast', async () => {
+        try {
+            await liveManagementModule.syncStartBroadcast();
+            return { success: true };
+        } catch (error) {
+            console.error('Error syncing and starting broadcast:', error);
+            return { success: false, error: error instanceof Error ? error.message : String(error) };
+        }
+    });
+
     ipcMain.handle('live:saveOBSConfig', async (_, config) => {
         try {
             const result = await liveManagementModule.saveOBSConfig(config);
@@ -169,7 +212,60 @@ export function initializeElectronApi() {
         }
     });
 
-    // Acfun弹幕模块相关API
+    // 直播管理相关API扩展
+ipcMain.handle('live:configureRoom', async (_, roomConfig) => {
+  try {
+    const result = await liveManagementModule.configureRoom(roomConfig);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error configuring room:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('live:startStreaming', async (_, streamConfig) => {
+  try {
+    const streamInfo = await liveManagementModule.startStreaming(streamConfig);
+    return { success: true, data: streamInfo };
+  } catch (error) {
+    console.error('Error starting streaming:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('live:stopStreaming', async () => {
+  try {
+    await liveManagementModule.stopStreaming();
+    return { success: true };
+  } catch (error) {
+    console.error('Error stopping streaming:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// 获取直播分类
+ipcMain.handle('live:getCategories', async () => {
+  try {
+    const categories = await liveService.getCategories();
+    return { success: true, data: categories };
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// 获取推流信息
+ipcMain.handle('live:getStreamInfo', async () => {
+  try {
+    const streamInfo = await liveService.getStreamInfo();
+    return { success: true, data: streamInfo };
+  } catch (error) {
+    console.error('Error fetching stream info:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// Acfun弹幕模块相关API
     // 发送弹幕
     ipcMain.handle('acfunDanmu:sendDanmu', async (_, liveId: number, content: string) => {
         try {
@@ -521,4 +617,282 @@ export function initializeElectronApi() {
             return { success: false, error: 'Failed to start app' };
         }
     });
+
+    // 小程序管理相关API
+    ipcMain.handle('getInstalledMiniPrograms', async () => {
+        try {
+            const miniPrograms = await appManager.getMiniPrograms();
+            return miniPrograms;
+        } catch (error) {
+            console.error('获取已安装小程序失败:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    ipcMain.handle('getMarketplaceApps', async () => {
+        try {
+            const marketplaceApps = await appManager.getMarketplaceApps();
+            return marketplaceApps;
+        } catch (error) {
+            console.error('获取小程序市场应用失败:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    ipcMain.handle('installMiniProgram', async (_, name: string, source: string) => {
+        try {
+            await appManager.installMiniProgram(name, source);
+            return { success: true };
+        } catch (error) {
+            console.error('安装小程序失败:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    ipcMain.handle('startMiniProgram', async (_, id: string) => {
+        try {
+            await appManager.startApp(id);
+            return { success: true };
+        } catch (error) {
+            console.error('启动小程序失败:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    ipcMain.handle('stopMiniProgram', async (_, id: string) => {
+        try {
+            await appManager.closeApp(id);
+            return { success: true };
+        } catch (error) {
+            console.error('停止小程序失败:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    ipcMain.handle('updateMiniProgram', async (_, id: string) => {
+        try {
+            await appManager.updateMiniProgram(id);
+            return { success: true };
+        } catch (error) {
+            console.error('更新小程序失败:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    ipcMain.handle('removeMiniProgram', async (_, id: string) => {
+        try {
+            await appManager.removeMiniProgram(id);
+            return { success: true };
+        } catch (error) {
+            console.error('移除小程序失败:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    });
+
+    // 数据分析相关API
+ipcMain.handle('getRealTimeStats', async () => {
+  try {
+    const stats = await analyticsService.getRealTimeStats();
+    return { success: true, data: stats };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('getAudienceAnalysis', async (event, params) => {
+  try {
+    const analysis = await analyticsService.getAudienceAnalysis(params);
+    return { success: true, data: analysis };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('getGiftStats', async (event, timeRange) => {
+  try {
+    const stats = await analyticsService.getGiftStats(timeRange);
+    return { success: true, data: stats };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('generateReport', async (event, reportType) => {
+  try {
+    const report = await analyticsService.generateReport(reportType);
+    return { success: true, data: report };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 小本本相关API
+ipcMain.handle('notebook:getNotes', async () => {
+  try {
+    const notes = await notebookService.getNotes();
+    return { success: true, data: notes };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('notebook:saveNote', async (event, note) => {
+  try {
+    const savedNote = await notebookService.saveNote(note);
+    return { success: true, data: savedNote };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('notebook:deleteNote', async (event, noteId) => {
+  try {
+    await notebookService.deleteNote(noteId);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('notebook:getNoteById', async (event, noteId) => {
+  try {
+    const note = await notebookService.getNoteById(noteId);
+    return { success: true, data: note };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// 系统设置相关API
+ipcMain.handle('systemSettings:getAll', async () => {
+  try {
+    const settings = await systemSettingsService.getAllSettings();
+    return { success: true, data: settings };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('systemSettings:getByCategory', async (event, category) => {
+  try {
+    const settings = await systemSettingsService.getSettingsByCategory(category);
+    return { success: true, data: settings };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('systemSettings:updateByCategory', async (event, { category, settings }) => {
+  try {
+    const updatedSettings = await systemSettingsService.updateSettingsByCategory(category, settings);
+    return { success: true, data: updatedSettings };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('systemSettings:resetToDefault', async (event, category) => {
+  try {
+    let result;
+    if (category) {
+      result = await systemSettingsService.resetCategoryToDefault(category);
+    } else {
+      result = await systemSettingsService.resetToDefault();
+    }
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+    // 错误处理相关API
+    ipcMain.handle('error:logError', async (event, errorInfo) => {
+      try {
+        const errorId = await errorHandlingService.logError(errorInfo);
+        return { success: true, data: { errorId } };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('error:getErrorHistory', async (event, params) => {
+      try {
+        const errors = await errorHandlingService.getErrorHistory(params);
+        return { success: true, data: errors };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('error:clearErrorHistory', async () => {
+      try {
+        await errorHandlingService.clearErrorHistory();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('error:reportError', async (event, errorId) => {
+      try {
+        const reportResult = await errorHandlingService.reportError(errorId);
+        return { success: true, data: reportResult };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    // 通知相关API
+    ipcMain.handle('notification:getPermissionStatus', async () => {
+      try {
+        const status = await notificationService.getPermissionStatus();
+        return { success: true, data: status };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('notification:requestPermission', async () => {
+      try {
+        const status = await notificationService.requestPermission();
+        return { success: true, data: status };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('notification:sendTestNotification', async () => {
+      try {
+        const result = await notificationService.sendNotification({
+          title: '测试通知',
+          body: '这是一条测试通知，用于验证通知功能是否正常工作',
+          type: 'test'
+        });
+        return { success: result };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
 }

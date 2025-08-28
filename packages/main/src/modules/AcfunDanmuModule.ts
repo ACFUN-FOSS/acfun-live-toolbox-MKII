@@ -578,6 +578,22 @@ export class AcfunDanmuModule implements AppModule {
     );
   }
 
+  // 上传直播封面
+  async uploadCover(liveId: number, imagePath: string): Promise<any> {
+    if (!liveId || liveId <= 0) throw new Error('Invalid liveId');
+    if (!imagePath) throw new Error('Image path is required');
+    try {
+      return await this.callAcfunDanmuApi(
+        `/live/uploadCover`,
+        'POST',
+        { liveId, imageFile: imagePath }
+      );
+    } catch (error) {
+      this.logManager.addLog('AcfunDanmuModule', `Failed to upload cover: ${error.message}`, 'error');
+      throw error;
+    }
+  }
+
   // 直播预告相关方法
   async getScheduleList(): Promise<any> {
     return this.callAcfunDanmuApi(
@@ -588,7 +604,7 @@ export class AcfunDanmuModule implements AppModule {
 
   // 弹幕相关方法
   async sendDanmu(liveId: number, content: string): Promise<DanmuSendResponse> {
-    if (!liveId || liveId <=0) throw new Error('Invalid liveId');
+    if (!liveId || liveId <= 0) throw new Error('Invalid liveId');
     if (!content || content.trim().length === 0 || content.length > 200) throw new Error('Invalid danmu content');
     try {
       return await this.callAcfunDanmuApi<DanmuSendResponse>(
@@ -597,7 +613,7 @@ export class AcfunDanmuModule implements AppModule {
         { liveId, content }
       );
     } catch (error) {
-      this.logger.error(`Failed to send danmu: ${error.message}`, { liveId, content });
+      this.logManager.addLog('AcfunDanmuModule', `Failed to send danmu: ${error.message}`, 'error');
       throw error;
     }
   }
@@ -607,7 +623,7 @@ export class AcfunDanmuModule implements AppModule {
     return this.callAcfunDanmuApi(
       `/live/status`,
       'GET',
-      { liveId: liveID }
+      { liveId }
     );
   }
 
