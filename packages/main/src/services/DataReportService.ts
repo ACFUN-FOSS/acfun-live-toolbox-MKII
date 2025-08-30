@@ -40,39 +40,35 @@ export class DataReportService {
       endDate.setHours(23, 59, 59, 999);
 
       // 查询当天弹幕总量
-      const totalDanmuStmt = this.dbService.db.prepare(`
+      const totalDanmu = this.dbService.getSingleResult(`
         SELECT COUNT(*) as total FROM danmu
         WHERE timestamp BETWEEN ? AND ?
-      `);
-      const totalDanmu = totalDanmuStmt.get(startDate.toISOString(), endDate.toISOString());
+      `, [startDate.toISOString(), endDate.toISOString()]);
 
       // 查询各房间弹幕分布
-      const roomDistributionStmt = this.dbService.db.prepare(`
+      const roomDistribution = this.dbService.executeQuery(`
         SELECT roomId, COUNT(*) as count
         FROM danmu
         WHERE timestamp BETWEEN ? AND ?
         GROUP BY roomId
         ORDER BY count DESC
-      `);
-      const roomDistribution = roomDistributionStmt.all(startDate.toISOString(), endDate.toISOString());
+      `, [startDate.toISOString(), endDate.toISOString()]);
 
       // 查询弹幕高峰时段
-      const hourlyDistributionStmt = this.dbService.db.prepare(`
+      const hourlyDistribution = this.dbService.executeQuery(`
         SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
         FROM danmu
         WHERE timestamp BETWEEN ? AND ?
         GROUP BY hour
         ORDER BY hour
-      `);
-      const hourlyDistribution = hourlyDistributionStmt.all(startDate.toISOString(), endDate.toISOString());
+      `, [startDate.toISOString(), endDate.toISOString()]);
 
       // 查询礼物统计
-      const giftStatsStmt = this.dbService.db.prepare(`
+      const giftStats = this.dbService.getSingleResult(`
         SELECT SUM(giftValue) as totalGiftValue, COUNT(*) as giftCount
         FROM danmu
         WHERE timestamp BETWEEN ? AND ? AND isGift = 1
-      `);
-      const giftStats = giftStatsStmt.get(startDate.toISOString(), endDate.toISOString());
+      `, [startDate.toISOString(), endDate.toISOString()]);
 
       return {
         date: startDate.toISOString().split('T')[0],
@@ -103,36 +99,33 @@ export class DataReportService {
       if (roomId) params.push(roomId);
 
       // 查询活跃用户统计
-      const activeUsersStmt = this.dbService.db.prepare(`
+      const activeUsers = this.dbService.executeQuery(`
         SELECT userId, username, COUNT(*) as danmuCount
         FROM danmu
         WHERE timestamp BETWEEN ? AND ? ${roomCondition}
         GROUP BY userId
         ORDER BY danmuCount DESC
         LIMIT 20
-      `);
-      const activeUsers = activeUsersStmt.all(...params);
+      `, [...params]);
 
       // 查询观众活跃度趋势
-      const activityTrendStmt = this.dbService.db.prepare(`
+      const activityTrend = this.dbService.executeQuery(`
         SELECT strftime('%Y-%m-%d', timestamp) as date, COUNT(DISTINCT userId) as activeUsers
         FROM danmu
         WHERE timestamp BETWEEN ? AND ? ${roomCondition}
         GROUP BY date
         ORDER BY date
-      `);
-      const activityTrend = activityTrendStmt.all(...params);
+      `, [...params]);
 
       // 查询常用弹幕关键词 (简单版本)
-      const keywordsStmt = this.dbService.db.prepare(`
+      const keywords = this.dbService.executeQuery(`
         SELECT content, COUNT(*) as count
         FROM danmu
         WHERE timestamp BETWEEN ? AND ? ${roomCondition} AND LENGTH(content) > 2
         GROUP BY content
         ORDER BY count DESC
         LIMIT 50
-      `);
-      const keywords = keywordsStmt.all(...params);
+      `, [...params]);
 
       return {
         timeRange: {
@@ -174,16 +167,29 @@ export class DataReportService {
     }
   }
 
+  // 辅助函数：CSV字段转义
+  private escapeCSVField(field: string): string {
+    if (typeof field !== 'string') {
+      field = String(field);
+    }
+    if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+      return `"${field.replace(/"/g, '""')}"`;
+    }
+    return field;
+  }
+
   // 生成日报CSV内容
   private generateDailyReportCSV(data: any): string {
     // 实现CSV生成逻辑
     let csv = '日期,总弹幕数,礼物总数,礼物总价值\n';
-    csv += `${data.date},${data.totalDanmu},${data.giftStats.giftCount},${data.giftStats.totalGiftValue}\n\n`;
+    csv += `${this.escapeCSVField(data.date)},${this.escapeCSVField(data.totalDanmu.toString())},${this.escapeCSVField(data.giftStats.giftCount.toString())},${this.escapeCSVField(data.giftStats.totalGiftValue.toString())}\n\n`;
 
     csv += '房间ID,弹幕数量\n';
-    data.roomDistribution.forEach((item: any) => {
-      csv += `${item.roomId},${item.count}\n`;
-    });
+    if (data.roomDistribution && Array.isArray(data.roomDistribution)) {
+      data.roomDistribution.forEach((item: any) => {
+        csv += `${this.escapeCSVField(item.roomId.toString())},${this.escapeCSVField(item.count.toString())}\n`;
+      });
+    }
 
     return csv;
   }
@@ -191,14 +197,18 @@ export class DataReportService {
   // 生成观众分析CSV内容
   private generateAudienceReportCSV(data: any): string {
     // 实现CSV生成逻辑
-    let csv = `时间范围: ${data.timeRange.start} 至 ${data.timeRange.end}\n`;
-    if (data.roomId) csv += `房间ID: ${data.roomId}\n`;
-    csv += '\n活跃用户,发送弹幕数\n';
+    let csv = `时间范围: ${this.escapeCSVField(data.timeRange.start)} 至 ${this.escapeCSVField(data.timeRange.end)}
+`;
+    if (data.roomId) csv += `房间ID: ${this.escapeCSVField(data.roomId.toString())}
+`;
+    csv += '
+活跃用户,发送弹幕数
+';
 
     data.activeUsers.forEach((user: any) => {
-      csv += `${user.username} (${user.userId}),${user.danmuCount}\n`;
+      csv += `${this.escapeCSVField(user.username)} (${this.escapeCSVField(user.userId.toString())}),${this.escapeCSVField(user.danmuCount.toString())}
+`;
     });
 
     return csv;
   }
-}

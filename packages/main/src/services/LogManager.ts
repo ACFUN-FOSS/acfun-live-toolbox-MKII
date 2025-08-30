@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import fs from 'fs';
 import path from 'path';
 import { app } from 'electron';
+import { logger } from '@app/utils/logger';
 
 // 日志级别
 export type LogLevel = 'info' | 'debug' | 'error' | 'warn';
@@ -35,13 +36,15 @@ export class LogManager extends EventEmitter {
   }
 
   // 获取当前日志文件大小
- private getCurrentFileSize(): void {
-   try {
-     const stats = fs.statSync(this.logFilePath);
-     this.currentFileSize = stats.size;
-   } catch (error) {
-     this.currentFileSize = 0;
-   }
+  private getCurrentFileSize(): void {
+    try {
+      const stats = fs.statSync(this.logFilePath);
+      this.currentFileSize = stats.size;
+    } catch (error) {
+      logger.warn('获取日志文件大小失败，将从0开始计算:', error);
+      this.currentFileSize = 0;
+    }
+  }
 
   // 添加日志条目
   addLog(source: string, message: string, level: LogLevel = 'info'): void {
@@ -85,7 +88,7 @@ export class LogManager extends EventEmitter {
 
     // 使用fs.promises重写为异步/等待模式并添加重试逻辑
     this.appendLogWithRetry(logLine, 3).catch(err => {
-      console.error('Failed to write log to file after retries:', err);
+      logger.error('Failed to write log to file after retries:', err);
     });
  }
 
@@ -105,19 +108,20 @@ export class LogManager extends EventEmitter {
  }
 
  //轮转日志文件
- private rotateLogFile(): void {
+ private async rotateLogFile(): Promise<void> {
    try {
      // 如果日志文件存在，则重命名为带时间戳格式
-     if (fs.existsSync(this.logFilePath)) {
+     if (await fs.promises.access(this.logFilePath).then(() => true).catch(() => false)) {
        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
        const rotatedPath = `${this.logFilePath}.${timestamp}`;
-       fs.renameSync(this.logFilePath, rotatedPath);
+       await fs.promises.rename(this.logFilePath, rotatedPath);
        this.currentFileSize = 0;
        // 可以添加旧日志文件的压缩或清理逻辑
      }
    } catch (error) {
-     console.error('Failed to rotate log file:', error);
+     logger.error('Failed to rotate log file:', error);
    }
+ }
 
   // 获取特定源的日志
   getLogs(source: string, limit: number = 100): LogEntry[] {
@@ -142,14 +146,15 @@ export class LogManager extends EventEmitter {
   }
 
   // 清除所有日志
-  clearAllLogs(): void {
+  async clearAllLogs(): Promise<void> {
     this.logs.clear();
     // 也可以选择清除日志文件
-    fs.writeFile(this.logFilePath, '', (err) => {
-      if (err) {
-        console.error('Failed to clear log file:', err);
-      }
-    });
+    try {
+      await fs.promises.writeFile(this.logFilePath, '');
+      this.currentFileSize = 0;
+    } catch (err) {
+      logger.error('Failed to clear log file:', err);
+    }
   }
 }
 

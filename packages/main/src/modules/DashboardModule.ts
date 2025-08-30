@@ -1,6 +1,9 @@
 import { singleton } from 'tsyringe';
 import { authService } from '../utils/AuthService';
 import fetch from 'node-fetch';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
+import logger from '../utils/logger';
 
 interface Stats {
     viewerCount: number;
@@ -22,9 +25,19 @@ const CACHE_DURATION_MS = 5 * 60 * 1000; // 5分钟缓存有效期
  * 仪表盘模块 - 处理仪表盘相关数据和功能
  */
 @singleton()
-export default class DashboardModule {
+export default class DashboardModule implements AppModule {
   private lastStatsUpdate: number = 0;
   private statsCache: Stats | null = null;
+  private lastBlocksUpdate: number = 0;
+  private blocksCache: DynamicBlock[] | null = null;
+
+  enable(context: ModuleContext): Promise<void> | void {
+    // 初始化逻辑（如果需要）
+  }
+
+  disable(): Promise<void> | void {
+    // 清理逻辑（如果需要）
+  }
 
   /**
    * 根据当前时间生成系统通知
@@ -85,7 +98,7 @@ export default class DashboardModule {
 
           return statsData;
         } catch (error) {
-          console.error('获取直播统计数据失败:', error);
+          logger.error('获取直播统计数据失败:', error);
           
           // 缓存失败时使用缓存数据或返回默认值
           if (this.statsCache) {
@@ -97,7 +110,8 @@ export default class DashboardModule {
             viewerCount: 0,
             likeCount: 0,
             bananaCount: 0,
-            acCoinCount: 0
+            acCoinCount: 0,
+            totalIncome: 0
           };
         }
       }
@@ -106,9 +120,6 @@ export default class DashboardModule {
    * 获取动态内容块
    * @returns 动态内容块数组
    */
-  private lastBlocksUpdate: number = 0;
-  private blocksCache: DynamicBlock[] | null = null;
-
   async getDynamicBlocks(): Promise<DynamicBlock[]> {
     // 检查缓存是否有效（10分钟内）
     const now = Date.now();
@@ -171,7 +182,7 @@ export default class DashboardModule {
 
       return blocks;
     } catch (error) {
-      console.error('获取动态内容块失败:', error);
+      logger.error('获取动态内容块失败:', error);
       // 返回缓存数据或默认内容
       if (this.blocksCache) {
         return this.blocksCache;
@@ -189,12 +200,7 @@ export default class DashboardModule {
    * 刷新统计数据
    * @returns 新的统计数据
    */
-  refreshStats(): {
-    viewerCount: number;
-    likeCount: number;
-    bananaCount: number;
-    acCoinCount: number;
-  } {
+  async refreshStats(): Promise<Stats> {
     // 强制刷新数据
     this.statsCache = null;
     return this.getStats();

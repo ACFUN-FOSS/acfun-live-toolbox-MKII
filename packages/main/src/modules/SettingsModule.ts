@@ -1,4 +1,5 @@
-import { ConfigManager } from '../utils/ConfigManager';
+import { AppModule } from '../core/AppModule';
+import { ConfigManager } from '../core/ConfigManager';
 import { existsSync, unlinkSync, readdirSync, rmdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -25,7 +26,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 };
 
 @singleton()
-export class SettingsModule {
+export class SettingsModule implements AppModule {
   private configManager: ConfigManager;
   private constructor() {
     this.configManager = new ConfigManager();
@@ -148,6 +149,14 @@ export class SettingsModule {
       console.error('Error clearing cache:', error);
       return false;
     }
+  }
+
+  public async enable(): Promise<boolean> {
+    return true;
+  }
+
+  public async disable(): Promise<boolean> {
+    return true;
   }
 }
 

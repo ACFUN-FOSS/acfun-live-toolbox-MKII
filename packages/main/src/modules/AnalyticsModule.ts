@@ -1,20 +1,43 @@
 import { EventEmitter } from 'events';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
 
 /**
  * 数据分析模块
  * 负责实时统计、观众行为分析、礼物统计和数据报表生成
  */
-export class AnalyticsModule extends EventEmitter {
+export class AnalyticsModule extends EventEmitter implements AppModule {
+  private isEnabled = false;
+
   constructor() {
     super();
-    this.initialize();
+  }
+
+  /**
+   * 启用数据分析模块
+   */
+  enable(context: ModuleContext): void {
+    if (this.isEnabled) return;
+    this.isEnabled = true;
+    this.initialize(context);
+  }
+
+  /**
+   * 禁用数据分析模块
+   */
+  disable(): void {
+    if (!this.isEnabled) return;
+    this.isEnabled = false;
+    this.removeAllListeners();
+    this.emit('disabled');
   }
 
   /**
    * 初始化数据分析模块
    */
-  private async initialize(): Promise<void> {
-    // 初始化逻辑
+  private async initialize(context: ModuleContext): Promise<void> {
+    // 使用上下文信息进行初始化
+    console.log(`Analytics initialized with app version: ${context.appVersion}`);
     this.emit('initialized');
   }
 

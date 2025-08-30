@@ -16,20 +16,67 @@ import archiver from "archiver";
 // 新增解压相关模块
 import { createReadStream } from "fs";
 import { Extract } from "unzipper";
-import config from "./config.js";
+import config from "./config";
+import { logger } from '@app/utils/logger';
 
 // 新增：定义配置模式接口（扩展Record允许任意属性）
-
+interface ConfigSchema extends Record<string, any> {
+  appName: string;
+  windowSize: { width: number; height: number };
+  // 优化通知设置接口定义
+  notificationSettings: {
+    enabled: boolean;
+    sound: boolean;
+    showToast: boolean;
+    toastDuration: number;
+    categories: Record<string, boolean>;
+  };
+  globalNotificationEnabled: boolean;
+  // 添加RTMP配置属性定义
+  rtmpConfigs?: Record<number, {
+    rtmpUrl: string;
+    streamKey: string;
+    updatedAt: string;
+  }>;
+  // 添加黑名单配置属性定义
+  blacklist?: Array<{
+    userId: number;
+    username?: string;
+    reason?: string;
+    addedAt: string;
+    expiresAt?: string;
+  }>;
+  // 添加直播设置
+  liveSettings?: {
+    defaultQuality: string;
+    autoRecord: boolean;
+    showGiftEffects: boolean;
+  };
+  // 添加录制配置
+  recordingSettings?: {
+    savePath: string;
+    format: string;
+    quality: string;
+    maxDuration?: number;
+  };
+  // 添加自动更新设置
+  autoUpdate?: {
+    enabled: boolean;
+    checkInterval: number;
+    ignoreVersions: string[];
+  };
+}
 
 class ConfigManager {
   private configPath: string;
   private DEFAULT_CONFIG_PATH: string;
   constructor(customPath?: string) {
-    this.DEFAULT_CONFIG_PATH = join(homedir(), globalThis.appName);
+    const appName = globalThis.appName || 'acfun-live-toolbox';
+    this.DEFAULT_CONFIG_PATH = join(homedir(), appName);
    
     // 初始化electron-data配置
     electron_data.config({
-      filename: globalThis.appName,
+      filename: appName,
       path: customPath || this.DEFAULT_CONFIG_PATH,
       autosave: true,
       prettysave: true
@@ -40,7 +87,7 @@ class ConfigManager {
     this.configPath = customPath || this.DEFAULT_CONFIG_PATH;
     this.ensureConfigDirectoryExists();
     // 异步初始化配置
-    this.initializeConfig().catch(err => console.error('配置初始化失败:', err));
+    this.initializeConfig().catch(err => logger.error('配置初始化失败:', err));
   }
 
   // 新增异步初始化方法
@@ -158,7 +205,8 @@ class ConfigManager {
     if (!existsSync(originalPath)) {
       return null;
     }
-    const backupFileName = `${globalThis.appName}_backup_${Date.now()}.zip`;
+    const appName = globalThis.appName || 'acfun-live-toolbox';
+    const backupFileName = `${appName}_backup_${Date.now()}.zip`;
     const backupPath = join(this.configPath, backupFileName);
 
     const output = createWriteStream(backupPath);
@@ -194,7 +242,7 @@ class ConfigManager {
       // 备份当前配置
       const backupPath = await this.backupConfig();
       if (!backupPath) {
-        console.warn("备份当前配置失败，可能无配置文件需要备份");
+        logger.warn("备份当前配置失败，可能无配置文件需要备份");
       }
 
       // 确保配置目录存在

@@ -1,6 +1,10 @@
 import { EventEmitter } from 'events';
-import { existsSync, readdirSync, readFile, writeFile } from 'fs/promises';
+import { existsSync, readdirSync } from 'fs';
+import { readFile, writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
+import { getLogManager } from '../utils/LogManager';
 
 /**
  * 小程序元数据接口
@@ -31,17 +35,17 @@ interface MiniProgramInstance {
  * 小程序系统模块
  * 负责小程序的管理、运行和市场功能
  */
-export class MiniProgramModule extends EventEmitter {
+export class MiniProgramModule extends EventEmitter implements AppModule {
   private miniProgramsPath: string;
   private installedPrograms: Map<string, MiniProgramMetadata>;
   private runningPrograms: Map<string, MiniProgramInstance>;
+  private logger = getLogManager().getLogger('MiniProgramModule');
 
   constructor() {
     super();
     this.miniProgramsPath = join(__dirname, '../../mini-programs');
     this.installedPrograms = new Map();
     this.runningPrograms = new Map();
-    this.initialize();
   }
 
   /**
@@ -59,8 +63,8 @@ export class MiniProgramModule extends EventEmitter {
    * 确保目录存在
    */
   private async ensureDirectoryExists(path: string): Promise<void> {
-    if (!await existsSync(path)) {
-      await fs.mkdir(path, { recursive: true });
+    if (!existsSync(path)) {
+      await mkdir(path, { recursive: true });
     }
   }
 
@@ -79,7 +83,7 @@ export class MiniProgramModule extends EventEmitter {
             const metadata: MiniProgramMetadata = JSON.parse(manifestContent);
             this.installedPrograms.set(appId, metadata);
           } catch (error) {
-            console.error(`Failed to load manifest for ${appId}:`, error);
+            this.logger.error(`Failed to load manifest for ${appId}:`, error);
           }
         }
       }
@@ -137,6 +141,21 @@ export class MiniProgramModule extends EventEmitter {
    */
   public getRunningPrograms(): MiniProgramInstance[] {
     return Array.from(this.runningPrograms.values());
+  }
+
+  async enable(context: ModuleContext): Promise<boolean> {
+    this.logger.info('Enabling MiniProgramModule');
+    await this.initialize();
+    return true;
+  }
+
+  async disable(): Promise<boolean> {
+    this.logger.info('Disabling MiniProgramModule');
+    // 停止所有运行中的小程序
+    for (const appId of Array.from(this.runningPrograms.keys())) {
+      await this.stopProgram(appId);
+    }
+    return true;
   }
 }
 

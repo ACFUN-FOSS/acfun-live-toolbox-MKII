@@ -1,13 +1,24 @@
-import {AppModule} from '../AppModule.js';
-import {ModuleContext} from '../ModuleContext.js';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
+import { app } from 'electron';
 
 class ApplicationTerminatorOnLastWindowClose implements AppModule {
-  enable({app}: ModuleContext): Promise<void> | void {
-    app.on('window-all-closed', () => app.quit());
+  private windowAllClosedListener?: () => void;
+
+  enable(context: ModuleContext): Promise<void> | void {
+    this.windowAllClosedListener = () => app.quit();
+    app.on('window-all-closed', this.windowAllClosedListener);
+  }
+
+  disable(): Promise<void> | void {
+    if (this.windowAllClosedListener) {
+      app.off('window-all-closed', this.windowAllClosedListener);
+      this.windowAllClosedListener = undefined;
+    }
   }
 }
 
 
-export function terminateAppOnLastWindowClose(...args: ConstructorParameters<typeof ApplicationTerminatorOnLastWindowClose>) {
-  return new ApplicationTerminatorOnLastWindowClose(...args);
+export function terminateAppOnLastWindowClose() {
+  return new ApplicationTerminatorOnLastWindowClose();
 }

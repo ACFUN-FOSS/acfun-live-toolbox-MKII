@@ -48,7 +48,7 @@ let liveManagementModule: any;
 ipcMain.on('apps-ready', () => {
   liveManagementModule = globalThis.appManager.getModule('LiveManagementModule');
   if (!liveManagementModule) {
-    console.error('Failed to get LiveManagementModule instance from AppManager');
+    logger.error('Failed to get LiveManagementModule instance from AppManager');
   }
 });
 
@@ -59,7 +59,7 @@ ipcMain.on('apps-ready', () => {
     // 注册应用模块
     ipcMain.handle('app:registerModule', async (_, moduleName: string, modulePath: string) => {
         try {
-            const appManager = globalThis.appManager as any;
+            const appManager = globalThis.appManager as AppManager;
             await appManager.registerModule(moduleName, modulePath);
             return { success: true };
         } catch (error) {
@@ -71,7 +71,7 @@ ipcMain.on('apps-ready', () => {
     // 启用应用模块
     ipcMain.handle('app:enableModule', async (_, moduleName: string) => {
         try {
-            const appManager = globalThis.appManager as any;
+            const appManager = globalThis.appManager as AppManager;
             await appManager.enableModule(moduleName);
             return { success: true };
         } catch (error) {

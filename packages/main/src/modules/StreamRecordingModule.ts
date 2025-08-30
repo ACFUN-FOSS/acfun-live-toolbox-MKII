@@ -1,9 +1,9 @@
 import { singleton } from 'tsyringe';
 import { spawn } from 'child_process';
-import { existsSync, mkdirSync, writeFileSync, readdirSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import logger from '../utils/logger';
-import { ConfigManager } from '../utils/ConfigManager';
+import { ConfigManager } from '../core/ConfigManager';
 
 @singleton()
 export class StreamRecordingModule {
@@ -120,7 +120,8 @@ export class StreamRecordingModule {
       const files = readdirSync(this.recordingsPath, { withFileTypes: true })
         .filter(dirent => dirent.isFile() && dirent.name.endsWith('.flv'))
         .map(file => {
-          const stats = file.statSync();
+          const filePath = join(this.recordingsPath, file.name);
+          const stats = existsSync(filePath) ? statSync(filePath) : { size: 0, mtime: new Date() };
           return {
             name: file.name,
             size: stats.size,

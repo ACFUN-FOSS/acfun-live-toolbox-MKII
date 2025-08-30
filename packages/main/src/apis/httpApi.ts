@@ -13,11 +13,52 @@ interface ValidationError {
   message: string;
 }
 
+// 缺少的接口定义
+interface WindowInfo {
+  id: number;
+  title: string;
+  isFocused: boolean;
+  bounds: { x: number; y: number; width: number; height: number };
+  alwaysOnTop: boolean;
+}
+
+interface MiniProgramInfo {
+  id: string;
+  name: string;
+  path: string;
+  config: Record<string, any>;
+  lastUsed: Date;
+}
+
+// 请求验证辅助函数
+const validateRequest = (validations: ((req: Request) => ValidationError[])[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const errors: ValidationError[] = [];
+    validations.forEach(validation => {
+      errors.push(...validation(req));
+    });
+    if (errors.length > 0) {
+      return res.status(400).json<ApiResponse<ValidationError[]>>({
+        success: false,
+        error: 'Validation failed',
+        data: errors
+      });
+    }
+    next();
+  };
+}
+import { initializeElectronApi } from './electronApi.js';
+import { acfunDanmuModule } from '../modules/AcfunDanmuModule.js';
+import { getLogManager } from '../utils/logger';
+import { AppManager } from '../core/AppManager';
+import { WindowManager } from '../modules/WindowManager';
+
 // 统一错误处理中间件
 const errorHandler = (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => 
   (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch((error) => {
-      console.error('API Error:', error);
+      const logger = getLogManager().getLogger('httpApi');
+      logger.error('API Error:', error);
       res.status(500).json<ApiResponse>({
         success: false,
         error: error.message || 'An unexpected error occurred'
@@ -108,12 +149,20 @@ router.get('/auth/verify', errorHandler(async (req: Request, res: Response) => {
   // ====== 窗口管理相关HTTP接口 ======
   // 关闭窗口
   router.post('/window/close', validateRequest([validateWindowClose]), errorHandler(async (req: Request, res: Response) => {
+    const logger = getLogManager().getLogger('httpApi');
     const { windowId } = req.body;
-    const result = await globalThis.windowManager.closeWindow(windowId);
-    res.json<ApiResponse<boolean>>({
-      success: true,
-      data: result
-    });
+    try {
+      const windowManager = globalThis.windowManager as WindowManager;
+      const result = await windowManager.closeWindow(windowId);
+      logger.info(`Closed window ${windowId}: ${result}`);
+      res.json<ApiResponse<boolean>>({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      logger.error(`Failed to close window ${windowId}:`, error);
+      throw error;
+    }
   }));
 
   // 窗口最小化验证函数
@@ -242,33 +291,24 @@ router.get('/auth/verify', errorHandler(async (req: Request, res: Response) => {
   }));
 
   // 快捷键设置相关接口
-router.get('/settings/shortcuts', async (req, res) => {
-  try {
-    const shortcuts = await appManager.getShortcuts();
-    res.json({ success: true, data: shortcuts });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.get('/settings/shortcuts', errorHandler(async (req: Request, res: Response) => {
+  const appManager = globalThis.appManager as AppManager;
+  const shortcuts = await appManager.getShortcuts();
+  res.json<ApiResponse<typeof shortcuts>>({ success: true, data: shortcuts });
+}));
 
-router.post('/settings/shortcuts', async (req, res) => {
-  try {
-    const { shortcuts } = req.body;
-    await appManager.setShortcuts(shortcuts);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.post('/settings/shortcuts', errorHandler(async (req: Request, res: Response) => {
+  const { shortcuts } = req.body;
+  const appManager = globalThis.appManager as AppManager;
+  await appManager.setShortcuts(shortcuts);
+  res.json<ApiResponse<{}>>({ success: true, data: {} });
+}));
 
-router.post('/settings/shortcuts/reset', async (req, res) => {
-  try {
-    await appManager.resetShortcuts();
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+router.post('/settings/shortcuts/reset', errorHandler(async (req: Request, res: Response) => {
+  const appManager = globalThis.appManager as AppManager;
+  await appManager.resetShortcuts();
+  res.json<ApiResponse<{}>>({ success: true, data: {} });
+}));
 
 // 小程序市场相关接口
 router.get('/mini-programs/marketplace', async (req, res) => {

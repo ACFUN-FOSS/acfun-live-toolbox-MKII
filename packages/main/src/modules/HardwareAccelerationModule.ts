@@ -1,5 +1,5 @@
-import {AppModule} from '../AppModule.js';
-import {ModuleContext} from '../ModuleContext.js';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
 
 export class HardwareAccelerationModule implements AppModule {
   readonly #shouldBeDisabled: boolean;
@@ -9,10 +9,16 @@ export class HardwareAccelerationModule implements AppModule {
     this.#shouldBeDisabled = !enable;
   }
 
-  enable({app}: ModuleContext): Promise<void> | void {
+  async enable({app}: ModuleContext): Promise<boolean> {
     if (this.#shouldBeDisabled) {
       app.disableHardwareAcceleration();
     }
+    return true;
+  }
+
+  async disable(): Promise<boolean> {
+    // 硬件加速设置无法在运行时动态启用，返回true表示操作成功
+    return true;
   }
 }
 

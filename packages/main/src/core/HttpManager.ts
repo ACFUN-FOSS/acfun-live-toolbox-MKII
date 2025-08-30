@@ -5,6 +5,7 @@ import url from "url";
 import { app } from "electron";
 import { getPackageJson } from "./Devars.js";
 import express from "express";
+import { logger } from '@app/utils/logger';
 
 // 新增：事件源连接接口
 export interface EventSourceConnection {
@@ -41,7 +42,7 @@ export class HttpManager {
 
   // 修复找不到 ExpressRouter 名称的问题，推测应该使用 express.Router 类型
   addApiRoutes(prefix: string, router: express.Router): void {
-    console.log(`Mounting API routes at prefix: ${prefix}`);
+    logger.info(`Mounting API routes at prefix: ${prefix}`);
     this.apiRoutes.set(prefix, router);
     this.expressApp.use(prefix, router);
   }
@@ -116,7 +117,7 @@ export class HttpManager {
         await fs.access(this.APP_DIR);
       } catch {
         await fs.mkdir(this.APP_DIR, { recursive: true });
-        console.log(`创建应用目录: ${this.APP_DIR}`);
+        logger.info(`创建应用目录: ${this.APP_DIR}`);
       }
     }
 
@@ -161,7 +162,7 @@ export class HttpManager {
         }
 
         this.serverRunning = false;
-        console.log("服务器已关闭，准备重新启动...");
+        logger.info("服务器已关闭，准备重新启动...");
         const result = await this.initializeServer();
         resolve(result);
       });
@@ -249,7 +250,7 @@ export class HttpManager {
 
 `);
         } catch (error) {
-          console.error('Failed to send SSE event:', error);
+          logger.error('Failed to send SSE event:', error);
         }
       });
   

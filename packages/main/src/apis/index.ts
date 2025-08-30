@@ -3,6 +3,7 @@ import electron from 'electron';
 import DanmuModule from '../modules/DanmuModule';
 import DataReportService from '../services/DataReportService';
 import { logger } from '@app/utils/logger';
+import { ModuleContext } from '../core/ModuleContext';
 
 // API注册器 - 集中管理主进程API
 class ApiRegistry {
@@ -17,7 +18,13 @@ class ApiRegistry {
   private registerModules(): void {
     // 注册弹幕模块
     const danmuModule = new DanmuModule();
-    danmuModule.enable({ app: electron.app });
+    const moduleContext: ModuleContext = {
+        mainWindow: electron.BrowserWindow.getFocusedWindow() || null,
+        appDataPath: electron.app.getPath('userData'),
+        appVersion: electron.app.getVersion(),
+        configStore: new Map()
+    };
+    danmuModule.enable(moduleContext);
     this.modules.danmu = danmuModule.getApi();
 
     logger.info('All API modules registered successfully');
@@ -41,15 +48,30 @@ class ApiRegistry {
 
     // 数据报表模块API
     ipcMain.handle('report:getDailyReport', async (_, date?: Date) => {
-      return DataReportService.getInstance().getDailyDanmuReport(date);
+      try {
+        return await DataReportService.getInstance().getDailyDanmuReport(date);
+      } catch (error) {
+        logger.error('Failed to get daily report:', error);
+        throw new Error('获取日报表失败');
+      }
     });
 
     ipcMain.handle('report:getAudienceAnalysis', async (_, roomId?: number, days?: number) => {
-      return DataReportService.getInstance().getAudienceBehaviorAnalysis(roomId, days);
+      try {
+        return await DataReportService.getInstance().getAudienceBehaviorAnalysis(roomId, days);
+      } catch (error) {
+        logger.error('Failed to get audience analysis:', error);
+        throw new Error('获取观众分析失败');
+      }
     });
 
     ipcMain.handle('report:exportToCSV', async (_, reportData: any, reportType: string) => {
-      return DataReportService.getInstance().exportReportToCSV(reportData, reportType);
+      try {
+        return await DataReportService.getInstance().exportReportToCSV(reportData, reportType);
+      } catch (error) {
+        logger.error('Failed to export report to CSV:', error);
+        throw new Error('导出报表失败');
+      }
     });
 
     // 后续将添加更多模块的IPC处理...

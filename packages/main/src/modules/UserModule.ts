@@ -1,5 +1,6 @@
 import { singleton } from 'tsyringe';
 import { ConfigManager } from '../utils/ConfigManager';
+import logger from '../utils/logger';
 
 interface UserInfo {
   name: string;
@@ -40,7 +41,7 @@ export default class UserModule {
         this.saveUserInfo();
       }
     } catch (error) {
-      console.error('Failed to load user info:', error);
+      logger.error('Failed to load user info:', error);
       // 设置默认用户信息
       this.userInfo = DEFAULT_USER_INFO;
     }
@@ -55,7 +56,7 @@ export default class UserModule {
         this.configManager.set('userInfo', this.userInfo);
       }
     } catch (error) {
-      console.error('Failed to save user info:', error);
+      logger.error('Failed to save user info:', error);
     }
   }
 
@@ -88,7 +89,7 @@ export default class UserModule {
       }
       return false;
     } catch (error) {
-      console.error('Failed to update user info:', error);
+      logger.error('Failed to update user info:', error);
       return false;
     }
   }
@@ -102,7 +103,7 @@ export default class UserModule {
     try {
       // 模拟登录过程
       // 实际应用中应该调用真实的登录API
-      console.log('Login attempt with:', credentials.username);
+      logger.info('Login attempt with:', credentials.username);
 
       // 模拟登录成功
       this.userInfo = {
@@ -114,7 +115,7 @@ export default class UserModule {
       this.saveUserInfo();
       return true;
     } catch (error) {
-      console.error('Login failed:', error);
+      logger.error('Login failed:', error);
       return false;
     }
   }
@@ -129,7 +130,7 @@ export default class UserModule {
       this.configManager.delete('userInfo');
       return true;
     } catch (error) {
-      console.error('Logout failed:', error);
+      logger.error('Logout failed:', error);
       return false;
     }
   }

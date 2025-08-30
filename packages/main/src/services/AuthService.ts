@@ -1,7 +1,8 @@
-import { session } from 'electron';
+import { session, app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
+import { logger } from '@app/utils/logger';
 
 // 定义会话接口
 interface AuthSession {
@@ -35,7 +36,7 @@ export class AuthService {
 
   private constructor() {
     // 初始化会话存储路径
-    this.sessionFilePath = path.join(__dirname, '../../sessions.json');
+    this.sessionFilePath = path.join(app.getPath('userData'), 'sessions.json');
     this.loadSessions();
   }
 
@@ -60,7 +61,7 @@ export class AuthService {
         });
       }
     } catch (error) {
-      console.error('Failed to load sessions:', error);
+      logger.error('Failed to load sessions:', error);
     }
   }
 
@@ -73,7 +74,7 @@ export class AuthService {
       });
       fs.writeFileSync(this.sessionFilePath, JSON.stringify(sessions, null, 2));
     } catch (error) {
-      console.error('Failed to save sessions:', error);
+      logger.error('Failed to save sessions:', error);
     }
   }
 
@@ -104,6 +105,10 @@ export class AuthService {
         }
 
         const data = await response.json();
+        // 验证响应数据结构
+        if (!data.userId || !data.token || !data.expiresIn) {
+          throw new Error('登录响应数据格式无效');
+        }
         const newSession: AuthSession = {
           userId: data.userId,
           username: data.username,
@@ -116,7 +121,7 @@ export class AuthService {
         this.saveSessions();
         return newSession;
       } catch (error) {
-        console.error('登录API调用失败:', error);
+        logger.error('登录API调用失败:', error);
         throw new Error('登录失败: ' + (error instanceof Error ? error.message : String(error)));
       }
     }
@@ -134,11 +139,11 @@ export class AuthService {
     if (token) {
       this.sessionStore.delete(token);
       this.saveSessions();
-    } else {
-      // 清除当前会话
-      const currentSession = session.defaultSession;
-      await currentSession.clearStorageData();
     }
+    // 清除当前会话存储
+    const currentSession = session.defaultSession;
+    await currentSession.clearStorageData();
+    await currentSession.cookies.remove({});
   }
 
   // 检查认证状态
@@ -176,7 +181,7 @@ export class AuthService {
         .sort((a, b) => b.expiresAt - a.expiresAt)[0];
       return validSession?.token || null;
     } catch (error) {
-      console.error('获取当前令牌失败:', error);
+      logger.error('获取当前令牌失败:', error);
       return null;
     }
   }

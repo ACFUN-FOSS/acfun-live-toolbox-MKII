@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@app/utils/logger';
 
 interface ErrorInfo {
   message: string;
@@ -75,7 +76,7 @@ export class ErrorHandlingService {
 
       return error.id;
     } catch (error) {
-      console.error('Failed to log error:', error);
+      logger.error('Failed to log error:', error);
       throw new Error(`Error logging failed: ${(error as Error).message}`);
     }
   }
@@ -112,7 +113,7 @@ export class ErrorHandlingService {
 
       return errors;
     } catch (error) {
-      console.error('Failed to get error history:', error);
+      logger.error('Failed to get error history:', error);
       throw new Error(`Error history retrieval failed: ${(error as Error).message}`);
     }
   }
@@ -124,7 +125,7 @@ export class ErrorHandlingService {
     try {
       await fs.promises.writeFile(this.errorLogPath, JSON.stringify([]), 'utf8');
     } catch (error) {
-      console.error('Failed to clear error history:', error);
+      logger.error('Failed to clear error history:', error);
       throw new Error(`Error history clearing failed: ${(error as Error).message}`);
     }
   }
@@ -150,7 +151,7 @@ export class ErrorHandlingService {
 
       return { success: true, reportId };
     } catch (error) {
-      console.error('Failed to report error:', error);
+      logger.error('Failed to report error:', error);
       throw new Error(`Error reporting failed: ${(error as Error).message}`);
     }
   }

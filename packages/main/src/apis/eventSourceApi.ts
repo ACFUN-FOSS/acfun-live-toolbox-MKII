@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { IncomingMessage } from 'http';
 import { ServerResponse } from 'http';
 import { Readable } from 'stream';
+import { getLogManager } from '../utils/logger';
 
 /**
  * EventSource连接管理器
@@ -10,6 +11,7 @@ import { Readable } from 'stream';
 class EventSourceManager {
   private connections: Map<string, ServerResponse>;
   private eventEmitter: EventEmitter;
+  private logger = getLogManager().getLogger('EventSourceManager');
 
   constructor() {
     this.connections = new Map();
@@ -41,10 +43,10 @@ class EventSourceManager {
     req.on('close', () => {
       this.connections.delete(clientId);
       this.eventEmitter.emit('disconnect', clientId);
-      console.log(`Client ${clientId} disconnected`);
+      this.logger.info(`Client ${clientId} disconnected`);
     });
 
-    console.log(`New EventSource connection from client ${clientId}`);
+    this.logger.info(`New EventSource connection from client ${clientId}`);
   }
 
   /**
@@ -125,13 +127,18 @@ const eventSourceManager = new EventSourceManager();
 
 export default eventSourceManager;
 
-export function setupEventSourceRoutes(app: any) {
+export function setupEventSourceRoutes(app: { get: (path: string, handler: (req: IncomingMessage, res: ServerResponse) => void) => void }) {
   /**
    * 弹幕流EventSource连接
    */
   app.get('/api/events/danmaku', (req: IncomingMessage, res: ServerResponse) => {
-    const clientId = req.headers['client-id'] || `client_${Date.now()}`;
-    eventSourceManager.createConnection(req, res, clientId as string);
+    const clientId = req.headers['client-id'] as string || `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (typeof clientId !== 'string' || clientId.trim().length === 0) {
+      res.writeHead(400);
+      res.end('Invalid client-id header');
+      return;
+    }
+    eventSourceManager.createConnection(req, res, clientId);
   });
 
   /**

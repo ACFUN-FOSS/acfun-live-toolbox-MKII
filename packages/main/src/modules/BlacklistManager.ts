@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events';
-import { ConfigManager } from '../utils/ConfigManager';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
+import { ConfigManager } from '../core/ConfigManager';
 import { LogManager } from '../utils/LogManager';
 
 // 黑名单用户接口
@@ -15,18 +17,37 @@ export interface BlacklistUser {
  * 黑名单管理模块
  * 负责处理用户黑名单的添加、移除、查询和持久化
  */
-export class BlacklistManager extends EventEmitter {
+export class BlacklistManager extends EventEmitter implements AppModule {
   private blacklist: Map<string, BlacklistUser>;
-  private configManager: ConfigManager;
-  private logManager: LogManager;
+  private configManager!: ConfigManager;
+  private logManager!: LogManager;
   private static readonly CONFIG_KEY = 'blacklist';
+  private isEnabled = false;
 
   constructor() {
     super();
-    this.configManager = globalThis.configManager;
-    this.logManager = globalThis.logManager;
     this.blacklist = new Map();
+  }
+
+  /**
+   * 启用黑名单模块
+   */
+  enable(context: ModuleContext): void {
+    if (this.isEnabled) return;
+    this.isEnabled = true;
+    this.configManager = new ConfigManager();
+    this.logManager = new LogManager(context.appDataPath);
     this.initialize();
+  }
+
+  /**
+   * 禁用黑名单模块
+   */
+  disable(): void {
+    if (!this.isEnabled) return;
+    this.isEnabled = false;
+    this.removeAllListeners();
+    this.blacklist.clear();
   }
 
   /**

@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { logger } from '@app/utils/logger';
 
 // 弹幕数据库服务 - 处理弹幕的持久化存储
 export class DanmuDatabaseService {
@@ -59,7 +60,7 @@ export class DanmuDatabaseService {
 
       return db;
     } catch (error) {
-      console.error('Failed to initialize danmu database:', error);
+      logger.error('Failed to initialize danmu database:', error);
       throw new Error('弹幕数据库初始化失败');
     }
   }
@@ -95,7 +96,7 @@ export class DanmuDatabaseService {
         danmu.giftValue || 0
       );
     } catch (error) {
-      console.error('Failed to insert danmu:', error);
+      logger.error('Failed to insert danmu:', error);
       throw new Error('保存弹幕失败');
     }
   }
@@ -121,7 +122,7 @@ export class DanmuDatabaseService {
     try {
       transaction(danmus);
     } catch (error) {
-      console.error('Failed to bulk insert danmu:', error);
+      logger.error('Failed to bulk insert danmu:', error);
       throw new Error('批量保存弹幕失败');
     }
   }
@@ -138,7 +139,7 @@ export class DanmuDatabaseService {
 
       return stmt.all(roomId, limit, offset);
     } catch (error) {
-      console.error('Failed to query danmu by roomId:', error);
+      logger.error('Failed to query danmu by roomId:', error);
       throw new Error('查询弹幕失败');
     }
   }
@@ -159,7 +160,7 @@ export class DanmuDatabaseService {
 
       return stmt.all(roomId, startTime.toISOString(), endTime.toISOString());
     } catch (error) {
-      console.error('Failed to query danmu by time range:', error);
+      logger.error('Failed to query danmu by time range:', error);
       throw new Error('查询时间范围内弹幕失败');
     }
   }
@@ -168,6 +169,28 @@ export class DanmuDatabaseService {
   public close(): void {
     if (this.db) {
       this.db.close();
+    }
+  }
+
+  // 执行查询并返回结果
+  public executeQuery(sql: string, params: any[] = []): any[] {
+    try {
+      const stmt = this.db.prepare(sql);
+      return stmt.all(...params);
+    } catch (error) {
+      console.error('Failed to execute query:', error);
+      throw new Error('执行数据库查询失败');
+    }
+  }
+
+  // 执行单行查询并返回结果
+  public getSingleResult(sql: string, params: any[] = []): any {
+    try {
+      const stmt = this.db.prepare(sql);
+      return stmt.get(...params);
+    } catch (error) {
+      console.error('Failed to get single result:', error);
+      throw new Error('获取单行查询结果失败');
     }
   }
 }

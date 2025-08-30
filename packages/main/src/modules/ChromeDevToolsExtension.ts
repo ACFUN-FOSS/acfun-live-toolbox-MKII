@@ -1,5 +1,6 @@
-import {AppModule} from '../AppModule.js';
-import {ModuleContext} from '../ModuleContext.js';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
+import { app } from 'electron';
 import installer from 'electron-devtools-installer';
 
 const {
@@ -38,9 +39,15 @@ export class ChromeDevToolsExtension implements AppModule {
     this.#extension = extension;
   }
 
-  async enable({app}: ModuleContext): Promise<void> {
+  async enable(context: ModuleContext): Promise<boolean> {
     await app.whenReady();
     await installExtension(extensionsDictionary[this.#extension]);
+    return true;
+  }
+
+  async disable(): Promise<boolean> {
+    // Chrome扩展无法通过编程方式禁用，返回true表示操作成功
+    return true;
   }
 }
 

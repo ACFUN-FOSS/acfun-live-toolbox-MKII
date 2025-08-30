@@ -1,14 +1,28 @@
-import { Module } from '@app/core/interfaces/Module';
+import { AppModule } from '../core/AppModule';
 import { DanmuDatabaseService } from '../services/DanmuDatabaseService';
-import { AcfunDanmuModule } from '@app/acfundanmu';
-import { logger } from '@app/utils/logger';
-import { ModuleContext } from '@app/core/interfaces/ModuleContext';
+import { AcfunDanmuModule } from '../../acfundanmu';
+import { logger } from '../utils/logger';
+import { ModuleContext } from '../core/ModuleContext';
+
+// 定义弹幕数据接口
+interface Danmu {
+  userId: number;
+  username: string;
+  content: string;
+  type: string;
+  color?: string;
+  fontSize?: number;
+  isGift?: boolean;
+  giftValue?: number;
+  timestamp?: number;
+}
 
 // 弹幕连接管理器 - 处理多直播间弹幕流分发
-export class DanmuConnectionManager {
+export class DanmuConnectionManager implements AppModule {
   private static instance: DanmuConnectionManager;
   private roomConnections: Map<number, AcfunDanmuModule> = new Map();
   private dbService: DanmuDatabaseService;
+  private isEnabled = false;
 
   private constructor() {
     this.dbService = DanmuDatabaseService.getInstance();
@@ -21,6 +35,32 @@ export class DanmuConnectionManager {
     return DanmuConnectionManager.instance;
   }
 
+  /**
+   * 启用弹幕模块
+   */
+  async enable(context: ModuleContext): Promise<void> {
+    if (this.isEnabled) return;
+    this.isEnabled = true;
+    this.initialize(context);
+  }
+
+  /**
+   * 禁用弹幕模块
+   */
+  async disable(): Promise<void> {
+    if (!this.isEnabled) return;
+    this.isEnabled = false;
+    this.disconnectAll();
+  }
+
+  /**
+   * 初始化弹幕模块
+   */
+  private initialize(context: ModuleContext): void {
+    logger.info(`Danmu module initialized with app data path: ${context.appDataPath}`);
+    // 使用上下文信息进行初始化
+  }
+
   // 连接到直播间弹幕流
   async connectToRoom(roomId: number): Promise<boolean> {
     if (this.roomConnections.has(roomId)) {
@@ -30,7 +70,7 @@ export class DanmuConnectionManager {
 
     try {
       const danmuModule = new AcfunDanmuModule();
-      await danmuModule.connect(roomId);
+      await danmuModule.start();
 
       // 监听弹幕事件并存储到数据库
       danmuModule.on('danmu', (danmu) => this.handleDanmu(roomId, danmu));
@@ -38,7 +78,7 @@ export class DanmuConnectionManager {
       danmuModule.on('close', () => this.handleConnectionClose(roomId));
 
       this.roomConnections.set(roomId, danmuModule);
-      logger.info(`Successfully connected to room ${roomId} danmu stream`);
+      logger.info(`Successfully connected to room ${roomId}`);
       return true;
     } catch (error) {
       logger.error(`Failed to connect to room ${roomId}:`, error);
@@ -106,10 +146,10 @@ export class DanmuConnectionManager {
 }
 
 // 弹幕模块 - 实现多直播间弹幕流分发机制
-export default class DanmuModule implements Module {
+export default class DanmuModule implements AppModule {
   private connectionManager: DanmuConnectionManager;
 
-  enable(context: ModuleContext): void {
+  async enable(context: ModuleContext): Promise<void> {
     this.connectionManager = DanmuConnectionManager.getInstance();
     logger.info('DanmuModule enabled with multi-room support');
 
@@ -119,7 +159,7 @@ export default class DanmuModule implements Module {
     });
   }
 
-  disable(): void {
+  async disable(): Promise<void> {
     this.connectionManager.disconnectAll();
     logger.info('DanmuModule disabled');
   }

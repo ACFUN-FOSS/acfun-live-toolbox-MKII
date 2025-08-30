@@ -6,6 +6,7 @@ import { app } from 'electron';
 import { getPackageJson } from '../utils/Devars.js';
 import { getLogManager } from '../utils/LogManager.js';
 import WebSocket from 'ws';
+import { ConfigManager } from '../core/ConfigManager.js';
 
 // 定义配置接口
 interface AcfunDanmuConfig {
@@ -23,6 +24,43 @@ const DEFAULT_CONFIG: AcfunDanmuConfig = {
   logLevel: 'info'
 };
 
+// 定义RTMP配置接口
+interface RtmpConfig {
+  rtmpUrl: string;
+  streamKey: string;
+  updatedAt: string;
+}
+
+// 弹幕发送响应接口
+interface DanmuSendSuccessResponse {
+  success: true;
+  data: {
+    danmuId: string;
+    timestamp: number;
+  };
+}
+
+interface DanmuSendErrorResponse {
+  success: false;
+  message: string;
+  data?: {
+    danmuId?: string;
+    timestamp?: number;
+  };
+}
+
+type DanmuSendResponse = DanmuSendSuccessResponse | DanmuSendErrorResponse;
+
+// 直播状态响应接口
+interface LiveStatusResponse {
+  liveId: number;
+  status: 'live' | 'offline' | 'reconnecting';
+  viewerCount?: number;
+  startTime?: string;
+  title?: string;
+  coverUrl?: string;
+}
+
 export class AcfunDanmuModule implements AppModule {
   private process: ChildProcess | null = null;
   private obsWebSocket: WebSocket | null = null;
@@ -30,10 +68,12 @@ export class AcfunDanmuModule implements AppModule {
   private config: AcfunDanmuConfig;
   private logCallback: ((message: string, type: 'info' | 'error') => void) | null = null;
   private logManager: ReturnType<typeof getLogManager>;
+  private configManager: ConfigManager;
 
   constructor(config: Partial<AcfunDanmuConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.logManager = getLogManager();
+    this.configManager = new ConfigManager(); // 初始化ConfigManager
   }
 
   // 设置日志回调函数
@@ -179,30 +219,41 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // 实现AppModule接口
-  async enable({ app }: ModuleContext): Promise<void> {
+  async enable(context: ModuleContext): Promise<void> {
     // 设置日志回调
-    this.setLogCallback((message, type) => {
-      this.logManager.addLog('acfunDanmu', message, type as any);
+    this.setLogCallback((message: string, type: string) => {
+      this.logManager.addLog('acfunDanmu', message, type);
     });
-
+  
     // 延迟启动，确保应用已就绪
-    app.on('ready', () => {
-      setTimeout(() => {
-        this.start();
-      }, 1000);
-    });
-
+    if (context.app.isReady()) {
+      setTimeout(() => this.start(), 1000);
+    } else {
+      context.app.on('ready', () => {
+        setTimeout(() => this.start(), 1000);
+      });
+    }
+  
     // 主进程退出时停止服务
-    app.on('will-quit', () => {
+    context.app.on('will-quit', () => {
       this.stop();
     });
   }
-}
-
+  
+  // 新增：实现disable方法
+  async disable(): Promise<void> {
+    this.stop();
+    // 清理WebSocket连接
+    if (this.obsWebSocket) {
+      this.obsWebSocket.close();
+      this.obsWebSocket = null;
+    }
+  }
+  
   // 弹幕相关方法
   async sendDanmu(roomId: number, userId: number, nickname: string, content: string): Promise<any> {
     return this.callAcfunDanmuApi(
-      `/danmu/send`,
+      `/live/danmu/send`,
       'POST',
       { roomId, userId, nickname, content }
     );
@@ -322,38 +373,13 @@ export class AcfunDanmuModule implements AppModule {
     );
   }
 
-  // RTMP地址管理
-  async saveRtmpConfig(roomId: number, rtmpUrl: string, streamKey: string): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/stream/saveRtmpConfig`,
-      'POST',
-      { roomId, rtmpUrl, streamKey }
-    );
-  }
-
-  async getRtmpConfig(roomId: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/stream/getRtmpConfig`,
-      'GET',
-      { roomId }
-    );
-  }
-
-  // OBS连接状态监控
-  async getObsConnectionStatus(roomId: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/stream/obsStatus`,
-      'GET',
-      { roomId }
-    );
-  }
-
   // RTMP配置管理
   async saveRtmpConfig(roomId: number, rtmpUrl: string, streamKey: string): Promise<boolean> {
     try {
-      const rtmpConfigs = this.configManager.readConfig().rtmpConfigs || {};
+      const config = this.configManager.readConfig();
+      const rtmpConfigs: Record<number, RtmpConfig> = config.rtmpConfigs || {};
       rtmpConfigs[roomId] = { rtmpUrl, streamKey, updatedAt: new Date().toISOString() };
-      this.configManager.writeConfig({ rtmpConfigs });
+      this.configManager.writeConfig({ ...config, rtmpConfigs });
       return true;
     } catch (error) {
       this.logManager.addLog('AcfunDanmuModule', `Failed to save RTMP config: ${error.message}`, 'error');
@@ -361,9 +387,9 @@ export class AcfunDanmuModule implements AppModule {
     }
   }
 
-  async getRtmpConfig(roomId: number): Promise<{rtmpUrl: string, streamKey: string} | null> {
+  async getRtmpConfig(roomId: number): Promise<RtmpConfig | null> {
     try {
-      const rtmpConfigs = this.configManager.readConfig().rtmpConfigs || {};
+      const rtmpConfigs: Record<number, RtmpConfig> = this.configManager.readConfig().rtmpConfigs || {};
       return rtmpConfigs[roomId] || null;
     } catch (error) {
       this.logManager.addLog('AcfunDanmuModule', `Failed to get RTMP config: ${error.message}`, 'error');
@@ -376,7 +402,7 @@ export class AcfunDanmuModule implements AppModule {
     const wsUrl = `ws://${obsHost}:${obsPort}/ws`;
     this.obsWebSocket = new WebSocket(wsUrl);
     this.obsConnectionStatus = 'connecting';
-
+  
     this.obsWebSocket.on('open', () => {
       this.logManager.addLog('AcfunDanmuModule', 'OBS WebSocket connected', 'info');
       this.obsConnectionStatus = 'connected';
@@ -389,19 +415,19 @@ export class AcfunDanmuModule implements AppModule {
         }
       }));
     });
-
+  
     this.obsWebSocket.on('close', () => {
       this.logManager.addLog('AcfunDanmuModule', 'OBS WebSocket disconnected', 'info');
       this.obsConnectionStatus = 'disconnected';
       // 自动重连逻辑
       setTimeout(() => this.setupOBSWebSocket(obsHost, obsPort, password), 5000);
     });
-
+  
     this.obsWebSocket.on('error', (error) => {
       this.logManager.addLog('AcfunDanmuModule', `OBS WebSocket error: ${error.message}`, 'error');
       this.obsConnectionStatus = 'disconnected';
     });
-
+  
     this.obsWebSocket.on('message', (data) => {
       const message = JSON.parse(data.toString());
       // 处理OBS事件通知
@@ -470,7 +496,7 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // 观看列表相关方法
-  async getWatchingList(liveID: number): Promise<any> {
+  async getWatchingList(liveId: number): Promise<any> {
     return this.callAcfunDanmuApi(
       `/live/watchingList`,
       'GET',
@@ -503,11 +529,11 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // 回放信息相关方法
-  async getPlayback(liveID: number): Promise<any> {
+  async getPlayback(liveId: number): Promise<any> {
     return this.callAcfunDanmuApi(
       `/live/playback`,
       'GET',
-      { liveId: liveID }
+      { liveId }
     );
   }
 
@@ -519,11 +545,11 @@ export class AcfunDanmuModule implements AppModule {
     );
   }
 
-  async getGiftList(liveID: number): Promise<any> {
+  async getGiftList(liveId: number): Promise<any> {
     return this.callAcfunDanmuApi(
-      `/gift/list`,
+      `/live/giftList`,
       'GET',
-      { liveId: liveID }
+      { liveId }
     );
   }
 
@@ -561,11 +587,11 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // 用户信息相关方法
-  async getUserInfo(userID?: number): Promise<any> {
+  async getUserInfo(userId?: number): Promise<any> {
     return this.callAcfunDanmuApi(
       `/user/info`,
       'GET',
-      userID ? { userId: userID } : {}
+      userId ? { userId } : {}
     );
   }
 
@@ -603,12 +629,12 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // 弹幕相关方法
-  async sendDanmu(liveId: number, content: string): Promise<DanmuSendResponse> {
+  async sendDanmuV2(liveId: number, content: string): Promise<DanmuSendResponse> {
     if (!liveId || liveId <= 0) throw new Error('Invalid liveId');
-    if (!content || content.trim().length === 0 || content.length > 200) throw new Error('Invalid danmu content');
+    if (!content || content.trim().length === 0 || content.length > 200) throw new Error('Invalid danmu content: must be 1-200 characters');
     try {
       return await this.callAcfunDanmuApi<DanmuSendResponse>(
-        `/danmu/send`,
+        `/live/danmu/send`,
         'POST',
         { liveId, content }
       );
@@ -660,27 +686,27 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // 直播剪辑相关方法
-  async checkCanCut(liveID: number): Promise<any> {
+  async checkCanCut(liveId: number): Promise<any> {
     return this.callAcfunDanmuApi(
       `/live/checkCanCut`,
       'GET',
-      { liveId: liveID }
+      { liveId }
     );
   }
 
-  async setCanCut(liveID: number, canCut: boolean): Promise<any> {
+  async setCanCut(liveId: number, canCut: boolean): Promise<any> {
     return this.callAcfunDanmuApi(
       `/live/setCanCut`,
       'POST',
-      { liveId: liveID, canCut }
+      { liveId, canCut }
     );
   }
 
   // HTTP客户端工具方法
-  private async callAcfunDanmuApi(path: string, method: 'GET' | 'POST' = 'GET', data: any = null): Promise<any> {
+  private async callAcfunDanmuApi<T = any>(path: string, method: 'GET' | 'POST' = 'GET', data: any = null): Promise<T> {
     try {
       let url = `http://localhost:${this.config.port}/api${path}`;
-      const options = {
+      const options: RequestInit = {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -699,7 +725,7 @@ export class AcfunDanmuModule implements AppModule {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return await response.json();
+      return await response.json() as T;
     } catch (error) {
       console.error(`[AcfunDanmu] API调用失败: ${error instanceof Error ? error.message : String(error)}`);
       throw error;

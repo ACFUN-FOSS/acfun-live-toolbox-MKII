@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { getLogManager } from '../utils/LogManager.js';
-import { AppModule } from '../AppModule.js';
-import { ModuleContext } from '../ModuleContext.js';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
 import OBSWebSocket from 'obs-websocket-js';
 import fetch from 'node-fetch';
 
@@ -36,8 +36,8 @@ export type StreamStatus = 'live' | 'waiting' | 'offline';
 export class LiveManagementModule extends EventEmitter implements AppModule {
   private config: LiveManagementConfig;
   private logger = getLogManager().getLogger('LiveManagementModule');
-private obsWebSocket = new OBSWebSocket();
-private obsStatus: OBSStatus = 'offline';
+  private obsWebSocket = new OBSWebSocket();
+  private obsStatus: OBSStatus = 'offline';
   private streamStatus: StreamStatus = 'offline';
   private roomInfo: RoomInfo = {
     title: '未设置标题',
@@ -420,30 +420,26 @@ private obsStatus: OBSStatus = 'offline';
 
 
   // 实现AppModule接口的enable方法
-  enable(context: ModuleContext): void {
+  async enable(context: ModuleContext): Promise<boolean> {
     this.app = context.app;
     this.logger.info('LiveManagementModule enabled');
-
-    // 注册应用退出时的清理函数
-    this.app.on('will-quit', () => {
-      this.cleanup();
-    });
+    return true;
   }
 
-  // 清理资源
-  private cleanup(): void {
-  if (this.reconnectTimeout) {
-    clearTimeout(this.reconnectTimeout);
+  async disable(): Promise<boolean> {
+    if (this.obsStatus === 'online') {
+      await this.obsWebSocket.disconnect();
+    }
+    this.streamStatus = 'offline';
+    this.obsStatus = 'offline';
+    this.logger.info('LiveManagementModule disabled');
+    return true;
   }
-  
-  // 断开OBS连接
-  if (this.obsWebSocket && this.obsStatus === 'online') {
-    this.obsWebSocket.disconnect().catch(error => {
-      this.logger.error('Error disconnecting OBS:', error);
-    });
-  }
-  
-  this.logger.info('LiveManagementModule cleanup done');
+
+  // 注册应用退出时的清理函数
+  this.app.on('will-quit', () => {
+    this.cleanup();
+  });
 }
 
   async stopStream(): Promise<boolean> {

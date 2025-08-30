@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
 import { Notification } from 'electron';
 import { ConfigManager } from '../core/ConfigManager';
+import { AppModule } from '../core/AppModule';
+import type { ModuleContext } from '../core/ModuleContext';
 
 /**
  * 通知类型枚举
@@ -19,24 +21,30 @@ enum NotificationType {
 interface NotificationConfig {
   enabled: boolean;
   sound: boolean;
-  displayDuration: number;
-  position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  toastDuration: number;
+  showToast: boolean;
 }
 
 /**
  * 通知服务模块
  * 负责管理应用内所有通知的配置、触发和展示
  */
-export class NotificationModule extends EventEmitter {
+export class NotificationModule extends EventEmitter implements AppModule {
   private configManager: ConfigManager;
   private notificationConfigs: Map<NotificationType, NotificationConfig>;
   private globalEnabled: boolean;
+  private globalSound: boolean;
+  private globalShowToast: boolean;
+  private globalToastDuration: number;
 
   constructor() {
     super();
     this.configManager = new ConfigManager();
     this.notificationConfigs = new Map();
     this.globalEnabled = true;
+    this.globalSound = true;
+    this.globalShowToast = true;
+    this.globalToastDuration = 5000;
     this.initialize();
   }
 
@@ -44,51 +52,81 @@ export class NotificationModule extends EventEmitter {
    * 初始化通知模块
    */
   private async initialize(): Promise<void> {
-    await this.loadConfigurations();
-    this.setupDefaultConfigs();
+      await this.initializeNotificationConfig();
+      await this.loadConfigurations();
+      this.setupDefaultConfigs();
   }
 
   /**
-   * 加载通知配置
+   * 初始化通知配置
    */
-  private async loadConfigurations(): Promise<void> {
-    try {
-      const savedConfigs = await this.configManager.get('notificationSettings');
-      if (savedConfigs) {
-        const defaultConfig: NotificationConfig = {
-          enabled: true,
-          sound: true,
-          displayDuration: 5000,
-          position: 'top-right'
-        };
-        Object.entries(savedConfigs).forEach(([type, config]) => {
-          this.notificationConfigs.set(type as NotificationType, { ...defaultConfig, ...config });
-        });
-      }
-
-      const globalSetting = await this.configManager.get('globalNotificationEnabled');
-      this.globalEnabled = globalSetting !== false;
-    } catch (error) {
-      console.error('Failed to load notification configurations:', error);
-    }
+  private async initializeNotificationConfig() {
+      const config = await this.configManager.readConfig();
+      const notificationSettings = config.notificationSettings || {};
+      
+      // 加载全局通知设置
+      this.globalEnabled = notificationSettings.enabled !== false;
+      this.globalSound = notificationSettings.sound !== false;
+      this.globalShowToast = notificationSettings.showToast !== false;
+      this.globalToastDuration = notificationSettings.toastDuration || 5000;
+      
+      // 加载分类通知设置
+      const categories = notificationSettings.categories || {};
+      Object.values(NotificationType).forEach(type => {
+          const enabled = categories[type] !== false;
+          this.notificationConfigs.set(type as NotificationType, {
+              enabled,
+              sound: this.globalSound,
+              showToast: this.globalShowToast,
+              toastDuration: this.globalToastDuration
+          });
+      });
   }
 
   /**
    * 设置默认配置
    */
   private setupDefaultConfigs(): void {
-    // 为未配置的通知类型设置默认值
-    Object.values(NotificationType).forEach(type => {
-      if (!this.notificationConfigs.has(type)) {
-        this.notificationConfigs.set(type, {
-          enabled: true,
-          sound: true,
-          displayDuration: 5000,
-          position: 'top-right'
-        });
-      }
-    });
+      // 为未配置的通知类型设置默认值
+      Object.values(NotificationType).forEach(type => {
+          if (!this.notificationConfigs.has(type)) {
+              this.notificationConfigs.set(type, {
+                  enabled: true,
+                  sound: true,
+                  displayDuration: 5000,
+                  position: 'top-right'
+              });
+          }
+      });
   }
+
+  /**
+   * 加载通知配置
+   */
+  private async loadConfigurations(): Promise<void> {
+     try {
+       const notificationSettings = await this.configManager.get('notificationSettings') || {};
+       const categories = notificationSettings.categories || {};
+        
+       // 加载全局设置
+       this.globalEnabled = notificationSettings.enabled !== false;
+       this.globalSound = notificationSettings.sound !== false;
+       this.globalShowToast = notificationSettings.showToast !== false;
+       this.globalToastDuration = notificationSettings.toastDuration || 5000;
+        
+       // 加载分类设置
+       Object.values(NotificationType).forEach(type => {
+         this.notificationConfigs.set(type as NotificationType, {
+           enabled: categories[type] !== false,
+           sound: this.globalSound,
+           showToast: this.globalShowToast,
+           toastDuration: this.globalToastDuration
+         });
+       });
+     } catch (error) {
+       console.error('Failed to load notification configurations:', error);
+     }
+   }
 
   /**
    * 获取特定类型的通知配置
@@ -145,14 +183,14 @@ export class NotificationModule extends EventEmitter {
     if (!this.globalEnabled) return false;
 
     const config = this.getNotificationConfig(type);
-    if (!config.enabled) return false;
+    if (!config.enabled || !config.showToast) return false;
 
     // 创建通知
     const notification = new Notification({
       title,
       body,
       silent: !config.sound,
-      timeoutType: 'never'
+      timeoutType: 'default'
     });
 
     // 设置点击事件
@@ -163,8 +201,7 @@ export class NotificationModule extends EventEmitter {
     // 显示通知
     notification.show();
 
-    // 设置自动关闭
-    setTimeout(() => notification.close(), config.displayDuration);
+    // 设置自动关闭（由系统默认处理）
 
     this.emit('notificationShown', type, { title, body });
     return true;
@@ -184,6 +221,10 @@ export class NotificationModule extends EventEmitter {
    */
   public isGlobalNotificationEnabled(): boolean {
     return this.globalEnabled;
+  }
+  
+  public enable(context: ModuleContext): void {
+    this.initialize();
   }
 }
 

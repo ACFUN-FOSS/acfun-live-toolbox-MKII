@@ -1,7 +1,11 @@
 import { EventEmitter } from 'events';
-import { existsSync, readdirSync, readFile, writeFile, unlink, mkdir } from 'fs/promises';
+import { existsSync, readdirSync } from 'fs';
+import { readFile, writeFile, unlink, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { AppModule } from '../core/AppModule';
+import { ModuleContext } from '../core/ModuleContext';
+import { getLogManager } from '../utils/LogManager';
 
 /**
  * 笔记接口定义
@@ -19,15 +23,15 @@ interface Note {
  * 小本本功能模块
  * 负责笔记的创建、编辑、查询和删除管理
  */
-export class NotebookModule extends EventEmitter {
+export class NotebookModule extends EventEmitter implements AppModule {
   private notesDirectory: string;
   private notes: Map<string, Note>;
+  private logger = getLogManager().getLogger('NotebookModule');
 
   constructor() {
     super();
     this.notesDirectory = join(__dirname, '../../data/notebooks');
     this.notes = new Map();
-    this.initialize();
   }
 
   /**
@@ -44,7 +48,7 @@ export class NotebookModule extends EventEmitter {
    * 确保目录存在
    */
   private async ensureDirectoryExists(path: string): Promise<void> {
-    if (!await existsSync(path)) {
+    if (!existsSync(path)) {
       await mkdir(path, { recursive: true });
     }
   }
@@ -191,6 +195,17 @@ export class NotebookModule extends EventEmitter {
         note.content.toLowerCase().includes(lowerKeyword)
       )
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  }
+
+  async enable(context: ModuleContext): Promise<boolean> {
+    this.logger.info('Enabling NotebookModule');
+    await this.initialize();
+    return true;
+  }
+
+  async disable(): Promise<boolean> {
+    this.logger.info('Disabling NotebookModule');
+    return true;
   }
 }
 
