@@ -1,0 +1,1 @@
+{"todos":[{"id":"1","content":"Create pnpm workspace configuration mapping packages","status":"in_progress"},{"id":"2","content":"Reinstall dependencies with pnpm after workspace setup","status":"todo"},{"id":"3","content":"Re-run pnpm build and resolve remaining compilation errors","status":"todo"}]}

@@ -19,7 +19,7 @@ export default defineConfig({
         }
     }
   },
-  plugins: [vue(), electronRenderer({ nodeIntegration: true, include: ['path'] })],
+  plugins: [vue(), electronRenderer()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),

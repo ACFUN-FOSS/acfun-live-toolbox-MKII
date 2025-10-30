@@ -1,20 +1,21 @@
-import { contextBridge, ipcRenderer } from 'electron';
-import { sha256sum } from './nodeCrypto.js';
-import { versions } from './versions.js';
+/**
+ * @module preload
+ */
 
-// 暴露API给渲染进程
-contextBridge.exposeInMainWorld('api', {
-    sha256sum,
-    versions,
-    window: {
-        minimize: () => ipcRenderer.invoke('window:minimize'),
-        close: () => ipcRenderer.invoke('window:close'),
-        toggleAlwaysOnTop: (alwaysOnTop?: boolean) => ipcRenderer.invoke('window:toggleAlwaysOnTop', alwaysOnTop)
-    },
-    app: {
-        getInstalledApps: () => ipcRenderer.invoke('app:getInstalledApps'),
-        on: (channel: string, listener: (...args: any[]) => void) => {
-            ipcRenderer.on(channel, listener);
-        }
-    }
-});
+import { contextBridge } from 'electron';
+
+/**
+ * An empty object for now.
+ * This will be populated with the actual API as we rebuild the features.
+ */
+const api = {};
+
+/**
+ * The "api" is exposed on the window object in the renderer process.
+ * See `packages/renderer/src/global.d.ts` for type declarations.
+ */
+try {
+  contextBridge.exposeInMainWorld('electronApi', api);
+} catch (error) {
+  console.error('Failed to expose preload API:', error);
+}

@@ -1,0 +1,2 @@
+- [ ] 将本地包依赖改为 workspace 通配符
+- [ ] 重新运行 pnpm install 验证依赖解析

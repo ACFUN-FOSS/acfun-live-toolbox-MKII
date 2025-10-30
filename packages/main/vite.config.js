@@ -18,6 +18,7 @@ export default /**
       formats: ['cjs'],
     },
     rollupOptions: {
+      external: ['@app/acfundanmu'],
       output: {
         entryFileNames: '[name].cjs',
       },

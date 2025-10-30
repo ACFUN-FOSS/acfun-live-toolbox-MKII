@@ -1,83 +1,72 @@
-import type { AppInitConfig } from './AppInitConfig.js';
-import { createModuleRunner } from './ModuleRunner.js';
-import { createAcfunDanmuModule } from './modules/AcfunDanmuModule.js';
-import { LiveManagementModule } from './modules/LiveManagementModule.js';
+import { DatabaseManager } from './persistence/DatabaseManager';
+import { EventWriter } from './persistence/EventWriter';
+import { RoomManager } from './rooms/RoomManager';
+import { ApiServer } from './server/ApiServer';
+import { initializeIpcHandlers } from './ipc/ipcHandlers';
+import { app, BrowserWindow } from 'electron';
+import { runDependencyGuards } from './bootstrap/dependencyGuards';
+import { WindowManager } from './bootstrap/WindowManager';
+import { ensureSingleInstance } from './bootstrap/SingleInstanceApp';
+import { setupHardwareAcceleration } from './bootstrap/HardwareAccelerationModule';
+import { ensureWorkspacePackagesPresent } from './dependencyCheck';
+import path from 'path';
 
-// 创建直播管理模块的工厂函数
-function createLiveManagementModule(config: { debug?: boolean } = {}): LiveManagementModule {
-  return new LiveManagementModule(config);
+async function main() {
+  // --- 0. Assert local workspace package integrity ---
+  try {
+    ensureWorkspacePackagesPresent(path.resolve(__dirname, '..'));
+  } catch (error: any) {
+    console.error('[Main] Workspace package check failed:', error);
+    app.quit();
+    return;
+  }
+
+  // --- 1. Pre-flight Checks & Setup ---
+  ensureSingleInstance();
+  setupHardwareAcceleration();
+
+  try {
+    await runDependencyGuards();
+  } catch (error: any) {
+    // The guard will log the specific error. We just need to exit.
+    app.quit();
+    return; // Stop execution
+  }
+
+  // --- 2. Initialize Managers & Services (Stubs for now) ---
+  console.log('[Main] Initializing services...');
+  const databaseManager = new DatabaseManager();
+  await databaseManager.initialize();
+  
+  const eventWriter = new EventWriter(databaseManager);
+  const roomManager = new RoomManager(eventWriter);
+  const apiServer = new ApiServer({ port: 1299 }, databaseManager);
+  await apiServer.start();
+  initializeIpcHandlers(roomManager);
+
+  // For now, we just create a window manager
+  const windowManager = new WindowManager(); // This will need refactoring
+
+  // --- 3. Application Ready ---
+  await app.whenReady();
+
+  console.log('[Main] App is ready.');
+  windowManager.createWindow(); // Placeholder for creating the main UI
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      windowManager.createWindow();
+    }
+  });
 }
-import { disallowMultipleAppInstance } from './modules/SingleInstanceApp.js';
-import { createWindowManagerModule } from './modules/WindowManager.js';
-import { terminateAppOnLastWindowClose } from './modules/ApplicationTerminatorOnLastWindowClose.js';
-import { hardwareAccelerationMode } from './modules/HardwareAccelerationModule.js';
-import { autoUpdater } from './modules/AutoUpdater.js';
-import { chromeDevToolsExtension } from './modules/ChromeDevToolsExtension.js';
-import { HttpManager } from './utils/HttpManager.js';
-import { ConfigManager } from './utils/ConfigManager.js';
-import { DataManager } from './utils/DataManager.js';
-import { AppManager } from './utils/AppManager.js';
-import { initializeElectronApi } from './apis/electronApi.js';
-import { initializeHttpApi } from './apis/httpApi.js';
-import { app } from "electron";
 
-export async function initApp(initConfig: AppInitConfig) {
-    const moduleRunner = createModuleRunner()
-        .init(disallowMultipleAppInstance())
-        .init(terminateAppOnLastWindowClose())
-        .init(hardwareAccelerationMode({ enable: true }))
-        .init(autoUpdater())
-        .init(createAcfunDanmuModule({ debug: process.env.NODE_ENV === 'development' }))
-    // Install DevTools extension if needed
-    // .init(chromeDevToolsExtension({extension: 'VUEJS3_DEVTOOLS'}))
-    // 初始化Electron API
-    initializeElectronApi();
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
 
-    globalThis.appName = app.getName();
-    globalThis.appVersion = app.getVersion();
-
-    // 延迟初始化WindowManager，确保IPC事件处理器已注册
-    const windowManager = createWindowManagerModule({ initConfig, openDevTools: process.env.NODE_ENV === 'development' });
-    moduleRunner.init(windowManager);
-
-    // 初始化全局变量
-    globalThis.configManager = new ConfigManager();
-    globalThis.dataManager = DataManager.getInstance();
-    globalThis.httpManager = new HttpManager();
-    // Initialize HTTP server to set APP_DIR before AppManager uses it
-    await globalThis.httpManager.initializeServer(); // <-- Add this line
-
-    // 初始化HTTP API并挂载路由
-    const apiRouter = initializeHttpApi();
-    globalThis.httpManager.addApiRoutes('/api', apiRouter);
-    
-    // 初始化EventSource服务
-    import('./initEventSource.js')
-      .then(({ initEventSourceServices }) => {
-        initEventSourceServices();
-      })
-      .catch(error => {
-        console.error('Failed to initialize EventSource services:', error);
-      });
-
-    // 初始化应用
-    globalThis.appManager = new AppManager();
-    await globalThis.appManager.init();
-    globalThis.dataManager.setAppManager(globalThis.appManager);
-
-    // 创建LiveManagementModule实例
-    const liveManagementModule = createLiveManagementModule({ debug: process.env.NODE_ENV === 'development' });
-    // 初始化模块
-    moduleRunner.init(liveManagementModule);
-    // 注册到AppManager
-    globalThis.appManager.registerModule('LiveManagementModule', liveManagementModule);
-
-    await moduleRunner;
-
-    // 应用数据准备就绪后通过windowManager通知所有窗口
-    windowManager.getWindows().forEach((window: Electron.BrowserWindow) => {
-      if (!window.isDestroyed()) {
-        window.webContents.send('apps-ready');
-      }
-    });
-}
+main().catch((error: any) => {
+  console.error('[Main] Unhandled error in main process:', error);
+  app.quit();
+});

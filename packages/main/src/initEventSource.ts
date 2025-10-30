@@ -1,8 +1,8 @@
 import { app } from 'electron';
-import danmuEventSourceConnector from './modules/danmuEventSourceConnector.js';
-import { acfunDanmuModule } from './modules/AcfunDanmuModule.js';
-import { getLogManager } from './utils/LogManager.js';
-import { DataManager } from './utils/DataManager.js';
+import danmuEventSourceConnector from './adapter/danmuEventSourceConnector';
+import { acfunDanmuModule } from './adapter/AcfunDanmuModule';
+import { getLogManager } from './logging/LogManager';
+import { DataManager } from './persistence/DataManager';
 
 /**
  * 初始化EventSource相关服务
@@ -27,7 +27,7 @@ export async function initEventSourceServices() {
 
     // 监听房间状态变化
     const dataManager = DataManager.getInstance();
-    dataManager.subscribe('room:change', 'eventSource', 'main', async (data) => {
+    dataManager.subscribe('room:change', 'eventSource', 'main', async (data: any) => {
       const roomId = data.value;
       logManager.addLog('eventSource', `Connecting to room ${roomId}`, 'info');
       try {

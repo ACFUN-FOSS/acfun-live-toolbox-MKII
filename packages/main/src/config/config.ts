@@ -1,4 +1,1 @@
-export default  {
-    port: 12590,
-    applications: []
-}
+// This file will be used for static configuration constants.
