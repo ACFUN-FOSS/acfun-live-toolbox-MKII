@@ -1,12 +1,26 @@
-import type { AppModule } from '../AppModule.js';
-import { ModuleContext } from '../ModuleContext.js';
+import type { AppModule } from '../AppModule';
+import { ModuleContext } from '../ModuleContext';
 import { spawn, ChildProcess, SpawnOptions } from 'child_process';
 import path from 'path';
 import { app } from 'electron';
-import { getPackageJson } from '../utils/Devars.js';
-import { getLogManager } from '../utils/LogManager.js';
+import { getPackageJson } from '../utils/Devars';
+import { getLogManager } from '../logging/LogManager';
 
 // 定义配置接口
+interface DanmuSendResponse {
+  success: boolean;
+  message?: string;
+  danmuId?: string;
+}
+
+interface LiveStatusResponse {
+  liveId: number;
+  status: 'online' | 'offline' | 'reconnecting';
+  title?: string;
+  viewerCount?: number;
+  startTime?: Date;
+}
+
 interface AcfunDanmuConfig {
   port: number;
   debug: boolean;
@@ -178,7 +192,7 @@ export class AcfunDanmuModule implements AppModule {
   // 实现AppModule接口
   async enable({ app }: ModuleContext): Promise<void> {
     // 设置日志回调
-    this.setLogCallback((message, type) => {
+    this.setLogCallback((message: string, type: 'info' | 'error') => {
       this.logManager.addLog('acfunDanmu', message, type as any);
     });
 
@@ -194,7 +208,7 @@ export class AcfunDanmuModule implements AppModule {
       this.stop();
     });
   }
-}
+
 
   // 房管相关方法
   async getManagerList(uid: number, page: number = 1, pageSize: number = 20): Promise<any> {
@@ -315,7 +329,7 @@ export class AcfunDanmuModule implements AppModule {
     return this.callAcfunDanmuApi(
       `/live/watchingList`,
       'GET',
-      { liveId }
+      { liveID }
     );
   }
 
@@ -438,7 +452,7 @@ export class AcfunDanmuModule implements AppModule {
         { liveId, content }
       );
     } catch (error) {
-      this.logger.error(`Failed to send danmu: ${error.message}`, { liveId, content });
+      this.logManager.addLog('sendDanmu',`Failed to send danmu: ${error instanceof Error ? error.message : String(error)}`, 'error');
       throw error;
     }
   }
@@ -448,7 +462,7 @@ export class AcfunDanmuModule implements AppModule {
     return this.callAcfunDanmuApi(
       `/live/status`,
       'GET',
-      { liveId: liveID }
+      { liveId: liveId }
     );
   }
 
@@ -502,7 +516,7 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // HTTP客户端工具方法
-  private async callAcfunDanmuApi(path: string, method: 'GET' | 'POST' = 'GET', data: any = null): Promise<any> {
+  private async callAcfunDanmuApi<T = any>(path: string, method: 'GET' | 'POST' = 'GET', data: any = null): Promise<T> {
     try {
       let url = `http://localhost:${this.config.port}/api${path}`;
       const options = {
@@ -510,7 +524,8 @@ export class AcfunDanmuModule implements AppModule {
         headers: {
           'Content-Type': 'application/json',
           'x-client-id': 'acfun-live-toolbox'
-        }
+        },
+        body: ''
       };
 
       if (method === 'POST' && data) {
@@ -547,8 +562,7 @@ export function getAcfunDanmuModule(): AcfunDanmuModule {
   return instance;
 }
 
-// 兼容旧的导入方式
-import { app } from 'electron';
+
 
 // 延迟初始化模块
 app.on('ready', () => {
