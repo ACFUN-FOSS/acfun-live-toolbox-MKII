@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@app/preload": "workspace:*",
-    "acfunlive-http-api": "workspace:*",
+    "acfunlive-http-api": "github:ACFUN-FOSS/acfundanmu.js",
     "electron-data": "^2.1.2",
     "obs-websocket-js": "^5.0.0",
     "sqlite3": "^5.1.7",
@@ -22,7 +22,8 @@
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
     "compression": "^1.7.4",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "archiver": "^7.0.1"
   },
   "devDependencies": {
     "@app/electron-versions": "workspace:*",
@@ -35,6 +36,7 @@
     "@types/ws": "^8.5.10",
     "@types/cors": "^2.8.17",
     "@types/compression": "^1.7.5",
-    "@types/morgan": "^1.9.9"
+    "@types/morgan": "^1.9.9",
+    "@types/archiver": "^6.0.2"
   }
 }

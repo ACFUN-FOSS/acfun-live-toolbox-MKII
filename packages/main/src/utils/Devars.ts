@@ -13,7 +13,7 @@ export const getPackageJson = async (): Promise<any> => {
       const content = await fs.readFile(packageJsonPath, 'utf-8');
       return JSON.parse(content);
     } catch (error) {
-      console.error('开发环境读取 package.json 失败:', error);
+      console.error('Failed to read package.json in development:', error);
       return null;
     }
   } else {

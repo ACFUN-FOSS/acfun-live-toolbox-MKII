@@ -45,7 +45,7 @@ export class WsHub {
     this.wss = new WebSocketServer({ server });
 
     this.wss.on('connection', (ws: WebSocket) => {
-      console.log('[WsHub] 新的 WebSocket 连接');
+      console.log('[WsHub] New WebSocket connection');
       this.clients.add(ws);
 
       // 发送欢迎消息
@@ -56,17 +56,17 @@ export class WsHub {
           const message = JSON.parse(data.toString()) as WsMessage;
           this.handleMessage(ws, message);
         } catch (error) {
-          console.error('[WsHub] 解析消息失败:', error);
+          console.error('[WsHub] Failed to parse message:', error);
         }
       });
 
       ws.on('close', () => {
-        console.log('[WsHub] WebSocket 连接关闭');
+        console.log('[WsHub] WebSocket connection closed');
         this.clients.delete(ws);
       });
 
       ws.on('error', (error) => {
-        console.error('[WsHub] WebSocket 错误:', error);
+        console.error('[WsHub] WebSocket error:', error);
         this.clients.delete(ws);
       });
     });
@@ -74,7 +74,7 @@ export class WsHub {
     // 启动心跳检测
     this.startPingInterval();
 
-    console.log('[WsHub] WebSocket 服务器已初始化');
+    console.log('[WsHub] WebSocket server initialized');
   }
 
   /**
@@ -89,7 +89,7 @@ export class WsHub {
         // 客户端响应心跳，无需处理
         break;
       default:
-        console.warn('[WsHub] 未知消息类型:', message.op);
+        console.warn('[WsHub] Unknown message type:', message.op);
     }
   }
 
@@ -131,7 +131,7 @@ export class WsHub {
         try {
           client.send(data);
         } catch (error) {
-          console.error('[WsHub] 发送消息失败:', error);
+          console.error('[WsHub] Failed to send message:', error);
           deadClients.push(client);
         }
       } else {
@@ -153,7 +153,7 @@ export class WsHub {
       try {
         client.send(JSON.stringify(message));
       } catch (error) {
-        console.error('[WsHub] 发送消息到客户端失败:', error);
+        console.error('[WsHub] Failed to send message to client:', error);
         this.clients.delete(client);
       }
     }
@@ -197,6 +197,6 @@ export class WsHub {
       this.wss = null;
     }
 
-    console.log('[WsHub] WebSocket 服务器已关闭');
+    console.log('[WsHub] WebSocket server closed');
   }
 }

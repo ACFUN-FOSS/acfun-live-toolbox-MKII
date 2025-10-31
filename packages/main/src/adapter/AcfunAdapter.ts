@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
-import { AcFunLiveApi, createApi } from '@app/acfundanmu';
-import { DanmuEvent, CommentEvent, GiftEvent, LikeEvent } from '@app/acfundanmu';
+import type { AcFunLiveApi, DanmuEvent, CommentEvent, GiftEvent, LikeEvent } from 'acfunlive-http-api';
 import { RoomStatus, NormalizedEvent } from '../types';
 
 export class AcfunAdapter extends EventEmitter {
@@ -11,7 +10,7 @@ export class AcfunAdapter extends EventEmitter {
   private lastHeartbeat: number = 0;
   private connectionStartTime: number = 0;
   private isShuttingDown: boolean = false;
-  private acfunApi: AcFunLiveApi;
+  // private acfunApi: AcFunLiveApi | null = null;
 
   // 连接配置
   private readonly CONNECTION_TIMEOUT = 30000; // 30秒
@@ -21,7 +20,8 @@ export class AcfunAdapter extends EventEmitter {
   constructor(roomId: string) {
     super();
     this.roomId = roomId;
-    this.acfunApi = createApi();
+    // Integration with acfunlive-http-api will be added in a later phase
+    // this.acfunApi = createApi();
   }
 
   public async connect(): Promise<void> {

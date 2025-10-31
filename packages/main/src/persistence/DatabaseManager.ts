@@ -46,21 +46,40 @@ export class DatabaseManager {
           payload TEXT NOT NULL,
           timestamp INTEGER NOT NULL,
           raw_data TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          INDEX idx_room_id (room_id),
-          INDEX idx_type (type),
-          INDEX idx_timestamp (timestamp)
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `;
 
-      this.db.run(createEventsTableSql, (err) => {
-        if (err) {
-          console.error('Error creating events table:', err.message);
-          reject(err);
-        } else {
-          console.log('Events table created/verified');
-          resolve();
-        }
+      const createIndexesSql = [
+        'CREATE INDEX IF NOT EXISTS idx_events_room_ts ON events (room_id, timestamp);',
+        'CREATE INDEX IF NOT EXISTS idx_events_type_ts ON events (type, timestamp);'
+      ];
+
+      this.db.serialize(() => {
+        this.db!.run(createEventsTableSql, (err) => {
+          if (err) {
+            console.error('Error creating events table:', err.message);
+            reject(err);
+            return;
+          }
+
+          let indexError: Error | null = null;
+          for (const stmt of createIndexesSql) {
+            this.db!.run(stmt, (idxErr) => {
+              if (idxErr && !indexError) {
+                indexError = idxErr;
+              }
+            });
+          }
+
+          if (indexError) {
+            console.error('Error creating indexes:', indexError.message);
+            reject(indexError);
+          } else {
+            console.log('Events table and indexes created/verified');
+            resolve();
+          }
+        });
       });
     });
   }

@@ -1,3 +1,8 @@
+process.env.NODE_PATH = 'packages';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+require('module')._initPaths();
+
 import {build, createServer} from 'vite';
 import path from 'path';
 

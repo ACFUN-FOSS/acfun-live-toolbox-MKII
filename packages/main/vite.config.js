@@ -81,7 +81,8 @@ function handleHotReload() {
       }
 
       /** Spawn a new electron process */
-      electronApp = spawn(String(electronPath), ['--inspect', '.'], {
+      // Drop inspector flag to avoid potential crashes in some Windows environments
+      electronApp = spawn(String(electronPath), ['.'], {
         stdio: 'inherit',
       });
 

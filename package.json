@@ -19,7 +19,7 @@
   "scripts": {
     "build": "npm run build -ws --if-present",
     "compile": "npm run build && electron-builder build --config electron-builder.mjs",
-    "test": "npx playwright test ./tests/e2e.spec.ts",
+    "test": "npx --yes @playwright/test test",
     "start": "node packages/dev-mode.js",
     "typecheck": "npm run typecheck -ws --if-present",
     "create-renderer": "cd packages && npm create vite@latest renderer",
@@ -36,8 +36,8 @@
     "electron": "^39.0.0",
     "electron-builder": "26.0.12",
     "glob": "11.0.2",
-    "playwright": "^1.52.0",
     "typescript": "^5.9.3",
+    "vite": "^7.1.12",
     "vite-plugin-electron-renderer": "^0.14.6"
   },
   "dependencies": {
@@ -48,6 +48,8 @@
     "unzipper": "^0.12.3"
   },
   "optionalDependencies": {
-    "@app/main": "workspace:*"
+    "@app/main": "workspace:*",
+    "@app/preload": "workspace:*",
+    "@app/electron-versions": "workspace:*"
   }
 }

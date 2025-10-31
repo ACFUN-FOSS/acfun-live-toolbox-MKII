@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { AcfunAdapter } from '../adapter/AcfunAdapter';
 import { EventWriter } from '../persistence/EventWriter';
 import { RoomStatus, NormalizedEvent } from '../types';
+import { ensureNormalized } from '../events/normalize';
 
 const MAX_ROOMS = 3;
 
@@ -13,6 +14,8 @@ export interface RoomInfo {
   lastEventAt?: number;
   eventCount: number;
   reconnectAttempts: number;
+  priority?: number;
+  label?: string;
 }
 
 export class RoomManager extends EventEmitter {
@@ -44,7 +47,9 @@ export class RoomManager extends EventEmitter {
         adapter,
         status: 'closed',
         eventCount: 0,
-        reconnectAttempts: 0
+        reconnectAttempts: 0,
+        priority: 0,
+        label: ''
       };
 
       this.rooms.set(roomId, roomInfo);
@@ -130,6 +135,22 @@ export class RoomManager extends EventEmitter {
     }
   }
 
+  public setRoomPriority(roomId: string, priority: number): boolean {
+    const roomInfo = this.rooms.get(roomId);
+    if (!roomInfo) return false;
+    roomInfo.priority = priority;
+    this.emit('roomPriorityChange', roomId, priority);
+    return true;
+  }
+
+  public setRoomLabel(roomId: string, label: string): boolean {
+    const roomInfo = this.rooms.get(roomId);
+    if (!roomInfo) return false;
+    roomInfo.label = label;
+    this.emit('roomLabelChange', roomId, label);
+    return true;
+  }
+
   public async disconnectAllRooms(): Promise<void> {
     const disconnectPromises = Array.from(this.rooms.keys()).map(roomId => 
       this.removeRoom(roomId)
@@ -159,16 +180,16 @@ export class RoomManager extends EventEmitter {
     adapter.on('event', (event: NormalizedEvent) => {
       roomInfo.eventCount++;
       roomInfo.lastEventAt = Date.now();
-      
-      // 确保事件包含房间ID
-      const enrichedEvent: NormalizedEvent = {
+
+      // 统一标准化并补全房间ID与时间戳
+      const enriched: NormalizedEvent = ensureNormalized({
         ...event,
         room_id: roomId,
         ts: event.ts || Date.now()
-      };
+      });
 
-      this.eventWriter.enqueue(enrichedEvent);
-      this.emit('event', enrichedEvent);
+      this.eventWriter.enqueue(enriched);
+      this.emit('event', enriched);
     });
 
     adapter.on('error', (error: Error) => {

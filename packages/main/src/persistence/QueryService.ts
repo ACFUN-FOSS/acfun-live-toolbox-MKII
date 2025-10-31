@@ -6,6 +6,8 @@ export interface EventQuery {
   from_ts?: number;
   to_ts?: number;
   type?: NormalizedEventType;
+  user_id?: string;
+  q?: string;
   page?: number;
   pageSize?: number;
 }
@@ -31,6 +33,8 @@ export class QueryService {
       from_ts,
       to_ts,
       type,
+      user_id,
+      q,
       page = 1,
       pageSize = 200
     } = query;
@@ -57,6 +61,17 @@ export class QueryService {
     if (type) {
       conditions.push('type = ?');
       params.push(type);
+    }
+
+    if (user_id) {
+      conditions.push('user_id = ?');
+      params.push(user_id);
+    }
+
+    if (q && q.trim().length > 0) {
+      const like = `%${q.trim()}%`;
+      conditions.push('(username LIKE ? OR payload LIKE ? OR raw_data LIKE ?)');
+      params.push(like, like, like);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

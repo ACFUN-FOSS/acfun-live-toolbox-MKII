@@ -6,43 +6,24 @@ import path from 'path';
  * @param packageName The name of the package to check.
  * @param expectedLicense The expected license (e.g., 'MIT').
  */
-async function checkDependencyLicense(packageName: string, expectedLicense: string): Promise<void> {
+async function checkDependencyLicense(packageName: string, expectedLicenses: string[]): Promise<void> {
   try {
-    // Find the package's entry point
-    const packageEntryPoint = require.resolve(packageName);
+    // Resolve package.json directly to avoid requiring the entry file
+    const packageJsonResolved = require.resolve(`${packageName}/package.json`);
+    const packageJson = JSON.parse(await fs.readFile(packageJsonResolved, 'utf-8'));
 
-    // Find the package.json by traversing up from the entry point
-    let currentDir = path.dirname(packageEntryPoint);
-    let packageJsonPath: string | null = null;
-
-    while (currentDir !== path.parse(currentDir).root) {
-      const potentialPath = path.join(currentDir, 'package.json');
-      try {
-        await fs.access(potentialPath);
-        const content = JSON.parse(await fs.readFile(potentialPath, 'utf-8'));
-        if (content.name === packageName) {
-          packageJsonPath = potentialPath;
-          break;
-        }
-      } catch {
-        // File doesn't exist, continue up
-      }
-      currentDir = path.dirname(currentDir);
+    const license: string | undefined = packageJson.license || (Array.isArray(packageJson.licenses) ? packageJson.licenses[0]?.type : undefined);
+    if (!license) {
+      throw new Error(`License field missing for '${packageName}'.`);
     }
 
-    if (!packageJsonPath) {
-      throw new Error(`Could not find package.json for '${packageName}'.`);
-    }
-
-    const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
-
-    if (packageJson.license !== expectedLicense) {
+    if (!expectedLicenses.includes(license)) {
       throw new Error(
-        `Invalid license for '${packageName}'. Expected '${expectedLicense}' but found '${packageJson.license}'. The application will not start.`
+        `Invalid license for '${packageName}'. Expected one of '${expectedLicenses.join(', ')}' but found '${license}'. The application will not start.`
       );
     }
 
-    console.log(`[DependencyGuard] License check passed for '${packageName}'.`);
+    console.log(`[DependencyGuard] License check passed for '${packageName}' (license: ${license}).`);
 
   } catch (error: any) {
     console.error(`[DependencyGuard] Critical dependency check failed: ${error.message}`);
@@ -56,6 +37,7 @@ async function checkDependencyLicense(packageName: string, expectedLicense: stri
  * Runs all critical dependency checks required before the application can safely start.
  */
 export async function runDependencyGuards(): Promise<void> {
-  await checkDependencyLicense('acfundanmu.js', 'MIT');
+  // Validate acfunlive-http-api (acfundanmu.js) license
+  await checkDependencyLicense('acfunlive-http-api', ['MIT', 'Apache-2.0']);
   // Add other guards here if needed
 }

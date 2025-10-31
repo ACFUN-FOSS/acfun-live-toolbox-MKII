@@ -127,9 +127,9 @@ export class AcfunDanmuModule implements AppModule {
       // 处理进程关闭事件
       this.process.on('close', (code) => {
         if (this.logCallback) {
-          this.logCallback(`进程已关闭，退出码: ${code}`, 'info');
+          this.logCallback(`Process exited, code: ${code}`, 'info');
         } else {
-          console.log(`[AcfunDanmu] 进程已关闭，退出码: ${code}`);
+          console.log(`[AcfunDanmu] Process exited, code: ${code}`);
         }
         this.process = null;
       });
@@ -137,23 +137,23 @@ export class AcfunDanmuModule implements AppModule {
       // 处理进程错误事件
       this.process.on('error', (error) => {
         if (this.logCallback) {
-          this.logCallback(`进程错误: ${error.message}`, 'error');
+          this.logCallback(`Process error: ${error.message}`, 'error');
         } else {
-          console.error(`[AcfunDanmu] 进程错误: ${error.message}`);
+          console.error(`[AcfunDanmu] Process error: ${error.message}`);
         }
         this.process = null;
       });
 
       if (this.logCallback) {
-        this.logCallback(`AcfunDanmu服务已启动，端口: ${this.config.port}`, 'info');
+        this.logCallback(`AcfunDanmu service started, port: ${this.config.port}`, 'info');
       } else {
-        console.log(`[AcfunDanmu] 服务已启动，端口: ${this.config.port}`);
+        console.log(`[AcfunDanmu] Service started, port: ${this.config.port}`);
       }
     } catch (error) {
       if (this.logCallback) {
-        this.logCallback(`启动AcfunDanmu服务失败: ${error instanceof Error ? error.message : String(error)}`, 'error');
+        this.logCallback(`Failed to start AcfunDanmu service: ${error instanceof Error ? error.message : String(error)}`, 'error');
       } else {
-        console.error(`[AcfunDanmu] 启动服务失败: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`[AcfunDanmu] Failed to start service: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
   }
@@ -165,15 +165,15 @@ export class AcfunDanmuModule implements AppModule {
         this.process.kill();
         this.process = null;
         if (this.logCallback) {
-          this.logCallback('AcfunDanmu服务已停止', 'info');
+          this.logCallback('AcfunDanmu service stopped', 'info');
         } else {
-          console.log('[AcfunDanmu] 服务已停止');
+          console.log('[AcfunDanmu] Service stopped');
         }
       } catch (error) {
         if (this.logCallback) {
-          this.logCallback(`停止AcfunDanmu服务失败: ${error instanceof Error ? error.message : String(error)}`, 'error');
+          this.logCallback(`Failed to stop AcfunDanmu service: ${error instanceof Error ? error.message : String(error)}`, 'error');
         } else {
-          console.error(`[AcfunDanmu] 停止服务失败: ${error instanceof Error ? error.message : String(error)}`);
+          console.error(`[AcfunDanmu] Failed to stop service: ${error instanceof Error ? error.message : String(error)}`);
         }
       }
     }
@@ -182,9 +182,9 @@ export class AcfunDanmuModule implements AppModule {
   // 重启服务
   restart(): void {
     if (this.logCallback) {
-      this.logCallback('正在重启AcfunDanmu服务...', 'info');
+      this.logCallback('Restarting AcfunDanmu service...', 'info');
     } else {
-      console.log('[AcfunDanmu] 正在重启服务...');
+      console.log('[AcfunDanmu] Restarting service...');
     }
     this.start();
   }
@@ -541,7 +541,7 @@ export class AcfunDanmuModule implements AppModule {
       }
       return await response.json();
     } catch (error) {
-      console.error(`[AcfunDanmu] API调用失败: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`[AcfunDanmu] API call failed: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }

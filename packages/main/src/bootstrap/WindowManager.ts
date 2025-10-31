@@ -24,7 +24,7 @@ export class WindowManager {
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: false, // Sandbox is disabled for now, as per original config
-        preload: path.join(__dirname, '../../preload/dist/index.cjs'), // Path to the preload script
+        preload: path.join(__dirname, '../../preload/dist/exposed.mjs'), // Path to the preload script (ESM)
       },
     });
 
