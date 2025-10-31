@@ -22,6 +22,7 @@
     "test": "npx --yes @playwright/test test",
     "start": "node packages/dev-mode.js",
     "typecheck": "npm run typecheck -ws --if-present",
+    "typecheck:all": "pnpm -r run typecheck",
     "create-renderer": "cd packages && npm create vite@latest renderer",
     "integrate-renderer": "npm start --workspace @app/integrate-renderer",
     "init": "npm run create-renderer && npm run integrate-renderer && npm install"

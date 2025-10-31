@@ -190,8 +190,9 @@ export class DiagnosticsService {
   /**
    * 获取最近的日志条目
    */
-  public getRecentLogs(limit: number = 100, level?: string): any[] {
-    return this.logManager.getRecentLogs(limit, level);
+  public getRecentLogs(limit: number = 100, level?: 'info' | 'error' | 'warn' | 'debug'): any[] {
+    const logs = this.logManager.getRecentLogs(limit);
+    return level ? logs.filter((l: any) => l.level === level) : logs;
   }
 
   /**
@@ -225,7 +226,7 @@ export class DiagnosticsService {
           resolve(packagePath);
         });
 
-        archive.on('error', (err) => {
+        archive.on('error', (err: any) => {
           this.logManager.addLog('diagnostics', `Failed to create diagnostic package: ${err.message}`, 'error');
           reject(err);
         });

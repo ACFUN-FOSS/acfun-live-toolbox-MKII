@@ -175,7 +175,9 @@ export class ApiServer {
     this.app.get('/api/logs', (req: express.Request, res: express.Response) => {
       try {
         const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
-        const level = req.query.level as string;
+        const levelRaw = req.query.level as string | undefined;
+        const level: 'info' | 'warn' | 'error' | undefined =
+          levelRaw === 'info' || levelRaw === 'warn' || levelRaw === 'error' ? levelRaw : undefined;
         
         const logs = this.diagnosticsService.getRecentLogs(limit, level);
         res.json({

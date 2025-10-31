@@ -4,15 +4,20 @@ import path from 'path';
 
 // 在开发环境中容错加载 acfunlive-http-api：优先尝试 dist，失败则回退到 src TS 文件。
 async function loadAuthDeps(): Promise<{ AuthService: any; HttpClient: any }> {
+  const distAuthPath = 'acfunlive-http-api/dist/services/AuthService';
+  const distHttpPath = 'acfunlive-http-api/dist/core/HttpClient';
+  const srcAuthPath = 'acfunlive-http-api/src/services/AuthService';
+  const srcHttpPath = 'acfunlive-http-api/src/core/HttpClient';
+
   try {
-    const modAuth = await import('acfunlive-http-api/dist/services/AuthService');
-    const modHttp = await import('acfunlive-http-api/dist/core/HttpClient');
-    return { AuthService: modAuth.AuthService, HttpClient: modHttp.HttpClient };
+    const modAuth = await import(distAuthPath as any);
+    const modHttp = await import(distHttpPath as any);
+    return { AuthService: (modAuth as any).AuthService, HttpClient: (modHttp as any).HttpClient };
   } catch (err) {
     try {
-      const modAuth = await import('acfunlive-http-api/src/services/AuthService');
-      const modHttp = await import('acfunlive-http-api/src/core/HttpClient');
-      return { AuthService: modAuth.AuthService, HttpClient: modHttp.HttpClient };
+      const modAuth = await import(srcAuthPath as any);
+      const modHttp = await import(srcHttpPath as any);
+      return { AuthService: (modAuth as any).AuthService, HttpClient: (modHttp as any).HttpClient };
     } catch (fallbackErr) {
       console.warn('[AuthManager] Failed to load acfunlive-http-api from dist and src:', fallbackErr);
       throw new Error('acfunlive-http-api is not available. Please build or install it.');
@@ -34,7 +39,7 @@ export interface LoginStatus {
 
 export class AuthManager {
   private readonly secretsPath: string;
-  private readonly authService: any;
+  private authService: any;
 
   constructor() {
     // 延迟加载依赖，避免应用启动时因未构建的依赖导致崩溃

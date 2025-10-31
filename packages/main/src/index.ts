@@ -54,8 +54,7 @@ async function main() {
   const configManager = new ConfigManager();
   
   // 初始化日志和诊断服务
-  const logManager = getLogManager();
-  const diagnosticsService = new DiagnosticsService(databaseManager, configManager, logManager);
+  const diagnosticsService = new DiagnosticsService(databaseManager, configManager);
   
   const apiPort = parseInt(process.env.ACFRAME_API_PORT || '18299');
   const apiServer = new ApiServer({ port: apiPort }, databaseManager, diagnosticsService);

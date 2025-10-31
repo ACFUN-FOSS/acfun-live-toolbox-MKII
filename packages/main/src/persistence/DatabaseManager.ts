@@ -14,7 +14,7 @@ export class DatabaseManager {
 
   public async initialize(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.dbPath, (err) => {
+      this.db = new sqlite3.Database(this.dbPath, (err: Error | null) => {
         if (err) {
           console.error('Error opening database:', err.message);
           reject(err);
@@ -56,25 +56,25 @@ export class DatabaseManager {
       ];
 
       this.db.serialize(() => {
-        this.db!.run(createEventsTableSql, (err) => {
+        this.db!.run(createEventsTableSql, (err: Error | null) => {
           if (err) {
             console.error('Error creating events table:', err.message);
             reject(err);
             return;
           }
 
-          let indexError: Error | null = null;
+          let indexCreationError: Error | null = null;
           for (const stmt of createIndexesSql) {
-            this.db!.run(stmt, (idxErr) => {
-              if (idxErr && !indexError) {
-                indexError = idxErr;
+            this.db!.run(stmt, (idxErr: Error | null) => {
+              if (idxErr && !indexCreationError) {
+                indexCreationError = idxErr;
               }
             });
           }
 
-          if (indexError) {
-            console.error('Error creating indexes:', indexError.message);
-            reject(indexError);
+          if (indexCreationError) {
+            console.error('Error creating indexes:', indexCreationError);
+            reject(indexCreationError);
           } else {
             console.log('Events table and indexes created/verified');
             resolve();
@@ -98,7 +98,7 @@ export class DatabaseManager {
         return;
       }
 
-      this.db.close((err) => {
+      this.db.close((err: Error | null) => {
         if (err) {
           console.error('Error closing database:', err.message);
           reject(err);
@@ -118,7 +118,7 @@ export class DatabaseManager {
         return;
       }
 
-      this.db.run('VACUUM', (err) => {
+      this.db.run('VACUUM', (err: Error | null) => {
         if (err) {
           console.error('Error vacuuming database:', err.message);
           reject(err);

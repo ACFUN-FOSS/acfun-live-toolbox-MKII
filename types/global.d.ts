@@ -11,3 +11,32 @@ declare global {
 }
 
 export {};
+
+// Ambient module declarations for dynamic imports in AuthManager
+declare module 'acfunlive-http-api/dist/services/AuthService' {
+  export class AuthService {
+    constructor(httpClient: any);
+    qrLogin(...args: any[]): Promise<any>;
+    checkQrLoginStatus(...args: any[]): Promise<any>;
+  }
+}
+
+declare module 'acfunlive-http-api/dist/core/HttpClient' {
+  export class HttpClient {
+    constructor(options: any);
+  }
+}
+
+declare module 'acfunlive-http-api/src/services/AuthService' {
+  export class AuthService {
+    constructor(httpClient: any);
+    qrLogin(...args: any[]): Promise<any>;
+    checkQrLoginStatus(...args: any[]): Promise<any>;
+  }
+}
+
+declare module 'acfunlive-http-api/src/core/HttpClient' {
+  export class HttpClient {
+    constructor(options: any);
+  }
+}
