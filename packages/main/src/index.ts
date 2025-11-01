@@ -12,6 +12,7 @@ import { setupHardwareAcceleration } from './bootstrap/HardwareAccelerationModul
 import { ensureWorkspacePackagesPresent } from './dependencyCheck';
 import { ConfigManager } from './config/ConfigManager';
 import { PluginManager } from './plugins/PluginManager';
+import { OverlayManager } from './plugins/OverlayManager';
 import { DiagnosticsService } from './logging/DiagnosticsService';
 import { getLogManager } from './logging/LogManager';
 import path from 'path';
@@ -56,18 +57,22 @@ async function main() {
   // 初始化日志和诊断服务
   const diagnosticsService = new DiagnosticsService(databaseManager, configManager);
   
+  // 初始化Overlay管理器
+  const overlayManager = new OverlayManager();
+  
   const apiPort = parseInt(process.env.ACFRAME_API_PORT || '18299');
-  const apiServer = new ApiServer({ port: apiPort }, databaseManager, diagnosticsService);
+  const apiServer = new ApiServer({ port: apiPort }, databaseManager, diagnosticsService, overlayManager);
   await apiServer.start();
   const authManager = new AuthManager();
-  initializeIpcHandlers(roomManager, authManager);
-
+  
   const pluginManager = new PluginManager({
     apiServer,
     roomManager,
     databaseManager,
     configManager
   });
+
+  initializeIpcHandlers(roomManager, authManager, pluginManager, overlayManager);
 
   // Wire RoomManager -> WsHub broadcasting
   const wsHub = apiServer.getWsHub();

@@ -1,0 +1,18 @@
+{
+  "id": "example-plugin",
+  "name": "示例插件",
+  "version": "1.0.0",
+  "description": "一个用于测试插件系统的示例插件",
+  "author": "AcFun Live Toolbox",
+  "main": "index.js",
+  "permissions": ["api", "storage"],
+  "dependencies": {},
+  "icon": "icon.png",
+  "homepage": "https://github.com/example/example-plugin",
+  "repository": "https://github.com/example/example-plugin.git",
+  "license": "MIT",
+  "keywords": ["example", "test", "demo"],
+  "engines": {
+    "acfun-live-toolbox": ">=2.0.0"
+  }
+}

@@ -1,4 +1,0 @@
-todos:
-  - id: refactor-workspace-setup
-    content: 使用 workspace 协议修正本地依赖并重新安装
-    status: in_progress

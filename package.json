@@ -36,6 +36,7 @@
     "@types/unzipper": "^0.10.11",
     "electron": "^39.0.0",
     "electron-builder": "26.0.12",
+    "electron-rebuild": "^3.2.9",
     "glob": "11.0.2",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",
@@ -49,8 +50,8 @@
     "unzipper": "^0.12.3"
   },
   "optionalDependencies": {
+    "@app/electron-versions": "workspace:*",
     "@app/main": "workspace:*",
-    "@app/preload": "workspace:*",
-    "@app/electron-versions": "workspace:*"
+    "@app/preload": "workspace:*"
   }
 }

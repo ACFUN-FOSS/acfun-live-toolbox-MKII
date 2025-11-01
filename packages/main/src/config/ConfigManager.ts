@@ -41,4 +41,8 @@ export class ConfigManager {
     const raw = (this.store as any).store as Record<string, any> | undefined;
     return raw ? { ...raw } : {};
   }
+
+  public delete(key: string): void {
+    this.store.set(key, undefined);
+  }
 }

@@ -11,6 +11,7 @@ import { QueryService, EventQuery } from '../persistence/QueryService';
 import { CsvExporter, ExportOptions } from '../persistence/CsvExporter';
 import { DatabaseManager } from '../persistence/DatabaseManager';
 import { DiagnosticsService } from '../logging/DiagnosticsService';
+import { OverlayManager } from '../plugins/OverlayManager';
 import { NormalizedEventType } from '../types';
 
 /**
@@ -36,9 +37,10 @@ export class ApiServer {
   private queryService: QueryService;
   private csvExporter: CsvExporter;
   private diagnosticsService: DiagnosticsService;
+  private overlayManager: OverlayManager;
   private pluginRoutes: Map<string, { method: 'GET' | 'POST'; path: string; handler: express.RequestHandler }[]> = new Map();
 
-  constructor(config: ApiServerConfig = { port: 1299 }, databaseManager: DatabaseManager, diagnosticsService: DiagnosticsService) {
+  constructor(config: ApiServerConfig = { port: 1299 }, databaseManager: DatabaseManager, diagnosticsService: DiagnosticsService, overlayManager: OverlayManager) {
     this.config = {
       host: '127.0.0.1',
       enableCors: true,
@@ -53,6 +55,7 @@ export class ApiServer {
     this.queryService = new QueryService(databaseManager);
     this.csvExporter = new CsvExporter(this.queryService);
     this.diagnosticsService = diagnosticsService;
+    this.overlayManager = overlayManager;
     
     this.configureMiddleware();
     this.configureRoutes();
@@ -216,6 +219,16 @@ export class ApiServer {
       }
     });
 
+    // GET /test-overlay.html - 测试页面
+    this.app.get('/test-overlay.html', (req: express.Request, res: express.Response) => {
+      const testPagePath = path.join(process.cwd(), 'test-overlay.html');
+      if (fs.existsSync(testPagePath)) {
+        res.sendFile(testPagePath);
+      } else {
+        res.status(404).send('Test overlay page not found');
+      }
+    });
+
     // GET /console - LAN 控制台
     this.app.get('/console', (req: express.Request, res: express.Response) => {
       // TODO: 实现 LAN 控制台页面
@@ -293,37 +306,90 @@ export class ApiServer {
       const room = req.query.room as string;
       const token = req.query.token as string;
       
-      // TODO: 实现 Overlay 页面
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Overlay - ${overlayId}</title>
-          <meta charset="utf-8">
-          <style>
-            body { 
-              margin: 0; 
-              padding: 20px; 
-              font-family: Arial, sans-serif;
-              background: transparent;
-            }
-            .overlay-info {
-              background: rgba(0,0,0,0.8);
-              color: white;
-              padding: 10px;
-              border-radius: 5px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="overlay-info">
-            <h3>Overlay: ${overlayId}</h3>
-            <p>Room: ${room || 'Not specified'}</p>
-            <p>Status: Under development</p>
-          </div>
-        </body>
-        </html>
-      `);
+      try {
+        // 获取overlay配置
+        const overlay = this.overlayManager.getOverlay(overlayId);
+        
+        if (!overlay) {
+          return res.status(404).send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Overlay Not Found</title>
+              <meta charset="utf-8">
+              <style>
+                body { 
+                  margin: 0; 
+                  padding: 20px; 
+                  font-family: Arial, sans-serif;
+                  background: transparent;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  min-height: 100vh;
+                }
+                .error-info {
+                  background: rgba(255,0,0,0.8);
+                  color: white;
+                  padding: 20px;
+                  border-radius: 8px;
+                  text-align: center;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="error-info">
+                <h3>Overlay Not Found</h3>
+                <p>Overlay ID: ${overlayId}</p>
+                <p>The requested overlay does not exist or has been removed.</p>
+              </div>
+            </body>
+            </html>
+          `);
+        }
+
+        // 生成overlay页面
+        const overlayHtml = this.generateOverlayPage(overlay, room, token);
+        res.send(overlayHtml);
+        
+      } catch (error) {
+        console.error('[ApiServer] Error generating overlay page:', error);
+        res.status(500).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Overlay Error</title>
+            <meta charset="utf-8">
+            <style>
+              body { 
+                margin: 0; 
+                padding: 20px; 
+                font-family: Arial, sans-serif;
+                background: transparent;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+              }
+              .error-info {
+                background: rgba(255,165,0,0.8);
+                color: white;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="error-info">
+              <h3>Overlay Error</h3>
+              <p>An error occurred while generating the overlay page.</p>
+              <p>Please try again later.</p>
+            </div>
+          </body>
+          </html>
+        `);
+      }
     });
 
     // 404 handler（Express v5 推荐不传路径）
@@ -438,6 +504,236 @@ export class ApiServer {
         resolve();
       }
     });
+  }
+
+  /**
+   * 生成overlay页面HTML
+   */
+  private generateOverlayPage(overlay: any, room?: string, token?: string): string {
+    const { id, type, content, component, props, title, description, position, size, style, className } = overlay;
+    
+    // 基础样式
+    const baseStyles = `
+      * {
+        box-sizing: border-box;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: transparent;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      
+      .overlay-container {
+        position: fixed;
+        ${position?.top !== undefined ? `top: ${position.top}${typeof position.top === 'number' ? 'px' : ''};` : ''}
+        ${position?.left !== undefined ? `left: ${position.left}${typeof position.left === 'number' ? 'px' : ''};` : ''}
+        ${position?.right !== undefined ? `right: ${position.right}${typeof position.right === 'number' ? 'px' : ''};` : ''}
+        ${position?.bottom !== undefined ? `bottom: ${position.bottom}${typeof position.bottom === 'number' ? 'px' : ''};` : ''}
+        ${position?.x !== undefined ? `left: ${position.x}${typeof position.x === 'number' ? 'px' : ''};` : ''}
+        ${position?.y !== undefined ? `top: ${position.y}${typeof position.y === 'number' ? 'px' : ''};` : ''}
+        ${size?.width !== undefined ? `width: ${size.width}${typeof size.width === 'number' ? 'px' : ''};` : ''}
+        ${size?.height !== undefined ? `height: ${size.height}${typeof size.height === 'number' ? 'px' : ''};` : ''}
+        ${size?.maxWidth !== undefined ? `max-width: ${size.maxWidth}${typeof size.maxWidth === 'number' ? 'px' : ''};` : ''}
+        ${size?.maxHeight !== undefined ? `max-height: ${size.maxHeight}${typeof size.maxHeight === 'number' ? 'px' : ''};` : ''}
+        ${size?.minWidth !== undefined ? `min-width: ${size.minWidth}${typeof size.minWidth === 'number' ? 'px' : ''};` : ''}
+        ${size?.minHeight !== undefined ? `min-height: ${size.minHeight}${typeof size.minHeight === 'number' ? 'px' : ''};` : ''}
+        ${style?.backgroundColor ? `background-color: ${style.backgroundColor};` : ''}
+        ${style?.opacity !== undefined ? `opacity: ${style.opacity};` : ''}
+        ${style?.borderRadius ? `border-radius: ${style.borderRadius};` : ''}
+        ${style?.border ? `border: ${style.border};` : ''}
+        ${style?.boxShadow ? `box-shadow: ${style.boxShadow};` : ''}
+        ${style?.zIndex !== undefined ? `z-index: ${style.zIndex};` : 'z-index: 1000;'}
+        pointer-events: auto;
+      }
+      
+      .overlay-content {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .overlay-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+      }
+      
+      .overlay-description {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 12px;
+      }
+      
+      .overlay-text {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      
+      .overlay-html {
+        width: 100%;
+        height: 100%;
+      }
+      
+      .overlay-component {
+        width: 100%;
+        height: 100%;
+      }
+    `;
+
+    // 生成内容
+    let overlayContent = '';
+    
+    switch (type) {
+      case 'text':
+        overlayContent = `
+          <div class="overlay-content">
+            ${title ? `<div class="overlay-title">${this.escapeHtml(title)}</div>` : ''}
+            ${description ? `<div class="overlay-description">${this.escapeHtml(description)}</div>` : ''}
+            <div class="overlay-text">${this.escapeHtml(content || '')}</div>
+          </div>
+        `;
+        break;
+        
+      case 'html':
+        overlayContent = `
+          <div class="overlay-content">
+            ${title ? `<div class="overlay-title">${this.escapeHtml(title)}</div>` : ''}
+            ${description ? `<div class="overlay-description">${this.escapeHtml(description)}</div>` : ''}
+            <div class="overlay-html">${content || ''}</div>
+          </div>
+        `;
+        break;
+        
+      case 'component':
+        overlayContent = `
+          <div class="overlay-content">
+            ${title ? `<div class="overlay-title">${this.escapeHtml(title)}</div>` : ''}
+            ${description ? `<div class="overlay-description">${this.escapeHtml(description)}</div>` : ''}
+            <div class="overlay-component" data-component="${this.escapeHtml(component || '')}" data-props="${this.escapeHtml(JSON.stringify(props || {}))}">
+              <div style="padding: 20px; text-align: center; color: #666;">
+                Component: ${this.escapeHtml(component || 'Unknown')}
+                <br>
+                <small>Component rendering requires client-side implementation</small>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+        
+      default:
+        overlayContent = `
+          <div class="overlay-content">
+            ${title ? `<div class="overlay-title">${this.escapeHtml(title)}</div>` : ''}
+            ${description ? `<div class="overlay-description">${this.escapeHtml(description)}</div>` : ''}
+            <div style="padding: 20px; text-align: center; color: #666;">
+              <div>Overlay ID: ${this.escapeHtml(id)}</div>
+              <div>Type: ${this.escapeHtml(type)}</div>
+              <div>Status: Active</div>
+              ${room ? `<div>Room: ${this.escapeHtml(room)}</div>` : ''}
+            </div>
+          </div>
+        `;
+    }
+
+    // 生成完整的HTML页面
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${this.escapeHtml(title || `Overlay ${id}`)}</title>
+        <style>${baseStyles}</style>
+        <script>
+          // Overlay API
+          window.overlayApi = {
+            id: '${this.escapeHtml(id)}',
+            room: '${this.escapeHtml(room || '')}',
+            token: '${this.escapeHtml(token || '')}',
+            
+            // 发送动作到主应用
+            action: function(actionId, data) {
+              if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                  type: 'overlay-action',
+                  overlayId: '${this.escapeHtml(id)}',
+                  action: actionId,
+                  data: data
+                }, '*');
+              }
+            },
+            
+            // 关闭overlay
+            close: function() {
+              if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                  type: 'overlay-close',
+                  overlayId: '${this.escapeHtml(id)}'
+                }, '*');
+              }
+            },
+            
+            // 更新overlay
+            update: function(updates) {
+              if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                  type: 'overlay-update',
+                  overlayId: '${this.escapeHtml(id)}',
+                  updates: updates
+                }, '*');
+              }
+            }
+          };
+          
+          // 监听来自主应用的消息
+          window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'overlay-event' && event.data.overlayId === '${this.escapeHtml(id)}') {
+              // 触发自定义事件
+              const customEvent = new CustomEvent('overlayEvent', {
+                detail: event.data
+              });
+              window.dispatchEvent(customEvent);
+            }
+          });
+          
+          // 页面加载完成后通知主应用
+          window.addEventListener('load', function() {
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({
+                type: 'overlay-loaded',
+                overlayId: '${this.escapeHtml(id)}'
+              }, '*');
+            }
+          });
+        </script>
+      </head>
+      <body>
+        <div class="overlay-container ${className || ''}" id="overlay-${this.escapeHtml(id)}">
+          ${overlayContent}
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  /**
+   * HTML转义
+   */
+  private escapeHtml(text: string): string {
+    const map: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
   }
 
   /**

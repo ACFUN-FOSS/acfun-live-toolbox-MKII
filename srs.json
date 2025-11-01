@@ -1,0 +1,507 @@
+{
+"meta": {
+"docType": "softwareRequirementsSpecification",
+"audience": "gpt-5-pro",
+"intent": "为后续生成详细设计与实现方案提供单一、权威、结构化的需求基线",
+"language": "zh-CN",
+"version": "1.0.0",
+"generatedAt": "2025-10-31",
+"sourceNotes": "本SRS基于用户提供的对话内容梳理与细化，关键结论处附有【message\_idx†source】标记，指向原始对话中的对应消息。请在需要时将 message\_idx 替换为实际编号。"
+},
+"project": {
+"name": "AcFun 弹幕直播管理工具",
+"codeName": "acfun-live-manager",
+"summary": "基于 acfundanmu.js 搭建的 Electron 跨平台桌面工具，核心聚焦：连接（最多3路）、标准化（统一事件模型）、存储（SQLite/CSV导出）、本地服务（HTTP/WS）、插件扩展（UI路由/Overlay/后台能力）。非核心能力（高亮、OBS联动、TTS、抽奖等）均以插件形态提供。【message\_idx†source】",
+"goals": \[
+"在不影响主播直播/录制/游戏性能的前提下，稳定接入并管理 AcFun 弹幕事件流（含断线重连与背压）。【message\_idx†source】",
+"提供统一存储与导出能力（SQLite 单表 events，CSV 导出）。【message\_idx†source】",
+"通过本地 HTTP/WS 服务为浏览器控制台与 OBS 浏览器源 Overlay 提供数据与页面托管。【message\_idx†source】",
+"以插件为主要扩展方式；核心仅做连接、标准化、存储、转发、路由与插件生命周期管理。【message\_idx†source】"
+],
+"nonGoals": \[
+"不提供公网在线插件市场；插件采用本地导入。【message\_idx†source】",
+"不实施最小权限默认策略与插件签名校验；权限由主进程网关把控关键动作。【message\_idx†source】",
+"不实现“SQLite 连续写失败→只读降级”模式；采用告警与可观测性替代。【message\_idx†source】"
+],
+"stakeholders": {
+"streamer": "在桌面端使用主界面与弹出式插件窗口；通过 Overlay 对接 OBS 展示。",
+"moderatorOps": "在同局域网浏览器打开控制台与插件页面进行场控/运营。",
+"pluginDeveloper": "使用混合型插件机制（前端路由+可选Node Worker）扩展功能。"
+}
+},
+"context": {
+"dependencies": \[
+"acfundanmu.js（作为弹幕WS客户端/参考API）【message\_idx†source】",
+"Electron（主进程 + 渲染进程）【message\_idx†source】",
+"SQLite（本地持久化）【message\_idx†source】",
+"Express（本地HTTP/静态/Overlay/插件路由托管）【message\_idx†source】",
+"wujie 微前端（插件在客户端内的路由/设置页承载）【message\_idx†source】"
+],
+"deploymentAssumptions": \[
+"桌面端跨平台（Windows/macOS/Linux）。【message\_idx†source】",
+"同局域网访问控制台与插件页面无需鉴权；Overlay 仅以 query token 保护（不过期）。【message\_idx†source】",
+"不使用代理；直连网络。【message\_idx†source】"
+]
+},
+"scope": {
+"coreMustHave": \[
+"扫码登录（可选）；未登录允许输入房间ID进行只读弹幕观看。【message\_idx†source】",
+"最多3路房间并发连接管理（主+2辅），含心跳、断线重连与状态上报。【message\_idx†source】",
+"统一事件标准化模型与事件总线分发（渲染进程/插件/Overlay）。【message\_idx†source】",
+"SQLite 持久化（单表 events）与 CSV 导出（可按房间与时间过滤）。【message\_idx†source】",
+"Express 本地服务（/console、/api/*、/plugins/\:id/*、/overlay/\:overlayId）。【message\_idx†source】",
+"插件系统内核：本地导入安装、路由注入、设置页注入、Overlay 注入、可选Node Worker、生命周期与熔断管理。【message\_idx†source】",
+"桌面主界面基于“方案A3-插件优先”改造：中心为插件壳，保留一小块“最新一条弹幕”。【message\_idx†source】",
+"系统日志、插件异常收集、诊断包导出；但不进行只读降级策略。【message\_idx†source】"
+],
+"shouldHave": \[
+"背压与优先级丢弃策略（高优先级事件保留）。【message\_idx†source】",
+"轻量浏览器控制台（移动端/平板）入口。【message\_idx†source】",
+"配置/导出目录/端口等可视化配置与持久化。"
+],
+"couldHave": \[
+"Overlay 模板（作为示例，真实场景由插件提供）。",
+"事件订阅过滤器预设（关键词/类型）。"
+],
+"outOfScope": \[
+"在线自动更新插件市场/审核签名。【message\_idx†source】"
+]
+},
+"functionalRequirements": {
+"authentication": {
+"modes": \[
+"扫码登录：主进程持有票据/Token（写入 secrets.json），永不下发至插件或渲染端，仅由主进程代表调用。【message\_idx†source】",
+"游客/只读：输入 roomId 即可建立只读WS连接。【message\_idx†source】"
+],
+"citations": \["【message\_idx†source】"]
+},
+"roomConnections": {
+"maxConcurrentRooms": 3,
+"reconnectStrategy": {
+"phase1": "快速重试（例如3次，1\~2s间隔）",
+"phase2": "指数回退（上限约30s）",
+"stateEvents": \["connecting", "connected", "reconnecting", "failed"],
+"observable": true
+},
+"backpressure": {
+"queue": "主进程队列控流",
+"dropPolicy": "按优先级丢弃低价值事件（如超频弹幕），保留礼物/系统等高优先级",
+"latencyBudgetMs": \[200, 1000]
+},
+"citations": \["【message\_idx†source】"]
+},
+"eventStandardization": {
+"model": {
+"ts": "number(ms)",
+"roomId": "string",
+"eventType": "danmaku|gift|follow|like|enter|system",
+"userId": "string|null",
+"userName": "string|null",
+"content": "string|null",
+"raw": "object",
+"source": "acfun"
+},
+"distribution": \["渲染进程（最新一条/列表）", "插件（订阅API）", "Overlay（WS/SSE）"],
+"citations": \["【message\_idx†source】"]
+},
+"storageAndExport": {
+"db": "SQLite",
+"tables": \[
+{
+"name": "events",
+"columns": \[
+"id INTEGER PK AUTOINCREMENT",
+"ts INTEGER NOT NULL",
+"room\_id TEXT NOT NULL",
+"event\_type TEXT NOT NULL",
+"user\_id TEXT",
+"user\_name TEXT",
+"content TEXT",
+"raw\_json TEXT",
+"created\_at DATETIME DEFAULT CURRENT\_TIMESTAMP"
+],
+"indexes": \[
+"idx\_events\_room\_ts(room\_id, ts)",
+"idx\_events\_type\_ts(event\_type, ts)"
+]
+}
+],
+"export": {
+"format": "CSV",
+"defaultFields": \["ts","room\_id","event\_type","user\_id","user\_name","content"],
+"filters": \["roomId","timeRange"],
+"outputDir": "exports/"
+},
+"citations": \["【message\_idx†source】"]
+},
+"localHttpAndOverlay": {
+"base": "[http://host\:port](http://host:port)",
+"routes": \[
+{ "path": "/console", "desc": "浏览器控制台" },
+{ "path": "/api/events", "desc": "查询最近事件（支持房间过滤）" },
+{ "path": "/api/export", "desc": "导出CSV（房间/时间过滤）" },
+{ "path": "/plugins/\:id/*", "desc": "插件注入路由（wujie承载）" },
+{ "path": "/overlay/\:overlayId", "desc": "OBS/跨设备Overlay入口" }
+],
+"overlayUrlPattern": "[http://host\:port/overlay/\:overlayId?room=\:roomId\&token=\:token](http://host:port/overlay/:overlayId?room=:roomId&token=:token)",
+"accessPolicy": {
+"lanConsole": "无鉴权（知址即开）【message\_idx†source】",
+"overlayToken": {
+"required": true,
+"expires": false,
+"uaWhitelist": false
+}
+},
+"citations": \["【message\_idx†source】"]
+},
+"pluginSystem": {
+"installation": {
+"source": "本地文件（zip/tgz）",
+"target": "plugins/<pluginId>/",
+"manifest": "plugins/<pluginId>/plugin.json",
+"noSignature": true,
+"noOnlineMarket": true,
+"citations": \["【message\_idx†source】"]
+},
+"executionModel": {
+"types": \[
+"Web 插件（wujie/iframe，前端为主）",
+"可选 Node Worker（主进程托管后台任务）"
+],
+"routeInjection": "/plugins/\:id/*（强制前缀）【message\_idx†source】",
+"overlayInjection": "/overlay/\:overlayId（express 托管静态 + 路由）【message\_idx†source】",
+"popupWindows": "插件可请求以弹出窗口形式打开（弹幕显示亦走插件）。【message\_idx†source】"
+},
+"capabilities": {
+"events": \[
+"onDanmaku","onGift","onLike","onFollow","onEnter","onSystemMessage","onRoomStatusChange"
+],
+"actions": \[
+"sendComment(roomId,text)",
+"sendLike(roomId)",
+"banUser(roomId,userId)",
+"kickUser(roomId,userId)",
+"exportCsv(params)"
+],
+"storage": \[
+"queryEvents(filter)",
+"writePluginData(pluginId,tableName,row) // 主进程写入，表名带插件前缀",
+"readPluginData(pluginId,query)"
+],
+"ui": \[
+"registerRoute('/plugins/\:id/...')",
+"registerSettings('/plugins/\:id/settings')",
+"registerOverlay('/overlay/\:overlayId')"
+],
+"acfunProxy": \[
+"callAcfun({method,path,body}) // 统一经主进程转发，插件不接触token"
+],
+"policy": {
+"highPrivilegeAllowed": true,
+"mustProxyThroughMain": true,
+"pluginCannotReadToken": true
+}
+},
+"citations": \["【message\_idx†source】","【message\_idx†source】","【message\_idx†source】"]
+},
+"uiUx": {
+"desktopLayout": "A3 插件优先版改造：左栏账号/房间/状态；中区插件列表与管理；顶部或底部仅显示最新一条弹幕；支持弹出式插件窗口（含弹幕显示插件）。【message\_idx†source】",
+"webConsole": "同局域网访问 /console，提供轻量场控与插件入口。"
+}
+},
+"nonFunctionalRequirements": {
+"performance": {
+"latencyEndToEndMs": "200\~1000（在主播录制/游戏压力下仍可接受）【message\_idx†source】",
+"throughputDesign": "每房间每分钟数百条事件可承受，峰值依靠背压与丢弃策略保护主线程。",
+"resourceIsolation": "插件异常熔断，避免拖死主进程。"
+},
+"reliability": {
+"reconnect": "快速重试 + 指数回退；状态事件与日志可观测。【message\_idx†source】",
+"logging": "系统日志滚动(10MB*5)；插件错误收集；诊断包导出。【message\_idx†source】",
+"noReadOnlyDegrade": "SQLite 写失败不触发只读降级；以告警与可观测性替代。【message\_idx†source】"
+},
+"security": {
+"tokenIsolation": "token 仅存 secrets.json 且仅主进程可用；插件与渲染端无法访问。【message\_idx†source】",
+"lanConsoleRiskAccepted": "控制台无鉴权；Overlay 仅靠 query token（不失效）。【message\_idx†source】",
+"networkPolicy": "不走系统代理/自定义代理；直连。"
+},
+"compatibility": {
+"os": \["Windows","macOS","Linux"],
+"obsIntegration": "通过 Overlay URL（与插件注入）侧向适配；更高级联动交由插件。"
+}
+},
+"dataModel": {
+"sqlite": {
+"file": "db/events.db",
+"tables": \[
+{
+"name": "events",
+"purpose": "统一存储所有事件，便于导出与插件聚合分析。",
+"columns": \[
+{ "name": "id", "type": "INTEGER", "notes": "PK AUTOINCREMENT" },
+{ "name": "ts", "type": "INTEGER", "notes": "毫秒时间戳" },
+{ "name": "room\_id", "type": "TEXT" },
+{ "name": "event\_type", "type": "TEXT" },
+{ "name": "user\_id", "type": "TEXT" },
+{ "name": "user\_name", "type": "TEXT" },
+{ "name": "content", "type": "TEXT" },
+{ "name": "raw\_json", "type": "TEXT" },
+{ "name": "created\_at", "type": "DATETIME", "notes": "DEFAULT CURRENT\_TIMESTAMP" }
+],
+"indexes": \[
+"CREATE INDEX idx\_events\_room\_ts ON events(room\_id, ts)",
+"CREATE INDEX idx\_events\_type\_ts ON events(event\_type, ts)"
+],
+"export": {
+"format": "CSV",
+"defaultFields": \["ts","room\_id","event\_type","user\_id","user\_name","content"],
+"filters": \["roomId","timeRange"]
+},
+"citations": \["【message\_idx†source】"]
+}
+],
+"notes": \[
+"不拆礼物/用户等明细表；性能由插件侧聚合承担，速度稍慢可接受。【message\_idx†source】"
+]
+}
+},
+"apiContracts": {
+"ipcMain": {
+"subscribeEvents": {
+"req": { "roomId": "string|null", "types": \["string"] },
+"res": { "stream": "event objects" }
+},
+"sendComment": { "req": { "roomId": "string", "text": "string" }, "res": { "ok": "boolean" } },
+"banUser": { "req": { "roomId": "string", "userId": "string" }, "res": { "ok": "boolean" } },
+"exportCsv": { "req": { "roomId": "string", "from": "number", "to": "number" }, "res": { "filePath": "string" } },
+"callAcfun": { "req": { "method": "GET|POST|...", "path": "string", "body": "any" }, "res": { "status": "number", "data": "any" } },
+"notes": \[
+"所有对 AcFun 的真实请求必须通过主进程；插件与渲染端不可直取 token。【message\_idx†source】"
+]
+},
+"httpLocal": {
+"GET /api/events": { "query": { "roomId": "string?", "limit": "number?" }, "res": { "items": "Event\[]" } },
+"GET /api/export": { "query": { "roomId": "string?", "from": "number", "to": "number" }, "res": { "file": "CSV" } },
+"GET /overlay/\:overlayId": { "query": { "room": "string?", "token": "string!" }, "res": "HTML/JS" },
+"mount /plugins/\:id/*": "插件静态资源与BFF路由",
+"security": \[
+"控制台无鉴权；Overlay 以 token 作为访问门槛（不过期）。【message\_idx†source】"
+]
+},
+"pluginStorage": {
+"writePluginData": {
+"req": { "pluginId": "string", "tableName": "string", "row": "object" },
+"behavior": "主进程统一写入SQLite（表名增加前缀）",
+"citations": \["【message\_idx†source】"]
+},
+"readPluginData": { "req": { "pluginId": "string", "query": "object" }, "res": "rows\[]" }
+}
+},
+"uiDesign": {
+"desktopMain": {
+"layout": "A3 插件优先",
+"leftPane": \["账号卡片+扫码登录","房间列表(≤3)及状态/速率","服务状态(WS/SQLite/HTTP port)"],
+"centerPane": \["插件卡片列表","插件管理（安装/启用/禁用/诊断）","Settings/Logs Tabs"],
+"banner": "最新一条弹幕（可展开最近20条；一键打开“弹幕显示插件”弹窗）",
+"citations": \["【message\_idx†source】"]
+},
+"webConsole": {
+"path": "/console",
+"features": \["房间状态总览","基础控制（暂停/恢复）","插件入口"],
+"notes": \["移动端/平板友好"]
+},
+"overlay": {
+"urlPattern": "[http://host\:port/overlay/\:overlayId?room=\:roomId\&token=\:token](http://host:port/overlay/:overlayId?room=:roomId&token=:token)",
+"crossDevice": "允许在平板/手机打开（由插件决定具体交互）。【message\_idx†source】"
+}
+},
+"configurationAndPersistence": {
+"principles": \[
+"应用程序与用户数据分离；更新只替换程序，不改动用户目录。",
+"核心配置与敏感配置分离；插件配置与插件同目录存放。",
+"所有配置含 schema 版本；启动时执行幂等迁移。"
+],
+"directories": {
+"base": \[
+"Windows: C:\\\Users\\\\<user>\\\AppData\\\Roaming\\\acfun-live-manager\\\\",
+"macOS: \~/Library/Application Support/acfun-live-manager/",
+"Linux: \~/.config/acfun-live-manager/"
+],
+"tree": {
+"config.json": "核心业务配置（含 configVersion）",
+"secrets.json": "敏感票据/Token（仅主进程可读）【message\_idx†source】",
+"plugins/": "本地安装插件目录（各自 settings.json）【message\_idx†source】",
+"db/events.db": "SQLite 主库",
+"logs/": "日志",
+"exports/": "CSV 默认导出"
+},
+"citations": \["【message\_idx†source】"]
+},
+"configMigration": {
+"onStartup": true,
+"rules": \[
+"只增不减字段；缺失填默认值；损坏自动备份为 config.broken-<timestamp>.json 并重建。",
+"SQLite schema 以 user\_version/meta 管理；仅做 ALTER 类迁移。"
+]
+}
+},
+"updateStrategy": {
+"requirements": \[
+"更新不影响现有配置与插件与数据库与导出目录。【message\_idx†source】"
+],
+"approach": \[
+"手动更新优先（提示新版本→用户下载→安装），避免直播中自动更新带来风险。",
+"若做在线更新：下载至用户目录 updates/；重启时替换；严禁触碰用户数据目录。"
+],
+"pluginCompatibility": {
+"manifestEngineRange": { "min": "x.y.z", "max": "x.y.\*" },
+"startupCheck": "超出范围的插件仅标记不可用并提示更新，不删除文件。"
+},
+"rollback": \[
+"配置前向兼容（旧版忽略新增字段）。",
+"SQLite 版本可回滚（避免破坏性迁移）。"
+]
+},
+"observability": {
+"systemLogging": \[
+"WS 连接/断开/重连事件",
+"插件加载/卸载/异常（含stack）",
+"SQLite 写入错误",
+"Express 端口占用"
+],
+"files": "logs/app.log（滚动 10MB×5）",
+"pluginCircuitBreaker": {
+"enabled": true,
+"rule": "短时错误次数 ≥N → 自动停用（suspended），可在UI手动恢复。【message\_idx†source】"
+},
+"diagnosticPackage": {
+"enabled": true,
+"content": \["日志","系统信息（版本/OS/Node/Electron）","插件列表（无敏感）","SQLite schema（可选少量数据）"],
+"filename": "diagnostic-package.zip"
+}
+},
+"workflows": {
+"login": \[
+"用户在桌面端点击“扫码登录”→ 渲染进程请求主进程 → 主进程调起扫码流程 → 获取票据/Token → 写入 secrets.json（仅主进程访问）。【message\_idx†source】"
+],
+"guestView": \[
+"用户输入 roomId → 主进程建立只读WS → 事件标准化→ 存储/分发。【message\_idx†source】"
+],
+"overlayLinkGeneration": \[
+"生成 URL: /overlay/\:overlayId?room=\:roomId\&token=\:token（token不过期）。【message\_idx†source】"
+],
+"pluginInstall": \[
+"用户选择本地zip/tgz → 主进程校验manifest → 解包至 plugins/<id>/ → 注册路由/设置/overlay → 可选拉起 Node Worker。【message\_idx†source】"
+],
+"eventFlow": \[
+"acfundanmu.js → 主进程标准化 → SQLite写入（异步队列）→ 分发到渲染/插件/Overlay（WS/SSE）。【message\_idx†source】"
+]
+},
+"acceptanceCriteria": {
+"stability": \[
+"连续直播 ≥4 小时无人工干预断连（允许自动重连）。",
+"SQLite 持续写入无阻塞（单次写失败可记录但不致命）。"
+],
+"latency": \[
+"端到端事件显示 P95 ≤ 800ms；P99 ≤ 1200ms（在主播录制+游戏情况下）。【message\_idx†source】"
+],
+"capacity": \[
+"单房 ≥ 300 条/分钟稳定；峰值保护不拖垮 UI（触发背压丢弃策略）。"
+],
+"security": \[
+"插件与渲染端不可读取 token；所有对 AcFun 的调用经主进程代理成功验证。【message\_idx†source】"
+],
+"export": \[
+"按时间/房间导出 CSV 正确；包含默认字段且文件可被常见表格工具打开。"
+],
+"uiUx": \[
+"A3 布局生效；插件弹出窗口可用；最新一条弹幕正常刷新。"
+]
+},
+"risksAndMitigations": {
+"risks": \[
+"插件失控导致资源飙升→ 通过熔断+配额限制缓解。",
+"控制台无鉴权带来的局域网风险→ 明示风险，Overlay token 用于展示面；敏感操作仅限客户端主界面/插件受控API。",
+"单表聚合性能不足→ 鼓励插件离线聚合或建立自身索引表（由主进程代写）。"
+]
+},
+"appendix": {
+"terminology": {
+"Overlay": "由浏览器源加载的前端页面，用于在 OBS 中叠加显示。",
+"wujie": "微前端容器，用于在客户端承载插件路由与设置页。"
+},
+"sourceCaveat": "本SRS中的【message_idx†source】用于回溯原始对话依据。"
+},
+"implementationStatus": {
+"lastUpdated": "2025-01-27",
+"coreMustHave": {
+"qrLogin": {
+"status": "implemented",
+"notes": "AuthManager实现了扫码登录功能，支持未登录状态下的只读弹幕观看"
+},
+"roomManagement": {
+"status": "implemented", 
+"notes": "RoomManager支持最多3路房间并发连接，含心跳、断线重连与状态上报"
+},
+"eventStandardization": {
+"status": "implemented",
+"notes": "统一事件标准化模型已实现，事件总线分发到渲染进程和WebSocket客户端"
+},
+"sqlitePersistence": {
+"status": "implemented",
+"notes": "SQLite持久化和CSV导出功能已完成，支持按房间与时间过滤"
+},
+"localHttpServices": {
+"status": "implemented",
+"notes": "Express本地服务已实现/api/*路由，插件路由支持部分完成"
+},
+"pluginSystem": {
+"status": "implemented",
+"notes": "插件系统内核已实现，包含安装UI、启用/禁用管理、状态监控和错误展示功能。配置界面正在开发中。"
+},
+"a3DesktopLayout": {
+      "status": "implemented",
+      "notes": "A3插件优先布局已完成实现，包含MainLayout.vue主布局、LeftPluginNav.vue左侧导航、CentralPluginContainer.vue中心插件容器、TopDanmuBar.vue顶部弹幕条等核心组件"
+    },
+"loggingDiagnostics": {
+"status": "implemented",
+"notes": "系统日志、插件异常收集、诊断包导出功能已实现"
+}
+},
+"shouldHave": {
+"backpressureStrategy": {
+"status": "partial",
+"notes": "基础背压逻辑已实现，但优先级丢弃策略需要完善"
+},
+"lightweightConsole": {
+"status": "implementing", 
+"notes": "移动端/平板控制台入口正在实现中"
+}
+},
+"couldHave": {
+"advancedPluginFeatures": {
+"status": "implementing",
+"notes": "插件热重载、版本管理、依赖解析等高级功能正在实现中"
+},
+"performanceOptimizations": {
+"status": "implementing",
+"notes": "内存池、连接池等性能优化正在实现中"
+}
+},
+"wontHave": {
+"onlinePluginMarket": {
+"status": "confirmed_excluded",
+"notes": "按设计不提供公网在线插件市场，采用本地导入"
+},
+"minimumPrivilegeDefault": {
+"status": "confirmed_excluded", 
+"notes": "不实施最小权限默认策略，权限由主进程网关把控"
+},
+"readOnlyFallback": {
+"status": "confirmed_excluded",
+"notes": "不实现SQLite连续写失败的只读降级模式"
+}
+}
+}
+}
+}

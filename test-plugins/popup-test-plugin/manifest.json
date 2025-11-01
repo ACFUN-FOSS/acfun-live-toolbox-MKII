@@ -1,0 +1,10 @@
+{
+  "id": "popup-test-plugin",
+  "name": "Popup Test Plugin",
+  "version": "1.0.0",
+  "description": "测试插件弹窗系统功能的示例插件",
+  "author": "System Test",
+  "main": "index.js",
+  "permissions": ["popup"],
+  "minAppVersion": "1.0.0"
+}

@@ -2,6 +2,7 @@ import { ApiServer } from '../server/ApiServer';
 import { RoomManager } from '../rooms/RoomManager';
 import { DatabaseManager } from '../persistence/DatabaseManager';
 import { ConfigManager } from '../config/ConfigManager';
+import { PopupManager, PopupOptions } from './PopupManager';
 import type { NormalizedEvent, NormalizedEventType } from '../types';
 
 export interface PluginAPI {
@@ -21,6 +22,25 @@ export interface PluginAPI {
     handler: Parameters<ApiServer['registerPluginRoute']>[2]
   ): void;
 
+  // 弹窗API
+  popup: {
+    create(options: PopupOptions): Promise<string>;
+    close(popupId: string): Promise<boolean>;
+    update(popupId: string, options: Partial<PopupOptions>): Promise<boolean>;
+    show(popupId: string): Promise<boolean>;
+    hide(popupId: string): Promise<boolean>;
+    action(popupId: string, actionId: string): Promise<boolean>;
+    bringToFront(popupId: string): Promise<boolean>;
+    getAll(): Promise<PopupInstance[]>;
+    get(popupId: string): Promise<PopupInstance | null>;
+    closeAll(): Promise<number>;
+    // 事件监听
+    onAction(callback: (popupId: string, actionId: string) => void): () => void;
+    onClose(callback: (popupId: string) => void): () => void;
+    onShow(callback: (popupId: string) => void): () => void;
+    onHide(callback: (popupId: string) => void): () => void;
+  };
+
   readonly pluginId: string;
 }
 
@@ -33,6 +53,7 @@ export class ApiBridge implements PluginAPI {
   private roomManager: RoomManager;
   private databaseManager: DatabaseManager;
   private configManager: ConfigManager;
+  private popupManager: PopupManager;
   private onPluginFault: (reason: string) => void;
 
   constructor(opts: {
@@ -41,6 +62,7 @@ export class ApiBridge implements PluginAPI {
     roomManager: RoomManager;
     databaseManager: DatabaseManager;
     configManager: ConfigManager;
+    popupManager: PopupManager;
     onPluginFault: (reason: string) => void;
   }) {
     this.pluginId = opts.pluginId;
@@ -48,6 +70,7 @@ export class ApiBridge implements PluginAPI {
     this.roomManager = opts.roomManager;
     this.databaseManager = opts.databaseManager;
     this.configManager = opts.configManager;
+    this.popupManager = opts.popupManager;
     this.onPluginFault = opts.onPluginFault;
   }
 
@@ -166,4 +189,161 @@ export class ApiBridge implements PluginAPI {
   ): void {
     this.apiServer.registerPluginRoute(this.pluginId, def, handler);
   }
+
+  /**
+   * 弹窗API实现
+   */
+  public popup = {
+    create: async (options: PopupOptions): Promise<string> => {
+      try {
+        return this.popupManager.createPopup(this.pluginId, options);
+      } catch (error) {
+        this.onPluginFault('popup-creation-error');
+        throw error;
+      }
+    },
+
+    close: async (popupId: string): Promise<boolean> => {
+      try {
+        return this.popupManager.closePopup(popupId);
+      } catch (error) {
+        this.onPluginFault('popup-close-error');
+        throw error;
+      }
+    },
+
+    update: async (popupId: string, options: Partial<PopupOptions>): Promise<boolean> => {
+      try {
+        return this.popupManager.updatePopup(popupId, options);
+      } catch (error) {
+        this.onPluginFault('popup-update-error');
+        throw error;
+      }
+    },
+
+    show: async (popupId: string): Promise<boolean> => {
+      try {
+        return this.popupManager.showPopup(popupId);
+      } catch (error) {
+        this.onPluginFault('popup-show-error');
+        throw error;
+      }
+    },
+
+    hide: async (popupId: string): Promise<boolean> => {
+      try {
+        return this.popupManager.hidePopup(popupId);
+      } catch (error) {
+        this.onPluginFault('popup-hide-error');
+        throw error;
+      }
+    },
+
+    action: async (popupId: string, actionId: string): Promise<boolean> => {
+      try {
+        return this.popupManager.handlePopupAction(popupId, actionId);
+      } catch (error) {
+        this.onPluginFault('popup-action-error');
+        throw error;
+      }
+    },
+
+    bringToFront: async (popupId: string): Promise<boolean> => {
+      try {
+        return this.popupManager.bringToFront(popupId);
+      } catch (error) {
+        this.onPluginFault('popup-bring-to-front-error');
+        throw error;
+      }
+    },
+
+    getAll: async (): Promise<PopupInstance[]> => {
+      try {
+        return this.popupManager.getPluginPopups(this.pluginId);
+      } catch (error) {
+        this.onPluginFault('popup-get-all-error');
+        throw error;
+      }
+    },
+
+    get: async (popupId: string): Promise<PopupInstance | null> => {
+      try {
+        const popup = this.popupManager.getPopup(popupId);
+        // 只返回属于当前插件的弹窗
+        if (popup && popup.pluginId === this.pluginId) {
+          return popup;
+        }
+        return null;
+      } catch (error) {
+        this.onPluginFault('popup-get-error');
+        throw error;
+      }
+    },
+
+    closeAll: async (): Promise<number> => {
+      try {
+        return this.popupManager.closePluginPopups(this.pluginId);
+      } catch (error) {
+        this.onPluginFault('popup-close-all-error');
+        throw error;
+      }
+    },
+
+    // 事件监听方法
+    onAction: (callback: (popupId: string, actionId: string) => void): (() => void) => {
+      const listener = (data: { popupId: string; pluginId: string; actionId: string }) => {
+        if (data.pluginId === this.pluginId) {
+          try {
+            callback(data.popupId, data.actionId);
+          } catch (error) {
+            this.onPluginFault('popup-action-callback-error');
+          }
+        }
+      };
+      this.popupManager.on('popup.action', listener);
+      return () => this.popupManager.off('popup.action', listener);
+    },
+
+    onClose: (callback: (popupId: string) => void): (() => void) => {
+      const listener = (data: { popupId: string; pluginId: string }) => {
+        if (data.pluginId === this.pluginId) {
+          try {
+            callback(data.popupId);
+          } catch (error) {
+            this.onPluginFault('popup-close-callback-error');
+          }
+        }
+      };
+      this.popupManager.on('popup.closed', listener);
+      return () => this.popupManager.off('popup.closed', listener);
+    },
+
+    onShow: (callback: (popupId: string) => void): (() => void) => {
+      const listener = (data: { popupId: string; pluginId: string }) => {
+        if (data.pluginId === this.pluginId) {
+          try {
+            callback(data.popupId);
+          } catch (error) {
+            this.onPluginFault('popup-show-callback-error');
+          }
+        }
+      };
+      this.popupManager.on('popup.shown', listener);
+      return () => this.popupManager.off('popup.shown', listener);
+    },
+
+    onHide: (callback: (popupId: string) => void): (() => void) => {
+      const listener = (data: { popupId: string; pluginId: string }) => {
+        if (data.pluginId === this.pluginId) {
+          try {
+            callback(data.popupId);
+          } catch (error) {
+            this.onPluginFault('popup-hide-callback-error');
+          }
+        }
+      };
+      this.popupManager.on('popup.hidden', listener);
+      return () => this.popupManager.off('popup.hidden', listener);
+    }
+  };
 }

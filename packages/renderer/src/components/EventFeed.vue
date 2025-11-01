@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ events: any[] }>();
+defineProps<{ events: any[] }>();
 
 function formatTs(ts: number) {
   const d = new Date(ts);

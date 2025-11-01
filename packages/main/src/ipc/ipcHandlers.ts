@@ -1,12 +1,14 @@
-import { ipcMain, app } from 'electron';
+import { ipcMain, app, dialog } from 'electron';
 import { RoomManager } from '../rooms/RoomManager';
 import { AuthManager } from '../services/AuthManager';
+import { PluginManager } from '../plugins/PluginManager';
+import { OverlayManager } from '../plugins/OverlayManager';
 
 /**
  * Initializes all IPC handlers for the main process.
  * This is where the renderer process can communicate with the main process.
  */
-export function initializeIpcHandlers(roomManager: RoomManager, authManager: AuthManager) {
+export function initializeIpcHandlers(roomManager: RoomManager, authManager: AuthManager, pluginManager: PluginManager, overlayManager: OverlayManager) {
   console.log('[IPC] Initializing IPC handlers...');
 
   ipcMain.handle('add-room', (event, roomId: string) => {
@@ -155,4 +157,329 @@ export function initializeIpcHandlers(roomManager: RoomManager, authManager: Aut
   // - Room management (connect, disconnect)
   // - Data queries (get events, etc.)
 
+  // --- Plugin Management ---
+  
+  // 获取已安装插件列表
+  ipcMain.handle('plugin.list', async () => {
+    try {
+      const plugins = await pluginManager.getInstalledPlugins();
+      return { success: true, data: plugins };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 安装插件
+  ipcMain.handle('plugin.install', async (_event, options: any) => {
+    try {
+      const result = await pluginManager.installPlugin(options);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 卸载插件
+  ipcMain.handle('plugin.uninstall', async (_event, pluginId: string) => {
+    try {
+      await pluginManager.uninstallPlugin(pluginId);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 启用插件
+  ipcMain.handle('plugin.enable', async (_event, pluginId: string) => {
+    try {
+      await pluginManager.enablePlugin(pluginId);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 禁用插件
+  ipcMain.handle('plugin.disable', async (_event, pluginId: string) => {
+    try {
+      await pluginManager.disablePlugin(pluginId);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取单个插件信息
+  ipcMain.handle('plugin.get', async (_event, pluginId: string) => {
+    try {
+      const plugin = await pluginManager.getPlugin(pluginId);
+      return plugin ? { success: true, data: plugin } : { success: false, error: '插件未找到' };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取插件统计信息
+  ipcMain.handle('plugin.stats', async () => {
+    try {
+      const stats = await pluginManager.getPluginStats();
+      return { success: true, data: stats };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取插件日志
+  ipcMain.handle('plugin.logs', async (_event, pluginId?: string, limit?: number) => {
+    try {
+      const logs = await pluginManager.getPluginLogs(pluginId, limit);
+      return { success: true, data: logs };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取插件错误历史
+  ipcMain.handle('plugin.errorHistory', async (_event, pluginId: string) => {
+    try {
+      const history = await pluginManager.getPluginErrorHistory(pluginId);
+      return { success: true, data: history };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取插件错误统计
+  ipcMain.handle('plugin.errorStats', async () => {
+    try {
+      const stats = await pluginManager.getPluginErrorStats();
+      return { success: true, data: stats };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 执行插件恢复操作
+  ipcMain.handle('plugin.recovery', async (_event, pluginId: string, action: string, context?: Record<string, any>) => {
+    try {
+      const result = await pluginManager.executePluginRecovery(pluginId, action as any, context);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 重置插件错误计数
+  ipcMain.handle('plugin.resetErrorCount', async (_event, pluginId: string, errorType?: string) => {
+    try {
+      pluginManager.resetPluginErrorCount(pluginId, errorType as any);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // --- 文件对话框和安装相关 ---
+  
+  // 打开文件选择对话框
+  ipcMain.handle('plugin.selectFile', async () => {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: '选择插件文件',
+        filters: [
+          { name: '插件文件', extensions: ['zip', 'tar', 'gz', 'tgz'] },
+          { name: '所有文件', extensions: ['*'] }
+        ],
+        properties: ['openFile']
+      });
+      
+      if (result.canceled || !result.filePaths.length) {
+        return { success: false, canceled: true };
+      }
+      
+      return { success: true, filePath: result.filePaths[0] };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 安装插件（带文件选择）
+  ipcMain.handle('plugin.installFromFile', async (_event, options?: any) => {
+    try {
+      // 如果没有提供文件路径，先打开文件选择对话框
+      let filePath = options?.filePath;
+      
+      if (!filePath) {
+        const fileResult = await dialog.showOpenDialog({
+          title: '选择要安装的插件文件',
+          filters: [
+            { name: '插件文件', extensions: ['zip', 'tar', 'gz', 'tgz'] },
+            { name: '所有文件', extensions: ['*'] }
+          ],
+          properties: ['openFile']
+        });
+        
+        if (fileResult.canceled || !fileResult.filePaths.length) {
+          return { success: false, canceled: true };
+        }
+        
+        filePath = fileResult.filePaths[0];
+      }
+      
+      const installOptions = {
+        filePath,
+        overwrite: options?.overwrite || false,
+        enable: options?.enable || false,
+        skipSignatureVerification: options?.skipSignatureVerification || false,
+        skipChecksumVerification: options?.skipChecksumVerification || false,
+        allowUnsafe: options?.allowUnsafe || false,
+        expectedChecksum: options?.expectedChecksum
+      };
+      
+      const result = await pluginManager.installPlugin(installOptions);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 验证插件文件
+  ipcMain.handle('plugin.validateFile', async (_event, filePath: string) => {
+    try {
+      const manifest = await pluginManager.validatePluginFile(filePath);
+      return { success: true, data: manifest };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // --- Plugin Popup System ---
+  
+  // 创建插件弹窗
+  ipcMain.handle('plugin.popup.create', async (_event, pluginId: string, options: any) => {
+    try {
+      const api = pluginManager.getApi(pluginId);
+      const popupId = await api.popup.create(options);
+      return { success: true, data: { popupId } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 关闭插件弹窗
+  ipcMain.handle('plugin.popup.close', async (_event, pluginId: string, popupId: string) => {
+    try {
+      const api = pluginManager.getApi(pluginId);
+      const result = await api.popup.close(popupId);
+      return { success: true, data: { closed: result } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 处理插件弹窗动作
+  ipcMain.handle('plugin.popup.action', async (_event, pluginId: string, popupId: string, actionId: string) => {
+    try {
+      const api = pluginManager.getApi(pluginId);
+      const result = await api.popup.action(popupId, actionId);
+      return { success: true, data: { handled: result } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 将插件弹窗置于前台
+  ipcMain.handle('plugin.popup.bringToFront', async (_event, pluginId: string, popupId: string) => {
+    try {
+      const api = pluginManager.getApi(pluginId);
+      const result = await api.popup.bringToFront(popupId);
+      return { success: true, data: { focused: result } };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // --- Overlay System ---
+  
+  // 创建overlay
+  ipcMain.handle('overlay.create', async (_event, options: any) => {
+    try {
+      const result = await overlayManager.createOverlay(options);
+      return result;
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 更新overlay
+  ipcMain.handle('overlay.update', async (_event, overlayId: string, updates: any) => {
+    try {
+      const result = await overlayManager.updateOverlay(overlayId, updates);
+      return result;
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 关闭overlay
+  ipcMain.handle('overlay.close', async (_event, overlayId: string) => {
+    try {
+      const result = await overlayManager.closeOverlay(overlayId);
+      return result;
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 显示overlay
+  ipcMain.handle('overlay.show', async (_event, overlayId: string) => {
+    try {
+      const result = await overlayManager.showOverlay(overlayId);
+      return result;
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 隐藏overlay
+  ipcMain.handle('overlay.hide', async (_event, overlayId: string) => {
+    try {
+      const result = await overlayManager.hideOverlay(overlayId);
+      return result;
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 将overlay置于前台
+  ipcMain.handle('overlay.bringToFront', async (_event, overlayId: string) => {
+    try {
+      const result = await overlayManager.bringToFront(overlayId);
+      return result;
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取overlay列表
+  ipcMain.handle('overlay.list', async () => {
+    try {
+      const result = await overlayManager.listOverlays();
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 处理overlay动作
+  ipcMain.handle('overlay.action', async (_event, overlayId: string, action: string, data?: any) => {
+    try {
+      const result = await overlayManager.handleOverlayAction(overlayId, action, data);
+      return result;
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  console.log('[IPC] All IPC handlers initialized successfully');
 }

@@ -1,0 +1,15 @@
+{
+  "name": "overlay-test-plugin",
+  "version": "1.0.0",
+  "description": "测试overlay系统功能的示例插件",
+  "author": "AcFun Live Toolbox",
+  "main": "index.js",
+  "permissions": [
+    "overlay"
+  ],
+  "ui": {
+    "name": "Overlay测试",
+    "description": "测试overlay功能",
+    "icon": "icon.svg"
+  }
+}
