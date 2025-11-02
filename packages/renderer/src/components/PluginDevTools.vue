@@ -224,7 +224,7 @@ async function selectNodePath() {
       title: '选择Node.js代码目录'
     });
     
-    if (!result.canceled && result.filePaths.length > 0) {
+    if (!result.canceled && result.filePaths && result.filePaths.length > 0) {
       config.value.nodePath = result.filePaths[0];
     }
   } catch (error) {

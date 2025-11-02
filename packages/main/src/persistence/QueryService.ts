@@ -92,10 +92,12 @@ export class QueryService {
         event_id,
         type as event_type,
         room_id,
+        source,
         user_id,
         username as user_name,
         payload as content,
         timestamp as ts,
+        received_at,
         raw_data as raw,
         created_at
       FROM events 
@@ -110,7 +112,9 @@ export class QueryService {
     // 转换为 NormalizedEvent 格式
     const items: NormalizedEvent[] = rows.map(row => ({
       ts: row.ts,
+      received_at: row.received_at || row.ts,
       room_id: row.room_id,
+      source: row.source || 'unknown',
       event_type: row.event_type as NormalizedEventType,
       user_id: row.user_id || null,
       user_name: row.user_name || null,
@@ -149,10 +153,12 @@ export class QueryService {
         event_id,
         type as event_type,
         room_id,
+        source,
         user_id,
         username as user_name,
         payload as content,
         timestamp as ts,
+        received_at,
         raw_data as raw,
         created_at
       FROM events 
@@ -168,7 +174,9 @@ export class QueryService {
     const row = rows[0];
     return {
       ts: row.ts,
+      received_at: row.received_at || row.ts,
       room_id: row.room_id,
+      source: row.source || 'unknown',
       event_type: row.event_type as NormalizedEventType,
       user_id: row.user_id || null,
       user_name: row.user_name || null,

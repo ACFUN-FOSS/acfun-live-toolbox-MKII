@@ -167,7 +167,7 @@ function handlePluginEvent(event: { type: string; data: any }) {
 }
 
 // 处理插件消息
-function handlePluginMessage(message: any) {
+function handlePluginMessage(_message: any) {
   // TODO: 实现插件与主应用的通信
 }
 

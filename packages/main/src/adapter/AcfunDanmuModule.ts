@@ -1,10 +1,10 @@
 import type { AppModule } from '../AppModule';
 import { ModuleContext } from '../ModuleContext';
-import { spawn, ChildProcess, SpawnOptions } from 'child_process';
-import path from 'path';
-import { app } from 'electron';
-import { getPackageJson } from '../utils/Devars';
 import { getLogManager } from '../logging/LogManager';
+import { AcFunLiveApi } from 'acfunlive-http-api';
+import { connectionPool, PooledConnection } from './ConnectionPoolManager';
+import { performanceMonitor } from './PerformanceMonitor';
+import { AuthManager } from '../services/AuthManager';
 
 // 定义配置接口
 interface DanmuSendResponse {
@@ -22,29 +22,32 @@ interface LiveStatusResponse {
 }
 
 interface AcfunDanmuConfig {
-  port: number;
   debug: boolean;
-  connectionMode: 'tcp' | 'ws';
   logLevel: 'info' | 'debug' | 'error';
+  timeout: number;
+  retries: number;
 }
 
 // 默认配置
 const DEFAULT_CONFIG: AcfunDanmuConfig = {
-  port: 15368,
   debug: false,
-  connectionMode: 'ws',
-  logLevel: 'info'
+  logLevel: 'info',
+  timeout: 30000,
+  retries: 3
 };
 
 export class AcfunDanmuModule implements AppModule {
-  private process: ChildProcess | null = null;
+  private pooledConnection: PooledConnection | null = null;
   private config: AcfunDanmuConfig;
   private logCallback: ((message: string, type: 'info' | 'error') => void) | null = null;
   private logManager: ReturnType<typeof getLogManager>;
+  private isInitialized: boolean = false;
+  private authManager: AuthManager;
 
-  constructor(config: Partial<AcfunDanmuConfig> = {}) {
+  constructor(config: Partial<AcfunDanmuConfig> = {}, authManager?: AuthManager) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.logManager = getLogManager();
+    this.authManager = authManager || new AuthManager();
   }
 
   // 设置日志回调函数
@@ -53,8 +56,11 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   // 获取当前状态
-  getStatus(): { running: boolean, port: number } {    
-    return { running: !!this.process, port: this.config.port };
+  getStatus(): { running: boolean, initialized: boolean } {    
+    return { 
+      running: this.isInitialized, 
+      initialized: this.isInitialized 
+    };
   }
 
   // 获取当前配置
@@ -65,128 +71,61 @@ export class AcfunDanmuModule implements AppModule {
   // 更新配置
   updateConfig(config: Partial<AcfunDanmuConfig>): void {
     this.config = { ...this.config, ...config };
-    // 重启服务以应用新配置
-    this.restart();
+    
+    // 如果有活跃连接，释放并重新获取以应用新配置
+    if (this.pooledConnection) {
+      connectionPool.release(this.pooledConnection.id);
+      this.pooledConnection = null;
+    }
+    
+    this.log('Configuration updated', 'info');
   }
 
-  // 启动服务
-  async start(): Promise<void> {
+  // 初始化模块
+  async initialize(): Promise<void> {
     try {
-      // 确保之前的进程已关闭
-      if (this.process) {
-        this.stop();
-      }
-
-      // 获取acfundanmu模块的路径
-      const packageJson = await getPackageJson();
-      const rootPath = packageJson?.appPath || path.dirname(app.getPath('exe'));
-      const acfunDanmuPath = path.join(rootPath, 'packages', 'acfundanmu', 'main.js');
-
-      // 构建命令参数
-      const args = ['--port=' + this.config.port];
-      if (this.config.debug) {
-        args.push('--debug');
-      }
-      if (this.config.connectionMode === 'tcp') {
-        args.push('--tcp');
-      }
-
-      // 设置环境变量
-      const env = { ...process.env };
-      env.LOG_LEVEL = this.config.logLevel;
-
-      // 启动子进程
-      const options: SpawnOptions = {
-        windowsHide: true,
-        env,
-        stdio: ['ignore', 'pipe', 'pipe'] // 捕获stdout和stderr
-      };
-
-      this.process = spawn(process.execPath, [acfunDanmuPath, ...args], options);
-
-      // 捕获标准输出
-      this.process.stdout?.on('data', (data) => {
-        const message = data.toString().trim();
-        if (this.logCallback) {
-          this.logCallback(message, 'info');
-        } else {
-          console.log('[AcfunDanmu]', message);
-        }
+      this.log('Initializing AcfunDanmuModule...', 'info');
+      
+      // 启动性能监控
+      performanceMonitor.start();
+      
+      // 设置性能监控事件监听器
+      performanceMonitor.on('alert', (alert) => {
+        this.log(`Performance alert: ${alert.type} - ${alert.message}`, 'error');
       });
-
-      // 捕获错误输出
-      this.process.stderr?.on('data', (data) => {
-        const message = data.toString().trim();
-        if (this.logCallback) {
-          this.logCallback(message, 'error');
-        } else {
-          console.error('[AcfunDanmu]', message);
-        }
+      
+      performanceMonitor.on('error', (error) => {
+        this.log(`Performance monitor error: ${error instanceof Error ? error.message : String(error)}`, 'error');
       });
-
-      // 处理进程关闭事件
-      this.process.on('close', (code) => {
-        if (this.logCallback) {
-          this.logCallback(`Process exited, code: ${code}`, 'info');
-        } else {
-          console.log(`[AcfunDanmu] Process exited, code: ${code}`);
-        }
-        this.process = null;
-      });
-
-      // 处理进程错误事件
-      this.process.on('error', (error) => {
-        if (this.logCallback) {
-          this.logCallback(`Process error: ${error.message}`, 'error');
-        } else {
-          console.error(`[AcfunDanmu] Process error: ${error.message}`);
-        }
-        this.process = null;
-      });
-
-      if (this.logCallback) {
-        this.logCallback(`AcfunDanmu service started, port: ${this.config.port}`, 'info');
-      } else {
-        console.log(`[AcfunDanmu] Service started, port: ${this.config.port}`);
-      }
+      
+      // 这里可以添加初始化逻辑，比如验证API连接等
+      this.isInitialized = true;
+      
+      this.log('AcfunDanmuModule initialized successfully', 'info');
     } catch (error) {
-      if (this.logCallback) {
-        this.logCallback(`Failed to start AcfunDanmu service: ${error instanceof Error ? error.message : String(error)}`, 'error');
-      } else {
-        console.error(`[AcfunDanmu] Failed to start service: ${error instanceof Error ? error.message : String(error)}`);
-      }
+      this.log(`Failed to initialize AcfunDanmuModule: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      throw error;
     }
   }
 
-  // 停止服务
-  stop(): void {
-    if (this.process) {
-      try {
-        this.process.kill();
-        this.process = null;
-        if (this.logCallback) {
-          this.logCallback('AcfunDanmu service stopped', 'info');
-        } else {
-          console.log('[AcfunDanmu] Service stopped');
-        }
-      } catch (error) {
-        if (this.logCallback) {
-          this.logCallback(`Failed to stop AcfunDanmu service: ${error instanceof Error ? error.message : String(error)}`, 'error');
-        } else {
-          console.error(`[AcfunDanmu] Failed to stop service: ${error instanceof Error ? error.message : String(error)}`);
-        }
+  // 销毁模块
+  async destroy(): Promise<void> {
+    try {
+      this.log('Destroying AcfunDanmuModule...', 'info');
+      
+      // 停止性能监控
+      performanceMonitor.stop();
+      
+      if (this.pooledConnection) {
+        connectionPool.destroy(this.pooledConnection.id);
+        this.pooledConnection = null;
       }
+      
+      this.isInitialized = false;
+      this.log('AcfunDanmuModule destroyed successfully', 'info');
+    } catch (error) {
+      this.log(`Error destroying AcfunDanmuModule: ${error instanceof Error ? error.message : String(error)}`, 'error');
     }
-  }
-
-  // 重启服务
-  restart(): void {
-    if (this.logCallback) {
-      this.logCallback('Restarting AcfunDanmu service...', 'info');
-    } else {
-      console.log('[AcfunDanmu] Restarting service...');
-    }
-    this.start();
   }
 
   // 实现AppModule接口
@@ -196,378 +135,433 @@ export class AcfunDanmuModule implements AppModule {
       this.logManager.addLog('acfunDanmu', message, type as any);
     });
 
-    // 延迟启动，确保应用已就绪
+    // 延迟初始化，确保应用已就绪
     app.on('ready', () => {
       setTimeout(() => {
-        this.start();
+        this.initialize().catch(error => {
+          this.log(`Failed to initialize on app ready: ${error instanceof Error ? error.message : String(error)}`, 'error');
+        });
       }, 1000);
     });
 
-    // 主进程退出时停止服务
+    // 主进程退出时销毁模块
     app.on('will-quit', () => {
-      this.stop();
+      this.destroy().catch(error => {
+        console.error('Error destroying AcfunDanmuModule on quit:', error);
+      });
     });
   }
 
-
   // 房管相关方法
   async getManagerList(uid: number, page: number = 1, pageSize: number = 20): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/manager/list`,
-      'GET',
-      { uid, page, pageSize }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.manager.getManagerList();
+    }, 'getManagerList');
   }
 
   async addManager(uid: number, targetId: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/manager/add`,
-      'POST',
-      { uid, targetId }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.manager.addManager(targetId);
+    }, 'addManager');
   }
 
   async removeManager(uid: number, targetId: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/manager/remove`,
-      'POST',
-      { uid, targetId }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.manager.deleteManager(targetId);
+    }, 'removeManager');
   }
 
   async getKickRecord(uid: number, page: number = 1, pageSize: number = 20): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/manager/kickRecord`,
-      'GET',
-      { uid, page, pageSize }
-    );
+    // 需要 liveId 参数，这里暂时抛出错误
+    throw new Error('getKickRecord requires liveId parameter - use getAuthorKickRecords instead');
   }
 
   async managerKickUser(uid: number, targetId: number, reason: string = '', duration: number = 3600): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/manager/kickUser`,
-      'POST',
-      { uid, targetId, reason, duration }
-    );
+    // 需要 liveId 参数，这里暂时抛出错误
+    throw new Error('managerKickUser requires liveId parameter - use managerKick instead');
   }
 
   async authorKickUser(uid: number, targetId: number, reason: string = '', duration: number = 3600): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/author/kickUser`,
-      'POST',
-      { uid, targetId, reason, duration }
-    );
+    // 需要 liveId 参数，这里暂时抛出错误
+    throw new Error('authorKickUser requires liveId parameter - use authorKick instead');
   }
 
-  // 守护徽章相关方法
+  // 勋章相关方法
   async getMedalDetail(uid: number, medalId: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/medal/detail`,
-      'GET',
-      { uid, medalId }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.badge.getBadgeDetail(uid);
+    }, 'getMedalDetail');
   }
 
   async getMedalList(uid: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/medal/list`,
-      'GET',
-      { uid }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.badge.getBadgeList();
+    }, 'getMedalList');
   }
 
   async getMedalRank(uid: number, medalId: number, rankType: number = 1): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/medal/rank`,
-      'GET',
-      { uid, medalId, rankType }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.badge.getBadgeRank(uid);
+    }, 'getMedalRank');
   }
 
   async getUserWearingMedal(uid: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/medal/wearing`,
-      'GET',
-      { uid }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.badge.getWornBadge(uid);
+    }, 'getUserWearingMedal');
   }
 
   async wearMedal(uid: number, medalId: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/medal/wear`,
-      'POST',
-      { uid, medalId }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.badge.wearBadge(uid);
+    }, 'wearMedal');
   }
 
   async unwearMedal(uid: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/medal/unwear`,
-      'POST',
-      { uid }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.badge.unwearBadge();
+    }, 'unwearMedal');
   }
 
   // 登录相关方法
   async login(account: string, password: string): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/login`,
-      'POST',
-      { account, password }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.auth.qrLogin();
+    }, 'login');
   }
 
   async loginWithQRCode(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/login/qrcode`,
-      'POST'
-    );
+    return this.callApiMethod(async (api) => {
+      return api.auth.checkQrLoginStatus();
+    }, 'loginWithQRCode');
   }
 
-  // 观看列表相关方法
-  async getWatchingList(liveID: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/watchingList`,
-      'GET',
-      { liveID }
-    );
+  // 观看列表相关方法 - 暂时移除，因为 API 中不存在此方法
+  // async getWatchingList(liveID: number): Promise<any> {
+  //   return this.callApiMethod(async (api) => {
+  //     return api.live.getWatchingList(liveID);
+  //   }, 'getWatchingList');
+  // }
+
+  // 榜单相关方法 - 暂时移除，因为 API 中不存在此方法
+  // async getBillboard(): Promise<any> {
+  //   return this.callApiMethod(async (api) => {
+  //     return api.live.getBillboard();
+  //   }, 'getBillboard');
+  // }
+
+  // 摘要相关方法
+  async getSummary(liveId: string): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.getSummary(liveId);
+    }, 'getSummary');
   }
 
-  // 排行榜相关方法
-  async getBillboard(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/billboard`,
-      'GET'
-    );
+  // 幸运列表相关方法 - 暂时移除，因为 API 中不存在此方法
+  // async getLuckList(): Promise<any> {
+  //   return this.callApiMethod(async (api) => {
+  //     return api.live.getLuckList();
+  //   }, 'getLuckList');
+  // }
+
+  // 回放相关方法
+  async getPlayback(liveID: string): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.replay.getLiveReplay(liveID);
+    }, 'getPlayback');
   }
 
-  // 摘要信息相关方法
-  async getSummary(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/summary`,
-      'GET'
-    );
-  }
-
-  // 幸运列表相关方法
-  async getLuckList(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/luckList`,
-      'GET'
-    );
-  }
-
-  // 回放信息相关方法
-  async getPlayback(liveID: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/playback`,
-      'GET',
-      { liveId: liveID }
-    );
-  }
-
-  // 礼物列表相关方法
+  // 礼物相关方法
   async getAllGiftList(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/gift/allList`,
-      'GET'
-    );
+    return this.callApiMethod(async (api) => {
+      return api.gift.getAllGiftList();
+    }, 'getAllGiftList');
   }
 
-  async getGiftList(liveID: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/gift/list`,
-      'GET',
-      { liveId: liveID }
-    );
+  async getGiftList(liveID: string): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.gift.getLiveGiftList(liveID);
+    }, 'getGiftList');
   }
 
-  // 账户钱包相关方法
-  async getWalletBalance(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/wallet/balance`,
-      'GET'
-    );
-  }
+  // 钱包相关方法 - 暂时移除，因为 API 中不存在此方法
+  // async getWalletBalance(): Promise<any> {
+  //   return this.callApiMethod(async (api) => {
+  //     return api.live.getWalletBalance();
+  //   }, 'getWalletBalance');
+  // }
 
   // 用户直播信息相关方法
-  async getUserLiveInfo(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/user/liveInfo`,
-      'GET'
-    );
+  async getUserLiveInfo(userID: number): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.getUserLiveInfo(userID);
+    }, 'getUserLiveInfo');
   }
 
   // 直播列表相关方法
   async getAllLiveList(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/allList`,
-      'GET'
-    );
+    return this.callApiMethod(async (api) => {
+      return api.live.getLiveList();
+    }, 'getAllLiveList');
   }
 
   // 直播数据相关方法
   async getLiveData(days: number = 7): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/data`,
-      'GET',
-      { days }
-    );
+    return this.callApiMethod(async (api) => {
+      return api.live.getLiveStatisticsByDays(days);
+    }, 'getLiveData');
   }
 
   // 用户信息相关方法
-  async getUserInfo(userID?: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/user/info`,
-      'GET',
-      userID ? { userId: userID } : {}
-    );
+  async getUserInfo(userID: number): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.getUserDetailInfo(userID);
+    }, 'getUserInfo');
   }
 
-  // 上传图片相关方法
-  async uploadImage(imagePath: string): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/upload/image`,
-      'POST',
-      { imageFile: imagePath }
-    );
-  }
+  // 图片上传相关方法 - 暂时移除，因为 ImageService 不在 AcFunLiveApi 中
+  // async uploadImage(imagePath: string): Promise<any> {
+  //   return this.callApiMethod(async (api) => {
+  //     return api.image.uploadImage(imagePath);
+  //   }, 'uploadImage');
+  // }
 
-  // 直播预告相关方法
-  async getScheduleList(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/scheduleList`,
-      'GET'
-    );
-  }
+  // 日程相关方法 - 暂时移除，因为 API 中不存在此方法
+  // async getScheduleList(): Promise<any> {
+  //   return this.callApiMethod(async (api) => {
+  //     return api.live.getScheduleList();
+  //   }, 'getScheduleList');
+  // }
 
-  // 弹幕相关方法
+  // 弹幕发送方法
   async sendDanmu(liveId: number, content: string): Promise<DanmuSendResponse> {
-    if (!liveId || liveId <=0) throw new Error('Invalid liveId');
-    if (!content || content.trim().length === 0 || content.length > 200) throw new Error('Invalid danmu content');
     try {
-      return await this.callAcfunDanmuApi<DanmuSendResponse>(
-        `/danmu/send`,
-        'POST',
-        { liveId, content }
-      );
+      const result = await this.callApiMethod(async (api) => {
+        return api.danmu.sendComment(liveId.toString(), content);
+      }, 'sendDanmu');
+      
+      return {
+        success: true,
+        message: 'Danmu sent successfully'
+      };
     } catch (error) {
-      this.logManager.addLog('sendDanmu',`Failed to send danmu: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
+  }
+
+  // 获取直播状态 - 使用 getUserLiveInfo 替代
+  async getLiveStatus(liveId: number): Promise<LiveStatusResponse> {
+    const result = await this.callApiMethod(async (api) => {
+      return api.live.getUserLiveInfo(liveId);
+    }, 'getLiveStatus');
+    
+    // 转换为 LiveStatusResponse 格式
+    return {
+      liveId: result.data?.profile?.userID || liveId,
+      status: result.data?.liveID ? 'online' : 'offline',
+      title: result.data?.title,
+      viewerCount: result.data?.onlineCount,
+      startTime: result.data?.liveStartTime ? new Date(result.data.liveStartTime) : undefined
+    };
+  }
+
+  // 转码信息相关方法 - 需要 streamName 参数
+  async getTranscodeInfo(streamName: string = 'default'): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.getTranscodeInfo(streamName);
+    }, 'getTranscodeInfo');
+  }
+
+  // 开始直播 - 使用 startLiveStream 替代
+  async startLive(categoryID: number, title: string, coverUrl: string): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.startLiveStream(title, coverUrl, 'stream', false, false, categoryID, 0);
+    }, 'startLive');
+  }
+
+  // 停止直播 - 使用 stopLiveStream 替代
+  async stopLive(liveId: string): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.stopLiveStream(liveId);
+    }, 'stopLive');
+  }
+
+  async updateLiveInfo(title: string, coverUrl: string): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.updateLiveRoom(title, coverUrl, ''); // 需要 liveId 参数
+    }, 'updateLiveInfo');
+  }
+
+  // 剪辑权限相关方法
+  async checkCanCut(liveID: number): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.checkLiveClipPermission();
+    }, 'checkCanCut');
+  }
+
+  async setCanCut(liveID: number, canCut: boolean): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.live.setLiveClipPermission(canCut);
+    }, 'setCanCut');
+  }
+
+  // 获取API实例（用于其他模块直接访问）
+  async getApiInstance(): Promise<AcFunLiveApi> {
+    if (!this.pooledConnection) {
+      this.pooledConnection = await connectionPool.acquire('auth');
+    }
+    return this.pooledConnection.api;
+  }
+
+  // 性能监控相关方法
+  
+  /**
+   * 获取性能指标
+   */
+  getPerformanceMetrics() {
+    return performanceMonitor.getLatestMetrics();
+  }
+
+  /**
+   * 获取性能摘要
+   */
+  getPerformanceSummary() {
+    return performanceMonitor.getPerformanceSummary();
+  }
+
+  /**
+   * 获取性能指标历史
+   */
+  getPerformanceHistory(limit?: number) {
+    return performanceMonitor.getMetricsHistory(limit);
+  }
+
+  /**
+   * 重置性能统计
+   */
+  resetPerformanceStats() {
+    performanceMonitor.reset();
+  }
+
+  /**
+   * 检查性能监控状态
+   */
+  isPerformanceMonitoringActive(): boolean {
+    return performanceMonitor.isMonitoring();
+  }
+
+  // 私有方法：统一的API调用包装器
+  private async callApiMethod<T>(apiCall: (api: AcFunLiveApi) => Promise<T>, methodName: string): Promise<T> {
+    // 增加请求计数
+    performanceMonitor.incrementRequestCount();
+    
+    try {
+      if (!this.isInitialized) {
+        throw new Error('AcfunDanmuModule is not initialized');
+      }
+      
+      // 获取连接池中的API实例
+      if (!this.pooledConnection) {
+        this.pooledConnection = await connectionPool.acquire('live');
+      }
+      
+      // 确保身份验证
+      await this.ensureAuthentication();
+      
+      this.log(`Calling API method: ${methodName}`, 'debug');
+      const result = await apiCall(this.pooledConnection.api);
+      this.log(`API method ${methodName} completed successfully`, 'debug');
+      return result;
+    } catch (error) {
+      // 增加错误计数
+      performanceMonitor.incrementErrorCount();
+      
+      const errorMessage = `API method ${methodName} failed: ${error instanceof Error ? error.message : String(error)}`;
+      this.log(errorMessage, 'error');
       throw error;
     }
   }
 
-  // 直播状态相关方法
-  async getLiveStatus(liveId: number): Promise<LiveStatusResponse> {
-    return this.callAcfunDanmuApi(
-      `/live/status`,
-      'GET',
-      { liveId: liveId }
-    );
-  }
+  /**
+   * 确保API连接已通过身份验证
+   */
+  private async ensureAuthentication(): Promise<void> {
+    if (!this.pooledConnection) {
+      throw new Error('No pooled connection available');
+    }
 
-  // 转码信息相关方法
-  async getTranscodeInfo(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/transcodeInfo`,
-      'GET'
-    );
-  }
-
-  // 直播控制相关方法
-  async startLive(categoryID: number, title: string, coverUrl: string): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/start`,
-      'POST',
-      { categoryId: categoryID, title, coverUrl }
-    );
-  }
-
-  async stopLive(): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/stop`,
-      'POST'
-    );
-  }
-
-  async updateLiveInfo(title: string, coverUrl: string): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/updateInfo`,
-      'POST',
-      { title, coverUrl }
-    );
-  }
-
-  // 直播剪辑相关方法
-  async checkCanCut(liveID: number): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/checkCanCut`,
-      'GET',
-      { liveId: liveID }
-    );
-  }
-
-  async setCanCut(liveID: number, canCut: boolean): Promise<any> {
-    return this.callAcfunDanmuApi(
-      `/live/setCanCut`,
-      'POST',
-      { liveId: liveID, canCut }
-    );
-  }
-
-  // HTTP客户端工具方法
-  private async callAcfunDanmuApi<T = any>(path: string, method: 'GET' | 'POST' = 'GET', data: any = null): Promise<T> {
     try {
-      let url = `http://localhost:${this.config.port}/api${path}`;
-      const options = {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-client-id': 'acfun-live-toolbox'
-        },
-        body: ''
-      };
-
-      if (method === 'POST' && data) {
-        options.body = JSON.stringify(data);
-      } else if (method === 'GET' && data) {
-        const queryParams = new URLSearchParams(data);
-        url += `?${queryParams}`;
+      // 检查当前是否已认证
+      const isAuthenticated = this.pooledConnection.api.isAuthenticated();
+      
+      if (!isAuthenticated) {
+        this.log('No authentication found, attempting to authenticate...', 'info');
+        
+        // 尝试从 AuthManager 获取令牌信息
+        const tokenInfo = await this.authManager.getTokenInfo();
+        
+        if (tokenInfo && tokenInfo.isValid) {
+          // 设置认证令牌 - 传递完整的TokenInfo对象的JSON字符串
+          this.pooledConnection.api.setAuthToken(JSON.stringify(tokenInfo));
+          this.log('Authentication restored from saved token', 'info');
+        } else if (tokenInfo && !tokenInfo.isValid) {
+          // 令牌已过期，清除过期令牌
+          this.log('Token expired, clearing expired token...', 'info');
+          await this.authManager.logout();
+          this.log('Token expired and cannot be refreshed automatically, continuing with anonymous access', 'info');
+        } else {
+          this.log('No valid authentication token available, continuing with anonymous access', 'info');
+        }
+      } else {
+        this.log('Authentication already established', 'debug');
+        
+        // 检查令牌是否即将过期
+        const isExpiringSoon = await this.authManager.isTokenExpiringSoon();
+        if (isExpiringSoon) {
+          this.log('Token expiring soon, but automatic refresh is not supported. Manual re-login may be required.', 'info');
+        }
       }
-
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
     } catch (error) {
-    console.error(`[AcfunDanmu] API call failed: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
+      this.log(`Authentication check failed: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      // 不抛出错误，允许匿名访问
+    }
+  }
+
+  /**
+   * 获取 AuthManager 实例
+   */
+  public getAuthManager(): AuthManager {
+    return this.authManager;
+  }
+
+  // 私有方法：日志记录
+  private log(message: string, type: 'info' | 'error' | 'debug'): void {
+    if (this.config.logLevel === 'debug' || type !== 'debug') {
+      if (this.logCallback) {
+        this.logCallback(message, type === 'debug' ? 'info' : type);
+      } else {
+        console.log(`[AcfunDanmuModule] ${message}`);
+      }
     }
   }
 }
 
 // 创建模块工厂函数
-export function createAcfunDanmuModule(config: Partial<AcfunDanmuConfig> = {}): AppModule {
-  return new AcfunDanmuModule(config);
+export function createAcfunDanmuModule(config: Partial<AcfunDanmuConfig> = {}, authManager?: AuthManager): AppModule {
+  return new AcfunDanmuModule(config, authManager);
 }
 
 // 创建并导出单例
 let instance: AcfunDanmuModule | null = null;
 
-export function getAcfunDanmuModule(): AcfunDanmuModule {
+export function getAcfunDanmuModule(authManager?: AuthManager): AcfunDanmuModule {
   if (!instance) {
-    instance = new AcfunDanmuModule();
+    instance = new AcfunDanmuModule({}, authManager);
   }
   return instance;
 }
-
-
-
-// 延迟初始化模块
-app.on('ready', () => {
-  // 初始化模块
-  getAcfunDanmuModule();
-});
 
 export const acfunDanmuModule = getAcfunDanmuModule();

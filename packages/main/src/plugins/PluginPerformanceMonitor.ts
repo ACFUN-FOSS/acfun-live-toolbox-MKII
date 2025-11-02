@@ -5,7 +5,6 @@
 import { TypedEventEmitter } from '../utils/TypedEventEmitter';
 import { pluginLogger } from './PluginLogger';
 import * as os from 'os';
-import * as process from 'process';
 
 export interface PerformanceConfig {
   /** 监控间隔 (毫秒) */

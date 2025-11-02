@@ -7,8 +7,10 @@
  * All events from the adapter, stored in the database, and broadcasted via APIs will conform to this interface.
  */
 export interface NormalizedEvent {
-  ts: number;                 // ms since epoch
+  ts: number;                 // ms since epoch (event occurrence time)
+  received_at: number;        // ms since epoch (when event was received by adapter)
   room_id: string;
+  source: string;             // Source identifier (e.g., 'acfun', 'bilibili')
   event_type: NormalizedEventType;
   user_id?: string | null;
   user_name?: string | null;

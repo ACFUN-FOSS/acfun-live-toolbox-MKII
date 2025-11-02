@@ -37,7 +37,6 @@ async function checkDependencyLicense(packageName: string, expectedLicenses: str
  * Runs all critical dependency checks required before the application can safely start.
  */
 export async function runDependencyGuards(): Promise<void> {
-  // Validate acfunlive-http-api (acfundanmu.js) license
   await checkDependencyLicense('acfunlive-http-api', ['MIT', 'Apache-2.0']);
   // Add other guards here if needed
 }

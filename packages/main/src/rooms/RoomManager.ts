@@ -83,8 +83,9 @@ export class RoomManager extends EventEmitter {
         this.reconnectTimers.delete(roomId);
       }
 
-      // 断开连接
+      // 断开连接并销毁适配器
       await roomInfo.adapter.disconnect();
+      await roomInfo.adapter.destroy();
       
       // 移除监听器
       roomInfo.adapter.removeAllListeners();

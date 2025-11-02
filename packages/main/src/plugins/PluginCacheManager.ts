@@ -5,6 +5,7 @@
 import { TypedEventEmitter } from '../utils/TypedEventEmitter';
 import { pluginLogger } from './PluginLogger';
 import * as crypto from 'crypto';
+import * as zlib from 'zlib';
 
 export interface CacheConfig {
   /** 最大缓存大小 (字节) */
@@ -114,7 +115,6 @@ export class PluginCacheManager extends TypedEventEmitter<CacheEvents> {
       // 压缩处理
       if (options.compress || this.config.enableCompression) {
         try {
-          const zlib = require('zlib');
           finalValue = zlib.gzipSync(serialized).toString('base64');
           compressed = true;
         } catch (error) {
@@ -221,7 +221,6 @@ export class PluginCacheManager extends TypedEventEmitter<CacheEvents> {
       
       // 解压缩
       if (item.compressed) {
-        const zlib = require('zlib');
         value = zlib.gunzipSync(Buffer.from(value, 'base64')).toString();
       }
       

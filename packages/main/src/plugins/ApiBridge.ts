@@ -4,6 +4,11 @@ import { DatabaseManager } from '../persistence/DatabaseManager';
 import { ConfigManager } from '../config/ConfigManager';
 import { PopupManager, PopupOptions, PopupInstance } from './PopupManager';
 import type { NormalizedEvent, NormalizedEventType } from '../types';
+import { AcFunLiveApi } from 'acfunlive-http-api';
+import { AuthManager } from '../services/AuthManager';
+import { rateLimitManager, RateLimitManager } from '../services/RateLimitManager';
+import { EventFilter, DEFAULT_FILTERS, applyFilters, getEventQualityScore } from '../events/normalize';
+import { apiRetryManager, ApiRetryManager, ApiRetryOptions } from '../services/ApiRetryManager';
 
 export interface PluginAPI {
   subscribeEvents(
@@ -11,7 +16,7 @@ export interface PluginAPI {
     filter?: { room_id?: string; type?: NormalizedEventType }
   ): () => void;
 
-  callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }): Promise<any>;
+  callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }, retryOptions?: ApiRetryOptions): Promise<any>;
 
   pluginStorage: {
     write(table: string, row: any): Promise<void>;
@@ -55,6 +60,8 @@ export class ApiBridge implements PluginAPI {
   private configManager: ConfigManager;
   private popupManager: PopupManager;
   private onPluginFault: (reason: string) => void;
+  private acfunApi: AcFunLiveApi;
+  private authManager: AuthManager;
 
   constructor(opts: {
     pluginId: string;
@@ -64,6 +71,7 @@ export class ApiBridge implements PluginAPI {
     configManager: ConfigManager;
     popupManager: PopupManager;
     onPluginFault: (reason: string) => void;
+    authManager?: AuthManager;
   }) {
     this.pluginId = opts.pluginId;
     this.apiServer = opts.apiServer;
@@ -72,6 +80,33 @@ export class ApiBridge implements PluginAPI {
     this.configManager = opts.configManager;
     this.popupManager = opts.popupManager;
     this.onPluginFault = opts.onPluginFault;
+    this.authManager = opts.authManager || new AuthManager();
+    
+    // 初始化 AcFun API 实例
+    const apiConfig = {
+      timeout: 30000,
+      retryAttempts: 3,
+      retryDelay: 1000,
+      enableRetry: true
+    };
+    this.acfunApi = new AcFunLiveApi(apiConfig);
+    
+    // 设置认证令牌（如果存在）
+    this.initializeAuthentication();
+  }
+
+  /**
+   * 初始化认证
+   */
+  private async initializeAuthentication(): Promise<void> {
+    try {
+      const tokenInfo = await this.authManager.getTokenInfo();
+      if (tokenInfo && tokenInfo.isValid) {
+        this.acfunApi.setAuthToken(JSON.stringify(tokenInfo));
+      }
+    } catch (error) {
+      console.warn('[ApiBridge] Failed to initialize authentication:', error);
+    }
   }
 
   /**
@@ -79,61 +114,297 @@ export class ApiBridge implements PluginAPI {
    */
   subscribeEvents(
     cb: (event: NormalizedEvent) => void,
-    filter?: { room_id?: string; type?: NormalizedEventType }
+    filter?: { 
+      room_id?: string; 
+      type?: NormalizedEventType;
+      user_id?: string;
+      min_quality_score?: number;
+      custom_filters?: string[];
+      rate_limit?: {
+        max_events_per_second?: number;
+        max_events_per_minute?: number;
+      };
+    }
   ): () => void {
+    // 事件速率限制状态
+    let eventCount = 0;
+    let lastResetTime = Date.now();
+    let eventHistory: number[] = [];
+    
     const listener = (event: NormalizedEvent) => {
       try {
+        // 事件速率限制检查
+        if (filter?.rate_limit) {
+          const now = Date.now();
+          
+          // 每秒限制检查
+          if (filter.rate_limit.max_events_per_second) {
+            if (now - lastResetTime >= 1000) {
+              eventCount = 0;
+              lastResetTime = now;
+            }
+            
+            if (eventCount >= filter.rate_limit.max_events_per_second) {
+              console.warn(`[ApiBridge] Event rate limit exceeded for plugin ${this.pluginId}: ${eventCount} events/second`);
+              this.onPluginFault('event-rate-limit-exceeded');
+              return;
+            }
+            eventCount++;
+          }
+          
+          // 每分钟限制检查
+          if (filter.rate_limit.max_events_per_minute) {
+            // 清理超过1分钟的历史记录
+            eventHistory = eventHistory.filter(time => now - time < 60000);
+            
+            if (eventHistory.length >= filter.rate_limit.max_events_per_minute) {
+              console.warn(`[ApiBridge] Event rate limit exceeded for plugin ${this.pluginId}: ${eventHistory.length} events/minute`);
+              this.onPluginFault('event-rate-limit-exceeded');
+              return;
+            }
+            eventHistory.push(now);
+          }
+        }
+        
+        // 事件数据验证
+        if (!this.validateEvent(event)) {
+          console.warn(`[ApiBridge] Invalid event data received for plugin ${this.pluginId}:`, event);
+          this.onPluginFault('invalid-event-data');
+          return;
+        }
+        
+        // 基本过滤
         if (filter?.room_id && event.room_id !== filter.room_id) return;
         if (filter?.type && event.event_type !== filter.type) return;
-        cb(event);
+        if (filter?.user_id && event.user_id !== filter.user_id) return;
+        
+        // 质量分数过滤
+        if (filter?.min_quality_score) {
+          const qualityScore = getEventQualityScore(event);
+          if (qualityScore < filter.min_quality_score) return;
+        }
+        
+        // 自定义过滤器
+        if (filter?.custom_filters && filter.custom_filters.length > 0) {
+          const availableFilters = DEFAULT_FILTERS.filter((f: EventFilter) => 
+            filter.custom_filters!.includes(f.name)
+          );
+          const filterResult = applyFilters(event, availableFilters);
+          if (!filterResult.passed) return;
+        }
+        
+        // 安全地调用插件回调
+        this.safePluginCallback(() => cb(event));
       } catch (err: any) {
         // 插件抛错不影响主进程，进行熔断计数（简化为直接通知）
+        console.error(`[ApiBridge] Error in event handler for plugin ${this.pluginId}:`, err);
         this.onPluginFault('event-handler-error');
       }
     };
+    
     this.roomManager.on('event', listener as any);
     return () => this.roomManager.off('event', listener as any);
   }
 
   /**
-   * 代表插件调用 AcFun API。主进程注入 Token/UA，插件不可控。
+   * 验证事件数据的完整性和有效性
    */
-  async callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }): Promise<any> {
-    const token = this.configManager.get<string>('acfun.token');
-    if (!token) {
-      const err = new Error('ACFUN_NOT_LOGGED_IN');
-      // 插件调用依赖登录态，缺失视为故障信号但不暂停核心
-      this.onPluginFault('missing-token');
-      throw err;
+  private validateEvent(event: NormalizedEvent): boolean {
+    // 基本字段验证
+    if (!event || typeof event !== 'object') return false;
+    if (!event.event_type || typeof event.event_type !== 'string') return false;
+    if (!event.ts || typeof event.ts !== 'number') return false;
+    if (!event.room_id || typeof event.room_id !== 'string') return false;
+    
+    // 时间戳合理性检查（不能是未来时间，不能太久以前）
+    const now = Date.now();
+    const maxAge = 24 * 60 * 60 * 1000; // 24小时
+    if (event.ts > now + 60000 || event.ts < now - maxAge) {
+      return false;
     }
-
-    // 统一前缀与头部（示例化，后续替换为 acfunlive-http-api 封装）
-    const base = this.configManager.get<string>('acfun.apiBase', 'https://api2.aixifan.com');
-    const url = `${base}${req.path}`;
-
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'User-Agent': 'AcFunLiveToolbox/1.0 (PluginRuntime)'
-    };
-    // 示例：Authorization 头按平台策略注入（真实实现需按 AcFun 要求组合）
-    headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch(url, {
-      method: req.method,
-      headers,
-      body: req.body ? JSON.stringify(req.body) : undefined
-    });
-
-    const text = await res.text();
-    let data: any;
-    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-
-    if (!res.ok) {
-      const err = new Error(`ACFUN_API_ERROR_${res.status}`);
-      this.onPluginFault(`acfun-http-${res.status}`);
-      throw err;
+    
+    // 根据事件类型进行特定验证
+    switch (event.event_type) {
+      case 'comment':
+        return this.validateCommentEvent(event);
+      case 'gift':
+        return this.validateGiftEvent(event);
+      case 'user_join':
+      case 'user_leave':
+        return this.validateUserEvent(event);
+      default:
+        return true; // 未知事件类型，允许通过
     }
-    return data;
+  }
+
+  /**
+   * 验证评论事件
+   */
+  private validateCommentEvent(event: NormalizedEvent): boolean {
+    if (!event.content || typeof event.content !== 'string') return false;
+    if (!event.user_id || typeof event.user_id !== 'string') return false;
+    if (!event.user_name || typeof event.user_name !== 'string') return false;
+    
+    // 内容长度检查
+    if (event.content.length > 1000) return false;
+    
+    return true;
+  }
+
+  /**
+   * 验证礼物事件
+   */
+  private validateGiftEvent(event: NormalizedEvent): boolean {
+    if (!event.user_id || typeof event.user_id !== 'string') return false;
+    if (!event.user_name || typeof event.user_name !== 'string') return false;
+    if (!event.gift_name || typeof event.gift_name !== 'string') return false;
+    if (typeof event.gift_count !== 'number' || event.gift_count <= 0) return false;
+    
+    return true;
+  }
+
+  /**
+   * 验证用户事件
+   */
+  private validateUserEvent(event: NormalizedEvent): boolean {
+    if (!event.user_id || typeof event.user_id !== 'string') return false;
+    if (!event.user_name || typeof event.user_name !== 'string') return false;
+    
+    return true;
+  }
+
+  /**
+   * 安全地调用插件回调函数
+   */
+  private safePluginCallback(callback: () => void): void {
+    try {
+      // 使用 setTimeout 确保异步执行，避免阻塞主线程
+      setTimeout(callback, 0);
+    } catch (error) {
+      console.error(`[ApiBridge] Plugin callback error for ${this.pluginId}:`, error);
+      this.onPluginFault('callback-execution-error');
+    }
+  }
+
+  /**
+   * 代表插件调用 AcFun API。使用 acfunlive-http-api 进行统一的 API 调用。
+   */
+  async callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }, retryOptions?: ApiRetryOptions): Promise<any> {
+    const retryKey = `${this.pluginId}-${req.method}-${req.path}`;
+    
+    return await apiRetryManager.executeWithRetry(
+      retryKey,
+      async () => {
+        // 检查速率限制
+        const rateLimitCheck = await rateLimitManager.canMakeRequest();
+        if (!rateLimitCheck.allowed) {
+          const error = new Error(`RATE_LIMIT_EXCEEDED: ${rateLimitCheck.reason}`);
+          (error as any).waitTime = rateLimitCheck.waitTime;
+          this.onPluginFault('rate-limit-exceeded');
+          throw error;
+        }
+
+        // 确保认证状态有效
+        await this.ensureValidAuthentication();
+
+        try {
+          // 记录请求
+          rateLimitManager.recordRequest();
+          
+          const httpClient = this.acfunApi.getHttpClient();
+          let response;
+
+          switch (req.method) {
+            case 'GET':
+              response = await httpClient.get(req.path);
+              break;
+            case 'POST':
+              response = await httpClient.post(req.path, req.body);
+              break;
+            case 'PUT':
+              response = await httpClient.put(req.path, req.body);
+              break;
+            case 'DELETE':
+              response = await httpClient.delete(req.path);
+              break;
+            default:
+              throw new Error(`Unsupported HTTP method: ${req.method}`);
+          }
+
+          if (!response.success) {
+            // 记录错误状态码以便速率限制管理器处理
+            const statusCode = response.statusCode || (response.error?.includes('429') ? 429 : 
+                              response.error?.includes('503') ? 503 : undefined);
+            if (statusCode) {
+              rateLimitManager.recordError(statusCode);
+            }
+
+            // 检查是否是认证错误
+            if (response.error && (response.error.includes('401') || response.error.includes('unauthorized'))) {
+              // 由于无法自动刷新令牌，清除过期令牌并抛出错误
+              console.warn('[ApiBridge] Authentication failed, clearing expired token');
+              await this.authManager.logout();
+              const err = new Error('ACFUN_TOKEN_EXPIRED');
+              this.onPluginFault('token-expired');
+              throw err;
+            }
+            
+            const err = new Error(`ACFUN_API_ERROR: ${response.error || 'Unknown error'}`);
+            this.onPluginFault(`acfun-api-error`);
+            throw err;
+          }
+
+          return response.data;
+        } catch (error: any) {
+          // 如果是网络错误或服务器错误，记录到速率限制管理器
+          if (error.message?.includes('503') || error.message?.includes('429')) {
+            const statusCode = error.message.includes('429') ? 429 : 503;
+            rateLimitManager.recordError(statusCode);
+          }
+          
+          const err = new Error(`ACFUN_API_ERROR: ${error.message || 'Unknown error'}`);
+          this.onPluginFault('acfun-api-error');
+          throw err;
+        }
+      },
+      retryOptions
+    );
+  }
+
+  /**
+   * 确保认证状态有效
+   */
+  private async ensureValidAuthentication(): Promise<void> {
+    try {
+      const tokenInfo = await this.authManager.getTokenInfo();
+      
+      if (!tokenInfo) {
+        const err = new Error('ACFUN_NOT_LOGGED_IN');
+        this.onPluginFault('missing-token');
+        throw err;
+      }
+
+      if (!tokenInfo.isValid) {
+        // 令牌过期，由于无法自动刷新，清除过期令牌并抛出错误
+        console.warn('[ApiBridge] Token expired, clearing expired token');
+        await this.authManager.logout();
+        const err = new Error('ACFUN_TOKEN_EXPIRED');
+        this.onPluginFault('token-expired');
+        throw err;
+      } else {
+        // 令牌有效，确保设置到 API 实例
+        this.acfunApi.setAuthToken(JSON.stringify(tokenInfo));
+        
+        // 检查是否即将过期，提前警告
+        const isExpiringSoon = await this.authManager.isTokenExpiringSoon();
+        if (isExpiringSoon) {
+          console.warn('[ApiBridge] Token expiring soon, manual re-login may be required');
+        }
+      }
+    } catch (error) {
+      console.error('[ApiBridge] Authentication validation failed:', error);
+      throw error;
+    }
   }
 
   /**

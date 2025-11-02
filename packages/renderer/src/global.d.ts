@@ -44,6 +44,13 @@ declare global {
         errorStats: () => Promise<{ stats: { totalErrors: number; errorsByType: Record<string, number>; errorsByPlugin: Record<string, number>; } } | { error: string }>;
         recovery: (pluginId: string, action: string, context?: Record<string, any>) => Promise<{ success: boolean; error?: string }>;
         resetErrorCount: (pluginId: string, errorType?: string) => Promise<{ success: boolean; error?: string }>;
+        saveDevConfig: (config: any) => Promise<{ success: boolean; error?: string }>;
+        loadDevConfig: (pluginId?: string) => Promise<{ success: boolean; config?: any; error?: string }>;
+        startDebugSession: (config: any) => Promise<{ success: boolean; error?: string }>;
+        stopDebugSession: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
+        enableHotReload: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
+        disableHotReload: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
+        testConnection: (config: any) => Promise<{ success: boolean; error?: string }>;
         popup: {
           create: (pluginId: string, options: any) => Promise<{ success: boolean; popupId?: string; error?: string }>;
           close: (pluginId: string, popupId: string) => Promise<{ success: boolean; error?: string }>;
@@ -60,6 +67,14 @@ declare global {
         bringToFront: (overlayId: string) => Promise<{ success: boolean; error?: string }>;
         list: () => Promise<{ overlays: Array<{ id: string; type: string; visible: boolean; createdAt: number; }> } | { error: string }>;
         action: (overlayId: string, action: string, data?: any) => Promise<{ success: boolean; error?: string }>;
+      };
+      console: {
+        createSession: (options: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        endSession: (options: any) => Promise<{ success: boolean; error?: string }>;
+        executeCommand: (options: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getCommands: () => Promise<{ success: boolean; data?: any; error?: string }>;
+        getSession: (options: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+        getActiveSessions: () => Promise<{ success: boolean; data?: any; error?: string }>;
       };
       on: (channel: string, listener: (...args: any[]) => void) => void;
       off: (channel: string, listener: (...args: any[]) => void) => void;

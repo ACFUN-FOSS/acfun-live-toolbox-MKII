@@ -164,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useConsoleStore } from '../../stores/console';
 
 interface OutputEntry {
@@ -415,14 +415,6 @@ function addResultEntry(result: any) {
 function addInfoEntry(message: string) {
   addEntry({
     type: 'info',
-    timestamp: Date.now(),
-    message
-  });
-}
-
-function addWarningEntry(message: string) {
-  addEntry({
-    type: 'warning',
     timestamp: Date.now(),
     message
   });

@@ -5,7 +5,7 @@ import { app } from 'electron';
 import { getLogManager } from './LogManager';
 import { DatabaseManager } from '../persistence/DatabaseManager';
 import { ConfigManager } from '../config/ConfigManager';
-const archiver = require('archiver');
+import archiver from 'archiver';
 
 export interface SystemInfo {
   platform: string;

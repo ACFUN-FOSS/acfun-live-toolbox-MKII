@@ -1,9 +1,4 @@
 packages:
   - packages/*
 
-ignoredBuiltDependencies:
-  - electron
-  - electron-winstaller
-  - esbuild
-  - protobufjs
-  - sqlite3
+neverBuiltDependencies: []

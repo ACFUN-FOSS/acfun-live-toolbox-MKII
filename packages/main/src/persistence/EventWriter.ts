@@ -71,9 +71,9 @@ export class EventWriter {
         
         const stmt = db.prepare(`
           INSERT INTO events (
-            event_id, type, room_id, user_id, username, 
-            payload, timestamp, raw_data
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            event_id, type, room_id, source, user_id, username, 
+            payload, timestamp, received_at, raw_data
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         let errorOccurred = false;
@@ -83,10 +83,12 @@ export class EventWriter {
             null, // id 字段，数据库自动生成
             event.event_type,
             event.room_id,
+            event.source || 'unknown',
             event.user_id || null,
             event.user_name || null,
             event.content,
             event.ts,
+            event.received_at || event.ts,
             event.raw ? JSON.stringify(event.raw) : null,
             (err: any) => {
               if (err && !errorOccurred) {
@@ -156,4 +158,4 @@ export class EventWriter {
     // 强制刷新所有剩余事件
     await this.forceFlush();
   }
-}
+}

@@ -1,6 +1,5 @@
-import { DatabaseManager } from './persistence/DatabaseManager';
-import { EventWriter } from './persistence/EventWriter';
-import { RoomManager } from './rooms/RoomManager';
+import { DatabaseManager, EventWriter } from './persistence';
+import { RoomManager } from './rooms';
 import { ApiServer } from './server/ApiServer';
 import { initializeIpcHandlers } from './ipc/ipcHandlers';
 import { AuthManager } from './services/AuthManager';
@@ -14,7 +13,7 @@ import { ConfigManager } from './config/ConfigManager';
 import { PluginManager } from './plugins/PluginManager';
 import { OverlayManager } from './plugins/OverlayManager';
 import { DiagnosticsService } from './logging/DiagnosticsService';
-import { getLogManager } from './logging/LogManager';
+import { LogManager } from './logging/LogManager';
 import { ConsoleManager } from './console/ConsoleManager';
 import path from 'path';
 

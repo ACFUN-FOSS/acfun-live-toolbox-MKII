@@ -31,7 +31,19 @@ export default defineConfig({
         'archiver',
         'tar',
         'uuid',
-        'obs-websocket-js'
+        'obs-websocket-js',
+        // Node.js built-in modules
+        'path',
+        'fs',
+        'http',
+        'https',
+        'crypto',
+        'net',
+        'os',
+        'events',
+        'process',
+        'worker_threads',
+        'ws'
       ],
       output: {
         entryFileNames: '[name].cjs',
@@ -49,6 +61,7 @@ export default defineConfig({
     include: ['src/test/**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
     setupFiles: ['src/test/helpers/setup.ts'],
+    watch: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

@@ -13,7 +13,7 @@ export async function initEventSourceServices() {
     await app.whenReady();
 
     // 启动弹幕模块
-    await acfunDanmuModule.start();
+    await acfunDanmuModule.initialize();
 
     // 设置日志
     const logManager = getLogManager();

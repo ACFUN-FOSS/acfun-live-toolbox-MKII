@@ -22,6 +22,8 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { app } from 'electron';
 import { watch, FSWatcher } from 'chokidar';
+import AdmZip from 'adm-zip';
+import tar from 'tar';
 
 export interface PluginManifest {
   id: string;
@@ -884,12 +886,10 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
     
     if (ext === '.zip') {
       // 使用 node.js 内置的 zlib 处理 zip 文件
-      const AdmZip = require('adm-zip');
       const zip = new AdmZip(filePath);
       zip.extractAllTo(targetDir, true);
     } else if (ext === '.tar' || ext === '.gz') {
       // 处理 tar 文件
-      const tar = require('tar');
       await tar.extract({
         file: filePath,
         cwd: targetDir

@@ -34,8 +34,23 @@ interface DanmuMessage {
   username: string;
   content: string;
   timestamp: number;
+  receivedAt: number;
+  source: string;
+  eventType: string;
+  userId?: string;
   color?: string;
   roomColor?: string;
+  // AcFun特定的上下文信息
+  userLevel?: number;
+  userMedal?: {
+    clubName: string;
+    level: number;
+    uperID: number;
+  } | null;
+  userManagerType?: number;
+  userAvatar?: string;
+  sessionId?: string;
+  connectionDuration?: number;
 }
 
 const roomStatuses = ref<Record<string, string>>({});
@@ -118,13 +133,27 @@ function scheduleReconnect() {
 }
 
 function addDanmu(eventData: any) {
+  // 从NormalizedEvent中提取上下文信息
+  const rawContext = eventData.raw?._context || {};
+  
   const danmu: DanmuMessage = {
-    id: `${eventData.room_id}_${Date.now()}_${Math.random()}`,
-    roomId: eventData.room_id,
-    username: eventData.username || '匿名',
+    id: `${eventData.room_id || eventData.roomId}_${eventData.ts || Date.now()}_${Math.random()}`,
+    roomId: eventData.room_id || eventData.roomId || 'unknown',
+    username: eventData.user_name || eventData.username || '匿名',
     content: eventData.content || '',
-    timestamp: Date.now(),
-    roomColor: getRoomColor(eventData.room_id)
+    timestamp: eventData.ts || Date.now(),
+    receivedAt: eventData.received_at || Date.now(),
+    source: eventData.source || 'unknown',
+    eventType: eventData.event_type || 'danmaku',
+    userId: eventData.user_id,
+    roomColor: getRoomColor(eventData.room_id || eventData.roomId),
+    // AcFun特定的上下文信息
+    userLevel: rawContext.userLevel,
+    userMedal: rawContext.userMedal,
+    userManagerType: rawContext.userManagerType,
+    userAvatar: rawContext.userAvatar,
+    sessionId: rawContext.sessionId,
+    connectionDuration: rawContext.connectionDuration
   };
 
   danmuQueue.value.push(danmu);

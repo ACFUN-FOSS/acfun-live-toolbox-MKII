@@ -18,7 +18,7 @@
 
     <!-- 组件类型 Overlay -->
     <component 
-      v-else-if="overlayData.overlay.type === 'component'"
+      v-else-if="overlayData.overlay.type === 'component' && overlayData.overlay.component"
       :is="getComponent(overlayData.overlay.component)"
       :config="overlayData.overlay.config"
       :room="overlayData.room"
@@ -156,7 +156,7 @@ const connectWebSocket = (endpoint: string) => {
   }
 }
 
-const handleWebSocketMessage = (data: any) => {
+const handleWebSocketMessage = (_data: any) => {
   // 处理 WebSocket 消息，可以根据需要更新 overlay 内容
   // 这里可以根据消息类型更新 overlay 显示
   // 例如：弹幕、礼物、关注等事件
@@ -188,7 +188,7 @@ const getComponent = (componentName: string) => {
       </div>
     `,
     props: ['config', 'room', 'token'],
-    setup(props: any) {
+    setup(_props: any) {
       return { componentName }
     }
   }

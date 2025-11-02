@@ -69,6 +69,14 @@ const api = {
     list: () => ipcRenderer.invoke('overlay.list'),
     action: (overlayId: string, action: string, data?: any) => ipcRenderer.invoke('overlay.action', overlayId, action, data)
   },
+  console: {
+    createSession: (options: any) => ipcRenderer.invoke('console:createSession', options),
+    endSession: (options: any) => ipcRenderer.invoke('console:endSession', options),
+    executeCommand: (options: any) => ipcRenderer.invoke('console:executeCommand', options),
+    getCommands: () => ipcRenderer.invoke('console:getCommands'),
+    getSession: (options: any) => ipcRenderer.invoke('console:getSession', options),
+    getActiveSessions: () => ipcRenderer.invoke('console:getActiveSessions')
+  },
   on: (channel: string, listener: (...args: any[]) => void) => {
     ipcRenderer.on(channel, listener);
   },

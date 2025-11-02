@@ -52,7 +52,9 @@ export class CsvExporter {
       // 写入 CSV 头部
       const headers = [
         'ts',
-        'room_id', 
+        'received_at',
+        'room_id',
+        'source', 
         'event_type',
         'user_id',
         'user_name',
@@ -127,7 +129,9 @@ export class CsvExporter {
   private formatEventToCsvRow(event: NormalizedEvent, includeRaw: boolean): string {
     const values = [
       event.ts.toString(),
+      (event.received_at || event.ts).toString(),
       this.escapeCsvValue(event.room_id),
+      this.escapeCsvValue(event.source || 'unknown'),
       this.escapeCsvValue(event.event_type),
       this.escapeCsvValue(event.user_id || ''),
       this.escapeCsvValue(event.user_name || ''),
