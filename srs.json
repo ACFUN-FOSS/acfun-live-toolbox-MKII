@@ -487,18 +487,18 @@
 "notes": "基础背压逻辑已实现，但优先级丢弃策略需要完善"
 },
 "lightweightConsole": {
-"status": "implementing", 
-"notes": "简化的插件开发调试工具正在实现中"
+"status": "implemented", 
+"notes": "简化的插件开发调试工具已实现"
 }
 },
 "couldHave": {
 "advancedPluginFeatures": {
-"status": "implementing",
-"notes": "插件热重载、版本管理等高级功能正在实现中（不包含依赖解析）"
+"status": "implemented",
+"notes": "插件热重载、版本管理等高级功能已实现（不包含依赖解析）"
 },
 "performanceOptimizations": {
-"status": "implementing",
-"notes": "内存池、连接池等性能优化正在实现中"
+"status": "implemented",
+"notes": "内存池、连接池等性能优化已实现"
 }
 },
 "wontHave": {

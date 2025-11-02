@@ -673,13 +673,15 @@
 "routing": "implemented",
 "websocketClient": "implemented",
 "a3PluginLayout": "implemented"
-}
+  }
 },
 "implementing": [
-"插件弹窗系统",
-"Overlay页面生成", 
-"Node Worker插件托管",
-"完整的插件生命周期管理"
+],
+"implemented": [
+  "插件弹窗系统",
+  "Overlay页面生成", 
+  "Node Worker插件托管",
+  "完整的插件生命周期管理"
 ],
 "notImplemented": [
 ]
