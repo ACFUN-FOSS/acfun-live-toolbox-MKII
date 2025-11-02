@@ -64,7 +64,7 @@ class EnhancedLogManager implements LogManager {
       } else {
         this.currentFileSize = 0;
       }
-    } catch (error) {
+    } catch (error: any) {
       this.currentFileSize = 0;
     }
   }
@@ -95,7 +95,7 @@ class EnhancedLogManager implements LogManager {
       // 创建新的日志文件
       this.currentLogFile = this.getCurrentLogFile();
       this.currentFileSize = 0;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to rotate log files:', error);
     }
   }
@@ -167,7 +167,7 @@ class EnhancedLogManager implements LogManager {
       // 写入当前日志文件
       fs.appendFileSync(this.currentLogFile, logMessage, 'utf8');
       this.currentFileSize += Buffer.byteLength(logMessage, 'utf8');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to write to log file:', error);
     }
   }
@@ -186,7 +186,7 @@ class EnhancedLogManager implements LogManager {
           const statsB = fs.statSync(b);
           return statsB.mtime.getTime() - statsA.mtime.getTime();
         });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to get log files:', error);
       return [];
     }

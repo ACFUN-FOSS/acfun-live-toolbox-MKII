@@ -16,16 +16,26 @@ const routes = [
   {
     path: '/rooms',
     component: () => import('./pages/Rooms.vue')
-  }
-  ,
+  },
   {
     path: '/events',
     component: () => import('./pages/EventsHistory.vue')
-  }
-  ,
+  },
   {
     path: '/stats',
     component: () => import('./pages/Statistics.vue')
+  },
+  {
+    path: '/api-docs',
+    component: () => import('./pages/ApiDocs.vue')
+  },
+  {
+    path: '/console',
+    component: () => import('./pages/Console.vue')
+  },
+  {
+    path: '/overlay/:overlayId',
+    component: () => import('./pages/Overlay.vue')
   }
 ];
 

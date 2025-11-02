@@ -79,6 +79,17 @@
             </div>
           </t-tab-panel>
           
+          <t-tab-panel value="devtools" label="开发工具">
+            <div class="devtools-section">
+              <PluginDevTools 
+                :plugin-id="plugin.id"
+                @config-saved="handleDevConfigSaved"
+                @debug-started="handleDebugStarted"
+                @debug-stopped="handleDebugStopped"
+              />
+            </div>
+          </t-tab-panel>
+          
           <t-tab-panel value="logs" label="日志">
             <div class="logs-section">
               <div class="logs-header">
@@ -217,6 +228,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
+import PluginDevTools from './PluginDevTools.vue';
 
 interface Plugin {
   id: string;
@@ -438,6 +450,27 @@ watch(() => props.pluginId, () => {
   loadPlugin();
 }, { immediate: true });
 
+// 开发工具相关方法
+function handleDevConfigSaved() {
+  console.log('Development config saved for plugin:', props.pluginId);
+}
+
+function handleDebugStarted() {
+  console.log('Debug started for plugin:', props.pluginId);
+  // 刷新日志以显示调试信息
+  if (activeTab.value === 'logs') {
+    loadLogs();
+  }
+}
+
+function handleDebugStopped() {
+  console.log('Debug stopped for plugin:', props.pluginId);
+  // 刷新日志
+  if (activeTab.value === 'logs') {
+    loadLogs();
+  }
+}
+
 onMounted(() => {
   loadPlugin();
 });
@@ -652,5 +685,9 @@ onMounted(() => {
   color: var(--td-warning-color);
   font-size: 14px;
   margin: 8px 0 0 0;
+}
+
+.devtools-section {
+  padding: 0;
 }
 </style>

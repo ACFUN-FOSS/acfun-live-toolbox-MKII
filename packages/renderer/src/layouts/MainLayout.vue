@@ -117,7 +117,9 @@ function handleSystemNavigation(page: string) {
     rooms: '房间管理',
     settings: '系统设置',
     events: '事件历史',
-    stats: '数据统计'
+    stats: '数据统计',
+    'api-docs': 'API 文档',
+    console: '控制台'
   };
   
   showNotification({
@@ -130,7 +132,6 @@ function handleSystemNavigation(page: string) {
 // 处理房间点击
 function handleRoomClick(room: RoomStatus) {
   // TODO: 实现房间详情或快速操作
-  console.log('Room clicked:', room);
   
   showNotification({
     type: 'info',
@@ -142,12 +143,10 @@ function handleRoomClick(room: RoomStatus) {
 // 显示插件安装器
 function showPluginInstaller() {
   // 这个功能由 LeftPluginNav 组件处理
-  console.log('Show plugin installer');
 }
 
 // 处理插件事件
 function handlePluginEvent(event: { type: string; data: any }) {
-  console.log('Plugin event:', event);
   
   switch (event.type) {
     case 'mounted':
@@ -162,14 +161,14 @@ function handlePluginEvent(event: { type: string; data: any }) {
       handlePluginMessage(event.data);
       break;
     default:
-      console.log('Unhandled plugin event:', event);
+      // Unhandled plugin event
+      break;
   }
 }
 
 // 处理插件消息
 function handlePluginMessage(message: any) {
   // TODO: 实现插件与主应用的通信
-  console.log('Plugin message:', message);
 }
 
 // 显示通知

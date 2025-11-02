@@ -9,6 +9,15 @@ import { contextBridge, ipcRenderer } from 'electron';
  * This will be populated with the actual API as we rebuild the features.
  */
 const api = {
+  dialog: {
+    showOpenDialog: (options: any) => ipcRenderer.invoke('dialog.showOpenDialog', options),
+    showSaveDialog: (options: any) => ipcRenderer.invoke('dialog.showSaveDialog', options)
+  },
+  fs: {
+    exists: (path: string) => ipcRenderer.invoke('fs.exists', path),
+    readFile: (path: string) => ipcRenderer.invoke('fs.readFile', path),
+    writeFile: (path: string, data: string) => ipcRenderer.invoke('fs.writeFile', path, data)
+  },
   login: {
     qrStart: () => ipcRenderer.invoke('login.qrStart'),
     qrCheck: () => ipcRenderer.invoke('login.qrCheck'),
@@ -35,6 +44,14 @@ const api = {
     errorStats: () => ipcRenderer.invoke('plugin.errorStats'),
     recovery: (pluginId: string, action: string, context?: Record<string, any>) => ipcRenderer.invoke('plugin.recovery', pluginId, action, context),
     resetErrorCount: (pluginId: string, errorType?: string) => ipcRenderer.invoke('plugin.resetErrorCount', pluginId, errorType),
+    // Development Tools API
+    saveDevConfig: (config: any) => ipcRenderer.invoke('plugin.devtools.saveConfig', config),
+    loadDevConfig: (pluginId?: string) => ipcRenderer.invoke('plugin.devtools.getConfig', pluginId),
+    startDebugSession: (config: any) => ipcRenderer.invoke('plugin.devtools.startDebug', config),
+    stopDebugSession: (pluginId: string) => ipcRenderer.invoke('plugin.devtools.stopDebug', pluginId),
+    testConnection: (config: any) => ipcRenderer.invoke('plugin.devtools.testConnection', config),
+    enableHotReload: (pluginId: string) => ipcRenderer.invoke('plugin.devtools.enableHotReload', pluginId),
+    disableHotReload: (pluginId: string) => ipcRenderer.invoke('plugin.devtools.disableHotReload', pluginId),
     popup: {
       create: (pluginId: string, options: any) => ipcRenderer.invoke('plugin.popup.create', pluginId, options),
       close: (pluginId: string, popupId: string) => ipcRenderer.invoke('plugin.popup.close', pluginId, popupId),

@@ -70,13 +70,6 @@ The system SHALL provide comprehensive lifecycle management with proper event ha
 - **AND** lifecycle operations can be cancelled or rolled back if hooks fail
 - **AND** the system maintains consistent state throughout lifecycle operations
 
-#### Scenario: Plugin dependency resolution
-- **WHEN** a plugin has dependencies on other plugins or system components
-- **THEN** dependencies are resolved and validated before plugin operations
-- **AND** dependency conflicts are detected and reported
-- **AND** the system provides options for resolving dependency conflicts
-- **AND** dependent plugins are managed appropriately during lifecycle operations
-
 #### Scenario: Plugin update management
 - **WHEN** a plugin update is available and initiated
 - **THEN** the current plugin version is backed up before update
@@ -108,7 +101,6 @@ The system SHALL implement advanced plugin capabilities including hot reload, ve
 - **WHEN** a plugin is updated during development or runtime
 - **THEN** the plugin can be reloaded without restarting the application
 - **AND** plugin state is preserved where appropriate
-- **AND** dependent plugins are notified of the reload
 - **AND** hot reload failures do not crash the application
 
 #### Scenario: Plugin version management

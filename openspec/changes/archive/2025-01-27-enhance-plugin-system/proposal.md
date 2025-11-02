@@ -11,7 +11,7 @@ The current plugin system provides basic installation, management, and configura
 - **Node Worker Plugin Hosting**: Implement Node.js Worker-based plugin execution environment for better isolation and performance
 - **Complete Plugin Lifecycle Management**: Add comprehensive lifecycle hooks (install, enable, disable, update, uninstall) with proper event handling
 - **Lightweight Console**: Provide mobile/tablet-friendly console interface for plugin management
-- **Advanced Plugin Features**: Implement hot reload, version management, dependency resolution, and plugin marketplace integration
+- **Advanced Plugin Features**: Implement hot reload, version management, and plugin marketplace integration
 - **Performance Optimizations**: Add memory pools, connection pools, and other performance enhancements for plugin operations
 
 ## Impact

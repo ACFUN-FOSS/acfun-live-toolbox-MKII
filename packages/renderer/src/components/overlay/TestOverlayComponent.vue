@@ -99,7 +99,7 @@ const updateOverlay = () => {
 }
 
 onMounted(() => {
-  console.log('TestOverlayComponent mounted with props:', props)
+  // Component mounted
 })
 </script>
 

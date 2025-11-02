@@ -123,6 +123,20 @@
         <t-icon name="chart" />
         <span>数据统计</span>
       </div>
+      <div 
+        class="shortcut-item"
+        @click="navigateToSystem('api-docs')"
+      >
+        <t-icon name="api" />
+        <span>API 文档</span>
+      </div>
+      <div 
+        class="shortcut-item"
+        @click="navigateToSystem('console')"
+      >
+        <t-icon name="terminal" />
+        <span>控制台</span>
+      </div>
     </div>
 
     <!-- 插件安装对话框 -->

@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
-import type { AcFunLiveApi, DanmuEvent, CommentEvent, GiftEvent, LikeEvent } from 'acfunlive-http-api';
-import { RoomStatus, NormalizedEvent } from '../types';
+import type { RoomStatus, NormalizedEvent } from '../types';
 
 export class AcfunAdapter extends EventEmitter {
   private roomId: string;
@@ -64,7 +63,7 @@ export class AcfunAdapter extends EventEmitter {
             this.handleConnectionError(error);
             reject(error);
           });
-      } catch (error) {
+      } catch (error: any) {
         this.handleConnectionError(error as Error);
         reject(error);
       }
@@ -269,49 +268,5 @@ export class AcfunAdapter extends EventEmitter {
         };
     }
   }
-
-  // 真实的事件标准化方法 (当集成 acfundanmu.js 时使用)
-  private normalizeAcfunEvent(rawEvent: DanmuEvent): NormalizedEvent {
-    const baseEvent: NormalizedEvent = {
-      ts: rawEvent.timestamp || Date.now(),
-      room_id: this.roomId,
-      user_id: rawEvent.userId || null,
-      user_name: rawEvent.userName || null,
-      content: null,
-      event_type: 'system', // 默认值，下面会根据类型修改
-      raw: rawEvent
-    };
-
-    switch (rawEvent.type) {
-      case 'comment':
-        const commentEvent = rawEvent as CommentEvent;
-        return {
-          ...baseEvent,
-          event_type: 'danmaku',
-          content: commentEvent.data?.content || null
-        };
-
-      case 'gift':
-        const giftEvent = rawEvent as GiftEvent;
-        return {
-          ...baseEvent,
-          event_type: 'gift',
-          content: giftEvent.data?.giftName || null
-        };
-
-      case 'like':
-        return {
-          ...baseEvent,
-          event_type: 'like',
-          content: null
-        };
-
-      default:
-        return {
-          ...baseEvent,
-          event_type: 'system',
-          content: null
-        };
-    }
-  }
 }
+

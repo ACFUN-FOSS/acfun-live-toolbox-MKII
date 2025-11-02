@@ -213,7 +213,6 @@ const systemInfo = ref({
 
 function selectPluginPath() {
   // TODO: 打开文件夹选择对话框
-  console.log('Select plugin path');
 }
 
 function openLink(url: string) {
@@ -222,22 +221,18 @@ function openLink(url: string) {
 
 function checkForUpdates() {
   // TODO: 检查应用更新
-  console.log('Check for updates');
 }
 
 function resetSettings() {
   // TODO: 重置所有设置到默认值
-  console.log('Reset settings');
 }
 
 function saveSettings() {
   // TODO: 保存设置到主进程
-  console.log('Save settings');
 }
 
 function loadSettings() {
   // TODO: 从主进程加载设置
-  console.log('Load settings');
 }
 
 onMounted(() => {

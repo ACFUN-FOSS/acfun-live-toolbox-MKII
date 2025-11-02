@@ -39,13 +39,6 @@ The system SHALL provide comprehensive plugin installation and management capabi
 - **AND** conflicting plugins are detected and reported
 - **AND** installation is blocked if validation fails with clear error messages
 
-#### Scenario: Plugin dependency resolution
-- **WHEN** installing a plugin with dependencies
-- **THEN** each dependency is checked against installed plugins and available APIs
-- **AND** missing dependencies are reported to the user
-- **AND** version compatibility is verified for existing dependencies
-- **AND** installation proceeds only when all dependencies are satisfied
-
 #### Scenario: Plugin enable/disable control
 - **WHEN** user toggles plugin enabled state in the navigation
 - **THEN** the plugin state is persisted in the plugin configuration

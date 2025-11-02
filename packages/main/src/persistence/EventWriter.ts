@@ -17,7 +17,7 @@ export class EventWriter {
 
   private startFlushTimer(): void {
     this.flushTimer = setInterval(() => {
-      this.flushQueue().catch(err => {
+      this.flushQueue().catch((err: any) => {
         console.error('Error in scheduled flush:', err);
       });
     }, this.flushInterval);
@@ -37,7 +37,7 @@ export class EventWriter {
 
     // 如果队列达到批处理大小，立即刷新
     if (this.queue.length >= this.batchSize) {
-      this.flushQueue().catch(err => {
+      this.flushQueue().catch((err: any) => {
         console.error('Error in immediate flush:', err);
       });
     }
@@ -53,7 +53,7 @@ export class EventWriter {
 
     try {
       await this.writeBatch(eventsToWrite);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error writing event batch:', error);
       // 将失败的事件重新加入队列头部
       this.queue.unshift(...eventsToWrite);
@@ -156,4 +156,4 @@ export class EventWriter {
     // 强制刷新所有剩余事件
     await this.forceFlush();
   }
-}
+}

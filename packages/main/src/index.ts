@@ -15,6 +15,7 @@ import { PluginManager } from './plugins/PluginManager';
 import { OverlayManager } from './plugins/OverlayManager';
 import { DiagnosticsService } from './logging/DiagnosticsService';
 import { getLogManager } from './logging/LogManager';
+import { ConsoleManager } from './console/ConsoleManager';
 import path from 'path';
 
 async function main() {
@@ -61,18 +62,35 @@ async function main() {
   const overlayManager = new OverlayManager();
   
   const apiPort = parseInt(process.env.ACFRAME_API_PORT || '18299');
-  const apiServer = new ApiServer({ port: apiPort }, databaseManager, diagnosticsService, overlayManager);
-  await apiServer.start();
+  
   const authManager = new AuthManager();
   
   const pluginManager = new PluginManager({
-    apiServer,
+    apiServer: null as any, // 临时设置，稍后更新
     roomManager,
     databaseManager,
     configManager
   });
 
-  initializeIpcHandlers(roomManager, authManager, pluginManager, overlayManager);
+  // 初始化控制台管理器
+  const consoleManager = new ConsoleManager({
+    apiServer: null as any, // 临时设置，稍后更新
+    roomManager,
+    pluginManager,
+    databaseManager,
+    configManager
+  });
+
+  // 初始化API服务器，传入所有必要的管理器
+  const apiServer = new ApiServer({ port: apiPort }, databaseManager, diagnosticsService, overlayManager, consoleManager);
+  
+  // 更新管理器中的apiServer引用
+  (pluginManager as any).apiServer = apiServer;
+  (consoleManager as any).apiServer = apiServer;
+  
+  await apiServer.start();
+
+  initializeIpcHandlers(roomManager, authManager, pluginManager, overlayManager, consoleManager);
 
   // Wire RoomManager -> WsHub broadcasting
   const wsHub = apiServer.getWsHub();

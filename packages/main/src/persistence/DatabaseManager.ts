@@ -1,6 +1,6 @@
-import sqlite3 from 'sqlite3';
+import * as sqlite3 from 'sqlite3';
 import { app } from 'electron';
-import path from 'path';
+import * as path from 'path';
 
 export class DatabaseManager {
   private db: sqlite3.Database | null = null;

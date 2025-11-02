@@ -3,7 +3,11 @@
   "main": "dist/index.cjs",
   "scripts": {
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "exports": {
     ".": {
@@ -16,6 +20,7 @@
     "acfunlive-http-api": "github:ACFUN-FOSS/acfundanmu.js",
     "adm-zip": "^0.5.10",
     "archiver": "^7.0.1",
+    "chokidar": "^3.5.3",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "electron-data": "^2.1.2",
@@ -33,15 +38,16 @@
     "@app/electron-versions": "workspace:*",
     "@types/archiver": "^6.0.2",
     "@types/compression": "^1.7.5",
-    "@types/conf": "^3.0.0",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/morgan": "^1.9.9",
     "@types/sqlite3": "^3.1.11",
     "@types/uuid": "^11.0.0",
     "@types/ws": "^8.5.10",
+    "@vitest/ui": "^4.0.6",
     "electron-devtools-installer": "4.0.0",
     "typescript": "5.8.3",
-    "vite": "7.0.0"
+    "vite": "7.0.0",
+    "vitest": "^4.0.6"
   }
 }

@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
+import * as http from 'http';
 import { NormalizedEvent } from '../types/contracts';
 
 /**
@@ -35,8 +36,13 @@ export interface RoomStatusMessage extends WsMessage {
  */
 export class WsHub {
   private wss: WebSocketServer | null = null;
-  private clients: Set<WebSocket> = new Set();
+  private clients: Map<string, WebSocket> = new Map(); // 修改为Map以支持clientId
   private pingInterval: NodeJS.Timeout | null = null;
+
+  // 添加生成客户端ID的方法
+  private generateClientId(): string {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  }
 
   /**
    * 初始化 WebSocket 服务器
@@ -44,30 +50,40 @@ export class WsHub {
   public initialize(server: Server): void {
     this.wss = new WebSocketServer({ server });
 
-    this.wss.on('connection', (ws: WebSocket) => {
-      console.log('[WsHub] New WebSocket connection');
-      this.clients.add(ws);
+    this.wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
+      const clientId = this.generateClientId();
+      console.log(`[WsHub] Client connected: ${clientId} from ${req.socket.remoteAddress}`);
 
-      // 发送欢迎消息
-      this.sendToClient(ws, { op: 'ping' });
+      // 存储客户端连接
+      this.clients.set(clientId, ws);
 
+      // 发送连接确认消息
+      this.sendToClientMsg(clientId, {
+        type: 'connected',
+        clientId,
+        timestamp: Date.now()
+      });
+
+      // 监听客户端消息
       ws.on('message', (data: Buffer) => {
         try {
-          const message = JSON.parse(data.toString()) as WsMessage;
-          this.handleMessage(ws, message);
-        } catch (error) {
-          console.error('[WsHub] Failed to parse message:', error);
+          const message = JSON.parse(data.toString());
+          this.handleClientMessage(clientId, message);
+        } catch (error: any) {
+          console.error(`[WsHub] Failed to parse message from client ${clientId}:`, error);
         }
       });
 
+      // 监听连接关闭
       ws.on('close', () => {
-        console.log('[WsHub] WebSocket connection closed');
-        this.clients.delete(ws);
+        console.log(`[WsHub] Client disconnected: ${clientId}`);
+        this.clients.delete(clientId);
       });
 
-      ws.on('error', (error) => {
-        console.error('[WsHub] WebSocket error:', error);
-        this.clients.delete(ws);
+      // 监听错误
+      ws.on('error', (error: Error) => {
+        console.error(`[WsHub] WebSocket error for client ${clientId}:`, error);
+        this.clients.delete(clientId);
       });
     });
 
@@ -80,10 +96,18 @@ export class WsHub {
   /**
    * 处理客户端消息
    */
+  private handleClientMessage(clientId: string, message: any): void {
+    // 根据需要处理客户端消息
+    console.log(`[WsHub] Received message from client ${clientId}:`, message);
+  }
+
+  /**
+   * 处理内部消息
+   */
   private handleMessage(ws: WebSocket, message: WsMessage): void {
     switch (message.op) {
       case 'ping':
-        this.sendToClient(ws, { op: 'pong' });
+        this.sendToClientMsgByWs(ws, { op: 'pong' });
         break;
       case 'pong':
         // 客户端响应心跳，无需处理
@@ -124,38 +148,63 @@ export class WsHub {
    */
   private broadcast(message: WsMessage): void {
     const data = JSON.stringify(message);
-    const deadClients: WebSocket[] = [];
+    const deadClients: string[] = []; // 存储失效的客户端ID
 
-    this.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
+    this.clients.forEach((ws, clientId) => {
+      if (ws.readyState === WebSocket.OPEN) {
         try {
-          client.send(data);
-        } catch (error) {
-          console.error('[WsHub] Failed to send message:', error);
-          deadClients.push(client);
+          ws.send(data);
+        } catch (error: any) {
+          console.error(`[WsHub] Failed to send message to client ${clientId}:`, error);
+          deadClients.push(clientId);
         }
       } else {
-        deadClients.push(client);
+        deadClients.push(clientId);
       }
     });
 
     // 清理死连接
-    deadClients.forEach((client) => {
-      this.clients.delete(client);
+    deadClients.forEach((clientId) => {
+      this.clients.delete(clientId);
     });
   }
 
   /**
-   * 发送消息到指定客户端
+   * 发送消息到指定客户端 (通过WebSocket对象)
    */
-  private sendToClient(client: WebSocket, message: WsMessage): void {
+  private sendToClientMsgByWs(client: WebSocket, message: WsMessage): void {
     if (client.readyState === WebSocket.OPEN) {
       try {
         client.send(JSON.stringify(message));
-      } catch (error) {
+      } catch (error: any) {
         console.error('[WsHub] Failed to send message to client:', error);
-        this.clients.delete(client);
       }
+    }
+  }
+
+  /**
+   * 发送消息到指定客户端 (通过clientId)
+   */
+  private sendToClientMsg(clientId: string, message: any): boolean {
+    const ws = this.clients.get(clientId);
+    if (!ws) {
+      console.warn(`[WsHub] Attempted to send message to non-existent client: ${clientId}`);
+      return false;
+    }
+
+    if (ws.readyState !== WebSocket.OPEN) {
+      console.warn(`[WsHub] Attempted to send message to closed connection: ${clientId}`);
+      this.clients.delete(clientId);
+      return false;
+    }
+
+    try {
+      ws.send(JSON.stringify(message));
+      return true;
+    } catch (error: any) {
+      console.error(`[WsHub] Failed to send message to client ${clientId}:`, error);
+      this.clients.delete(clientId);
+      return false;
     }
   }
 

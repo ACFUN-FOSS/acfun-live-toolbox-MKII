@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "pinia": "^3.0.3",
     "tdesign-vue-next": "^1.13.2",
     "vue": "^3.5.13",
     "vue-router": "4",

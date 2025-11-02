@@ -283,7 +283,7 @@ export class PluginErrorHandler extends EventEmitter {
       // 实际实现中需要注入PluginManager的引用
       
       return true;
-    } catch (error) {
+    } catch (error: any) {
       pluginLogger.error(
         `Failed to execute recovery action: ${action}`,
         pluginId,
@@ -303,7 +303,7 @@ export class PluginErrorHandler extends EventEmitter {
       this.retryCount.delete(retryKey);
     } else {
       // 重置该插件的所有重试计数
-      for (const key of this.retryCount.keys()) {
+      for (const key of Array.from(this.retryCount.keys())) {
         if (key.startsWith(`${pluginId}:`)) {
           this.retryCount.delete(key);
         }
@@ -330,7 +330,7 @@ export class PluginErrorHandler extends EventEmitter {
   getErrorStats(): Record<string, { total: number; byType: Record<ErrorType, number> }> {
     const stats: Record<string, { total: number; byType: Record<ErrorType, number> }> = {};
     
-    for (const [pluginId, errors] of this.errorHistory.entries()) {
+    for (const [pluginId, errors] of Array.from(this.errorHistory.entries())) {
       const pluginStats = {
         total: errors.length,
         byType: {} as Record<ErrorType, number>
@@ -352,7 +352,7 @@ export class PluginErrorHandler extends EventEmitter {
   cleanup(maxAge: number = 7 * 24 * 60 * 60 * 1000): void { // 默认7天
     const cutoffTime = Date.now() - maxAge;
     
-    for (const [pluginId, errors] of this.errorHistory.entries()) {
+    for (const [pluginId, errors] of Array.from(this.errorHistory.entries())) {
       const filteredErrors = errors.filter(error => error.timestamp > cutoffTime);
       
       if (filteredErrors.length === 0) {

@@ -1,0 +1,90 @@
+﻿src/adapter/AcfunAdapter.ts(2,83): error TS2307: Cannot find module 'acfunlive-http-api' or its corresponding type declarations.
+src/console/ConsoleManager.ts(160,54): error TS2345: Argument of type '{ name: string; }' is not assignable to parameter of type 'string'.
+src/console/ConsoleManager.ts(168,56): error TS2345: Argument of type '{ name: string; }' is not assignable to parameter of type 'string'.
+src/console/ConsoleManager.ts(182,7): error TS2322: Type '"local" | "remote"' is not assignable to type '"room" | "user"'.
+  Type '"local"' is not assignable to type '"room" | "user"'.
+src/console/ConsoleManager.ts(189,50): error TS2345: Argument of type '{ sessionId: string; source: "local" | "remote"; userId: string; }' is not assignable to parameter of type 'string'.
+src/console/ConsoleManager.ts(201,50): error TS2345: Argument of type '{ sessionId: string; }' is not assignable to parameter of type 'string'.
+src/console/ConsoleManager.ts(250,7): error TS2322: Type '"room" | "user"' is not assignable to type '"local" | "remote"'.
+  Type '"room"' is not assignable to type '"local" | "remote"'.
+src/console/ConsoleManager.ts(362,36): error TS2339: Property 'getRooms' does not exist on type 'RoomManager'.
+src/console/ConsoleManager.ts(489,40): error TS2339: Property 'getRooms' does not exist on type 'RoomManager'.
+src/console/ConsoleManager.ts(505,34): error TS2551: Property 'connectRoom' does not exist on type 'RoomManager'. Did you mean 'reconnectRoom'?
+src/console/ConsoleManager.ts(528,34): error TS2551: Property 'disconnectRoom' does not exist on type 'RoomManager'. Did you mean 'disconnectAllRooms'?
+src/console/ConsoleManager.ts(705,59): error TS2345: Argument of type '{ error: any; }' is not assignable to parameter of type 'string'.
+src/console/ConsoleManager.ts(724,59): error TS2345: Argument of type '{ error: any; }' is not assignable to parameter of type 'string'.
+src/console/ConsoleManager.ts(735,40): error TS2802: Type 'MapIterator<[string, ConsoleSession]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/persistence/DatabaseManager.ts(1,8): error TS2613: Module '"D:/Code/acfun-live-toolbox-MKII/node_modules/.pnpm/sqlite3@5.1.7/node_modules/sqlite3/lib/sqlite3"' has no default export. Did you mean to use 'import { sqlite3 } from "D:/Code/acfun-live-toolbox-MKII/node_modules/.pnpm/sqlite3@5.1.7/node_modules/sqlite3/lib/sqlite3"' instead?
+src/persistence/DatabaseManager.ts(3,8): error TS1259: Module '"path"' can only be default-imported using the 'esModuleInterop' flag
+src/plugins/ApiBridge.ts(34,23): error TS2304: Cannot find name 'PopupInstance'.
+src/plugins/ApiBridge.ts(35,35): error TS2304: Cannot find name 'PopupInstance'.
+src/plugins/ApiBridge.ts(260,31): error TS2304: Cannot find name 'PopupInstance'.
+src/plugins/ApiBridge.ts(269,43): error TS2304: Cannot find name 'PopupInstance'.
+src/plugins/PluginErrorHandler.ts(306,25): error TS2802: Type 'MapIterator<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginErrorHandler.ts(333,38): error TS2802: Type 'MapIterator<[string, PluginError[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginErrorHandler.ts(355,38): error TS2802: Type 'MapIterator<[string, PluginError[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginHotReload.ts(2,34): error TS2307: Cannot find module 'chokidar' or its corresponding type declarations.
+src/plugins/PluginHotReload.ts(5,30): error TS2307: Cannot find module '../logging/PluginLogger' or its corresponding type declarations.
+src/plugins/PluginHotReload.ts(356,28): error TS2802: Type 'MapIterator<string>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginHotReload.ts(361,25): error TS2802: Type 'MapIterator<Timeout>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginLifecycle.ts(118,41): error TS2802: Type 'MapIterator<[LifecycleHook, LifecycleHookRegistration[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginLifecycle.ts(134,41): error TS2802: Type 'MapIterator<[LifecycleHook, LifecycleHookRegistration[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginLifecycle.ts(183,76): error TS2345: Argument of type 'Error' is not assignable to parameter of type 'string'.
+src/plugins/PluginLifecycle.ts(222,33): error TS2802: Type 'MapIterator<LifecycleHookRegistration[]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginLifecycle.ts(233,41): error TS2802: Type 'MapIterator<[LifecycleHook, LifecycleHookRegistration[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/PluginManager.ts(185,59): error TS2345: Argument of type '{ pluginId: string; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(198,41): error TS2345: Argument of type '"error"' is not assignable to parameter of type 'LifecycleHook'.
+src/plugins/PluginManager.ts(502,9): error TS2561: Object literal may only specify known properties, but 'pluginInfo' does not exist in type 'Omit<LifecycleEventData, "timestamp">'. Did you mean to write 'pluginId'?
+src/plugins/PluginManager.ts(562,9): error TS2561: Object literal may only specify known properties, but 'pluginInfo' does not exist in type 'Omit<LifecycleEventData, "timestamp">'. Did you mean to write 'pluginId'?
+src/plugins/PluginManager.ts(589,9): error TS2561: Object literal may only specify known properties, but 'pluginInfo' does not exist in type 'Omit<LifecycleEventData, "timestamp">'. Did you mean to write 'pluginId'?
+src/plugins/PluginManager.ts(628,9): error TS2561: Object literal may only specify known properties, but 'pluginInfo' does not exist in type 'Omit<LifecycleEventData, "timestamp">'. Did you mean to write 'pluginId'?
+src/plugins/PluginManager.ts(633,18): error TS2339: Property 'checkDependencies' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(655,9): error TS2561: Object literal may only specify known properties, but 'pluginInfo' does not exist in type 'Omit<LifecycleEventData, "timestamp">'. Did you mean to write 'pluginId'?
+src/plugins/PluginManager.ts(663,62): error TS2345: Argument of type '{ pluginId: string; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(665,71): error TS2345: Argument of type '{ pluginId: string; error: any; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(673,56): error TS2345: Argument of type '{ pluginId: string; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(717,9): error TS2561: Object literal may only specify known properties, but 'pluginInfo' does not exist in type 'Omit<LifecycleEventData, "timestamp">'. Did you mean to write 'pluginId'?
+src/plugins/PluginManager.ts(754,61): error TS2345: Argument of type '{ pluginId: string; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(756,70): error TS2345: Argument of type '{ pluginId: string; error: any; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(1014,40): error TS2345: Argument of type '{ pluginId: string; error: any; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(1031,45): error TS2551: Property 'pluginDir' does not exist on type 'PluginManager'. Did you mean 'pluginsDir'?
+src/plugins/PluginManager.ts(1040,45): error TS2551: Property 'pluginDir' does not exist on type 'PluginManager'. Did you mean 'pluginsDir'?
+src/plugins/PluginManager.ts(1047,22): error TS2339: Property 'loadPlugin' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(1054,16): error TS2339: Property 'logger' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(1057,16): error TS2339: Property 'logger' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(1094,14): error TS2339: Property 'hotReloadEnabled' does not exist on type 'PluginInfo'.
+src/plugins/PluginManager.ts(1097,41): error TS2551: Property 'pluginDir' does not exist on type 'PluginManager'. Did you mean 'pluginsDir'?
+src/plugins/PluginManager.ts(1098,23): error TS2304: Cannot find name 'chokidar'.
+src/plugins/PluginManager.ts(1105,22): error TS2339: Property 'hotReloadEnabled' does not exist on type 'PluginInfo'.
+src/plugins/PluginManager.ts(1106,20): error TS2339: Property 'logger' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(1110,24): error TS2339: Property 'logger' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(1116,12): error TS2339: Property 'hotReloadWatchers' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(1118,12): error TS2339: Property 'logger' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(1120,12): error TS2339: Property 'logger' does not exist on type 'PluginManager'.
+src/plugins/PluginManager.ts(1196,70): error TS2345: Argument of type '{ pluginId: string; targetVersion: string; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(1204,63): error TS2345: Argument of type '{ pluginId: string; targetVersion: string; error: any; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginManager.ts(1215,83): error TS2345: Argument of type '{ pluginId: string; error: any; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginUpdater.ts(157,52): error TS2345: Argument of type 'Error' is not assignable to parameter of type 'string'.
+src/plugins/PluginUpdater.ts(256,52): error TS2345: Argument of type 'Error' is not assignable to parameter of type 'string'.
+src/plugins/PluginUpdater.ts(295,51): error TS2345: Argument of type 'Error' is not assignable to parameter of type 'string'.
+src/plugins/PluginUpdater.ts(355,49): error TS2345: Argument of type 'Error' is not assignable to parameter of type 'string'.
+src/plugins/PluginVersionManager.ts(5,32): error TS2307: Cannot find module './types' or its corresponding type declarations.
+src/plugins/PluginVersionManager.ts(128,52): error TS2345: Argument of type '{ pluginId: string; version: any; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginVersionManager.ts(182,57): error TS2345: Argument of type '{ pluginId: string; error: any; }' is not assignable to parameter of type 'string'.
+src/plugins/PluginVersionManager.ts(198,61): error TS2345: Argument of type '{ pluginId: string; error: any; }' is not assignable to parameter of type 'string'.
+src/plugins/PopupManager.ts(346,25): error TS2802: Type 'MapIterator<PopupInstance>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/SecureCommunicationChannel.ts(96,47): error TS2802: Type 'Map<string, PendingMessage>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/plugins/SecureCommunicationChannel.ts(156,52): error TS2345: Argument of type '{ channelId: string; messageId: string; error: string; }' is not assignable to parameter of type 'string'.
+src/rooms/RoomManager.ts(249,25): error TS2802: Type 'MapIterator<Timeout>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/server/ApiServer.ts(1,8): error TS1259: Module '"D:/Code/acfun-live-toolbox-MKII/node_modules/.pnpm/@types+express@4.17.25/node_modules/@types/express/index"' can only be default-imported using the 'esModuleInterop' flag
+src/server/ApiServer.ts(2,8): error TS1259: Module '"D:/Code/acfun-live-toolbox-MKII/node_modules/.pnpm/@types+cors@2.8.19/node_modules/@types/cors/index"' can only be default-imported using the 'esModuleInterop' flag
+src/server/ApiServer.ts(4,8): error TS1259: Module '"D:/Code/acfun-live-toolbox-MKII/node_modules/.pnpm/@types+compression@1.8.1/node_modules/@types/compression/index"' can only be default-imported using the 'esModuleInterop' flag
+src/server/ApiServer.ts(5,8): error TS1259: Module '"D:/Code/acfun-live-toolbox-MKII/node_modules/.pnpm/@types+morgan@1.9.10/node_modules/@types/morgan/index"' can only be default-imported using the 'esModuleInterop' flag
+src/server/ApiServer.ts(244,35): error TS2339: Property 'eventStore' does not exist on type 'ApiServer'.
+src/server/ApiServer.ts(255,34): error TS2339: Property 'statsCollector' does not exist on type 'ApiServer'.
+src/server/ApiServer.ts(266,59): error TS2339: Property 'getFullReport' does not exist on type 'DiagnosticsService'.
+src/server/ApiServer.ts(277,33): error TS2339: Property 'logManager' does not exist on type 'ApiServer'.
+src/server/ApiServer.ts(288,39): error TS2339: Property 'exportService' does not exist on type 'ApiServer'.
+src/server/ApiServer.ts(352,29): error TS2339: Property 'pluginManager' does not exist on type 'ApiServer'.
+src/server/WsHub.ts(4,8): error TS1192: Module '"http"' has no default export.
+src/server/WsHub.ts(68,31): error TS2702: 'WebSocket' only refers to a type, but is being used as a namespace here.

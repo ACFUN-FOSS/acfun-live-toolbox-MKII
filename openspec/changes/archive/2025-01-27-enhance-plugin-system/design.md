@@ -10,7 +10,7 @@ The current plugin system provides basic functionality but lacks advanced featur
 - Provide comprehensive plugin lifecycle management with proper event handling
 - Implement secure plugin execution environment using Node Workers
 - Create intuitive user interfaces for both desktop and mobile platforms
-- Enable advanced plugin capabilities like hot reload and dependency management
+- Enable advanced plugin capabilities like hot reload and version management
 - Optimize performance through pooling and caching mechanisms
 - Maintain backward compatibility with existing plugins
 

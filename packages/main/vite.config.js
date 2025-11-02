@@ -1,12 +1,9 @@
 import {getNodeMajorVersion} from '@app/electron-versions';
 import {spawn} from 'child_process';
 import electronPath from 'electron';
+import { defineConfig } from 'vite';
 
-export default /**
- * @type {import('vite').UserConfig}
- * @see https://vitejs.dev/config/
- */
-({
+export default defineConfig({
   build: {
     ssr: true,
     sourcemap: 'inline',
@@ -18,7 +15,24 @@ export default /**
       formats: ['cjs'],
     },
     rollupOptions: {
-      external: ['@app/acfundanmu'],
+      external: [
+        '@app/acfundanmu',
+        'chokidar',
+        'acfunlive-http-api',
+        'electron',
+        'electron-store',
+        'express',
+        'cors',
+        'helmet',
+        'morgan',
+        'compression',
+        'sqlite3',
+        'adm-zip',
+        'archiver',
+        'tar',
+        'uuid',
+        'obs-websocket-js'
+      ],
       output: {
         entryFileNames: '[name].cjs',
       },
@@ -29,6 +43,23 @@ export default /**
   plugins: [
     handleHotReload(),
   ],
+  test: {
+    globals: true,
+    environment: 'node',
+    include: ['src/test/**/*.test.ts'],
+    exclude: ['node_modules', 'dist'],
+    setupFiles: ['src/test/helpers/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/test/',
+        '**/*.d.ts',
+        '**/*.config.*',
+      ],
+    },
+  },
 });
 
 

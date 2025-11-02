@@ -34,9 +34,6 @@ your-plugin/
   "author": "作者名称",
   "main": "index.js",
   "permissions": ["api", "storage", "ui", "overlay"],
-  "dependencies": {
-    "lodash": "^4.17.21"
-  },
   "icon": "icon.svg",
   "homepage": "https://github.com/your-username/your-plugin",
   "repository": "https://github.com/your-username/your-plugin.git",

@@ -81,7 +81,7 @@ export class DiagnosticsService {
       if (fs.existsSync(packagePath)) {
         return JSON.parse(fs.readFileSync(packagePath, 'utf8'));
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logManager.addLog('diagnostics', `Failed to read package.json: ${error}`, 'warn');
     }
     return null;
@@ -114,13 +114,13 @@ export class DiagnosticsService {
               status: 'unknown' // TODO: 从PluginManager获取实际状态
             });
           }
-        } catch (error) {
+        } catch (error: any) {
           this.logManager.addLog('diagnostics', `Failed to read plugin manifest for ${pluginId}: ${error}`, 'warn');
         }
       }
 
       return plugins;
-    } catch (error) {
+    } catch (error: any) {
       this.logManager.addLog('diagnostics', `Failed to collect plugin info: ${error}`, 'error');
       return [];
     }
@@ -147,7 +147,7 @@ export class DiagnosticsService {
         type: row.type,
         sql: row.sql
       }));
-    } catch (error) {
+    } catch (error: any) {
       this.logManager.addLog('diagnostics', `Failed to collect database schema: ${error}`, 'error');
       return [];
     }
@@ -260,7 +260,7 @@ export class DiagnosticsService {
         archive.finalize();
       });
 
-    } catch (error) {
+    } catch (error: any) {
       this.logManager.addLog('diagnostics', `Failed to generate diagnostic package: ${error}`, 'error');
       throw error;
     }
@@ -282,7 +282,7 @@ export class DiagnosticsService {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logManager.addLog('diagnostics', `Failed to cleanup old packages: ${error}`, 'warn');
     }
   }

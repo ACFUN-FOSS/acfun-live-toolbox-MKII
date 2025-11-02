@@ -89,7 +89,7 @@ export class PluginLogger {
       
       // 写入日志
       fs.appendFileSync(this.logFile, logLine + '\n', 'utf-8');
-    } catch (writeError) {
+    } catch (writeError: any) {
       console.error('Failed to write plugin log:', writeError);
     }
   }
@@ -148,7 +148,7 @@ export class PluginLogger {
 
       // 重命名当前日志文件
       fs.renameSync(this.logFile, `${this.logFile}.1`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to rotate plugin log:', error);
     }
   }
@@ -179,7 +179,7 @@ export class PluginLogger {
       }
 
       return entries.slice(-limit);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to read plugin logs:', error);
       return [];
     }

@@ -56,7 +56,7 @@
 ],
 "shouldHave": \[
 "背压与优先级丢弃策略（高优先级事件保留）。【message\_idx†source】",
-"轻量浏览器控制台（移动端/平板）入口。【message\_idx†source】",
+"简化的插件开发调试工具（外部Vue/React项目URL配置、Node.js代码路径配置）。",
 "配置/导出目录/端口等可视化配置与持久化。"
 ],
 "couldHave": \[
@@ -161,6 +161,8 @@
 "manifest": "plugins/<pluginId>/plugin.json",
 "noSignature": true,
 "noOnlineMarket": true,
+"selfContained": true,
+"noDependencies": "插件必须自包含，不依赖其他插件或外部库",
 "citations": \["【message\_idx†source】"]
 },
 "executionModel": {
@@ -170,7 +172,8 @@
 ],
 "routeInjection": "/plugins/\:id/*（强制前缀）【message\_idx†source】",
 "overlayInjection": "/overlay/\:overlayId（express 托管静态 + 路由）【message\_idx†source】",
-"popupWindows": "插件可请求以弹出窗口形式打开（弹幕显示亦走插件）。【message\_idx†source】"
+"popupWindows": "插件可请求以弹出窗口形式打开（弹幕显示亦走插件）。【message\_idx†source】",
+"isolation": "插件间完全隔离，无法直接通信或共享状态"
 },
 "capabilities": {
 "events": \[
@@ -196,10 +199,21 @@
 "acfunProxy": \[
 "callAcfun({method,path,body}) // 统一经主进程转发，插件不接触token"
 ],
+"developmentTools": {
+"description": "简化的插件开发调试工具，支持外部项目调试配置",
+"features": \[
+"外部Vue/React项目URL配置与连接测试",
+"Node.js代码路径配置与调试启动",
+"插件热重载与状态监控",
+"调试日志输出与错误追踪"
+],
+"scope": "插件可适配移动端显示，但主进程不做移动端适配"
+},
 "policy": {
 "highPrivilegeAllowed": true,
 "mustProxyThroughMain": true,
-"pluginCannotReadToken": true
+"pluginCannotReadToken": true,
+"noInterPluginDependencies": true
 }
 },
 "citations": \["【message\_idx†source】","【message\_idx†source】","【message\_idx†source】"]
@@ -307,12 +321,11 @@
 },
 "webConsole": {
 "path": "/console",
-"features": \["房间状态总览","基础控制（暂停/恢复）","插件入口"],
-"notes": \["移动端/平板友好"]
+"features": \["房间状态总览","基础控制（暂停/恢复）","插件入口"]
 },
 "overlay": {
 "urlPattern": "[http://host\:port/overlay/\:overlayId?room=\:roomId\&token=\:token](http://host:port/overlay/:overlayId?room=:roomId&token=:token)",
-"crossDevice": "允许在平板/手机打开（由插件决定具体交互）。【message\_idx†source】"
+"crossDevice": "插件可适配移动端显示，主进程不做移动端适配。"
 }
 },
 "configurationAndPersistence": {
@@ -475,13 +488,13 @@
 },
 "lightweightConsole": {
 "status": "implementing", 
-"notes": "移动端/平板控制台入口正在实现中"
+"notes": "简化的插件开发调试工具正在实现中"
 }
 },
 "couldHave": {
 "advancedPluginFeatures": {
 "status": "implementing",
-"notes": "插件热重载、版本管理、依赖解析等高级功能正在实现中"
+"notes": "插件热重载、版本管理等高级功能正在实现中（不包含依赖解析）"
 },
 "performanceOptimizations": {
 "status": "implementing",
@@ -492,6 +505,14 @@
 "onlinePluginMarket": {
 "status": "confirmed_excluded",
 "notes": "按设计不提供公网在线插件市场，采用本地导入"
+},
+"pluginDependencySystem": {
+"status": "confirmed_excluded",
+"notes": "插件必须自包含，不支持插件间依赖或外部依赖解析"
+},
+"pluginSigningVerification": {
+"status": "confirmed_excluded",
+"notes": "不实施插件签名和验证机制，采用本地导入信任模式"
 },
 "minimumPrivilegeDefault": {
 "status": "confirmed_excluded", 

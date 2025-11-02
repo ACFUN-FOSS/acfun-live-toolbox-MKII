@@ -2,7 +2,7 @@ import { ApiServer } from '../server/ApiServer';
 import { RoomManager } from '../rooms/RoomManager';
 import { DatabaseManager } from '../persistence/DatabaseManager';
 import { ConfigManager } from '../config/ConfigManager';
-import { PopupManager, PopupOptions } from './PopupManager';
+import { PopupManager, PopupOptions, PopupInstance } from './PopupManager';
 import type { NormalizedEvent, NormalizedEventType } from '../types';
 
 export interface PluginAPI {
@@ -86,7 +86,7 @@ export class ApiBridge implements PluginAPI {
         if (filter?.room_id && event.room_id !== filter.room_id) return;
         if (filter?.type && event.event_type !== filter.type) return;
         cb(event);
-      } catch (err) {
+      } catch (err: any) {
         // 插件抛错不影响主进程，进行熔断计数（简化为直接通知）
         this.onPluginFault('event-handler-error');
       }
@@ -197,7 +197,7 @@ export class ApiBridge implements PluginAPI {
     create: async (options: PopupOptions): Promise<string> => {
       try {
         return this.popupManager.createPopup(this.pluginId, options);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-creation-error');
         throw error;
       }
@@ -206,7 +206,7 @@ export class ApiBridge implements PluginAPI {
     close: async (popupId: string): Promise<boolean> => {
       try {
         return this.popupManager.closePopup(popupId);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-close-error');
         throw error;
       }
@@ -215,7 +215,7 @@ export class ApiBridge implements PluginAPI {
     update: async (popupId: string, options: Partial<PopupOptions>): Promise<boolean> => {
       try {
         return this.popupManager.updatePopup(popupId, options);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-update-error');
         throw error;
       }
@@ -224,7 +224,7 @@ export class ApiBridge implements PluginAPI {
     show: async (popupId: string): Promise<boolean> => {
       try {
         return this.popupManager.showPopup(popupId);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-show-error');
         throw error;
       }
@@ -233,7 +233,7 @@ export class ApiBridge implements PluginAPI {
     hide: async (popupId: string): Promise<boolean> => {
       try {
         return this.popupManager.hidePopup(popupId);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-hide-error');
         throw error;
       }
@@ -242,7 +242,7 @@ export class ApiBridge implements PluginAPI {
     action: async (popupId: string, actionId: string): Promise<boolean> => {
       try {
         return this.popupManager.handlePopupAction(popupId, actionId);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-action-error');
         throw error;
       }
@@ -251,7 +251,7 @@ export class ApiBridge implements PluginAPI {
     bringToFront: async (popupId: string): Promise<boolean> => {
       try {
         return this.popupManager.bringToFront(popupId);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-bring-to-front-error');
         throw error;
       }
@@ -260,7 +260,7 @@ export class ApiBridge implements PluginAPI {
     getAll: async (): Promise<PopupInstance[]> => {
       try {
         return this.popupManager.getPluginPopups(this.pluginId);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-get-all-error');
         throw error;
       }
@@ -274,7 +274,7 @@ export class ApiBridge implements PluginAPI {
           return popup;
         }
         return null;
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-get-error');
         throw error;
       }
@@ -283,7 +283,7 @@ export class ApiBridge implements PluginAPI {
     closeAll: async (): Promise<number> => {
       try {
         return this.popupManager.closePluginPopups(this.pluginId);
-      } catch (error) {
+      } catch (error: any) {
         this.onPluginFault('popup-close-all-error');
         throw error;
       }
@@ -295,7 +295,7 @@ export class ApiBridge implements PluginAPI {
         if (data.pluginId === this.pluginId) {
           try {
             callback(data.popupId, data.actionId);
-          } catch (error) {
+          } catch (error: any) {
             this.onPluginFault('popup-action-callback-error');
           }
         }
@@ -309,7 +309,7 @@ export class ApiBridge implements PluginAPI {
         if (data.pluginId === this.pluginId) {
           try {
             callback(data.popupId);
-          } catch (error) {
+          } catch (error: any) {
             this.onPluginFault('popup-close-callback-error');
           }
         }
@@ -323,7 +323,7 @@ export class ApiBridge implements PluginAPI {
         if (data.pluginId === this.pluginId) {
           try {
             callback(data.popupId);
-          } catch (error) {
+          } catch (error: any) {
             this.onPluginFault('popup-show-callback-error');
           }
         }
@@ -337,7 +337,7 @@ export class ApiBridge implements PluginAPI {
         if (data.pluginId === this.pluginId) {
           try {
             callback(data.popupId);
-          } catch (error) {
+          } catch (error: any) {
             this.onPluginFault('popup-hide-callback-error');
           }
         }

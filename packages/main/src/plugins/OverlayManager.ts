@@ -1,5 +1,9 @@
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
+import * as path from 'path';
+import * as fs from 'fs';
+import { app } from 'electron';
+import { pluginLogger } from './PluginLogger';
 
 export interface OverlayPosition {
   x?: number | string;
@@ -130,7 +134,7 @@ export class OverlayManager extends EventEmitter {
         success: true,
         overlayId
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -141,7 +145,7 @@ export class OverlayManager extends EventEmitter {
   /**
    * 更新overlay
    */
-  async updateOverlay(overlayId: string, updates: Partial<OverlayOptions>): Promise<OverlayActionResult> {
+  async updateOverlay(overlayId: string, updates: Partial<OverlayState>): Promise<OverlayActionResult> {
     try {
       const overlay = this.overlays.get(overlayId);
       if (!overlay) {
@@ -165,7 +169,7 @@ export class OverlayManager extends EventEmitter {
       this.emit('overlay-updated', updatedOverlay);
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -193,7 +197,7 @@ export class OverlayManager extends EventEmitter {
       this.emit('overlay-closed', overlayId);
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -235,7 +239,7 @@ export class OverlayManager extends EventEmitter {
           zIndex: newZIndex
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -281,7 +285,7 @@ export class OverlayManager extends EventEmitter {
       });
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -365,10 +369,64 @@ export class OverlayManager extends EventEmitter {
   }
 
   /**
+   * 验证overlay数据
+   */
+  private validateOverlay(overlay: any): overlay is OverlayState {
+    return (
+      overlay &&
+      typeof overlay === 'object' &&
+      typeof overlay.id === 'string' &&
+      typeof overlay.type === 'string' &&
+      typeof overlay.visible === 'boolean' &&
+      typeof overlay.createdAt === 'number' &&
+      typeof overlay.updatedAt === 'number' &&
+      typeof overlay.zIndex === 'number'
+    );
+  }
+
+  /**
    * 销毁管理器
    */
   destroy(): void {
     this.clearAllOverlays();
     this.removeAllListeners();
+  }
+
+  /**
+   * 加载overlays
+   */
+  public async loadOverlays(): Promise<void> {
+    try {
+      const overlaysDir = path.join(app.getPath('userData'), 'overlays');
+      if (!fs.existsSync(overlaysDir)) {
+        fs.mkdirSync(overlaysDir, { recursive: true });
+        pluginLogger.info('Created overlays directory:', overlaysDir);
+      }
+
+      const files = fs.readdirSync(overlaysDir);
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          try {
+            const filePath = path.join(overlaysDir, file);
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const overlay = JSON.parse(content);
+            
+            // 验证overlay数据
+            if (this.validateOverlay(overlay)) {
+              this.overlays.set(overlay.id, overlay);
+              pluginLogger.info('Loaded overlay:', overlay.id);
+            } else {
+              pluginLogger.warn('Invalid overlay file:', file);
+            }
+          } catch (error: any) {
+            pluginLogger.error('Failed to load overlay file:', file, error);
+          }
+        }
+      }
+      
+      pluginLogger.info('Overlays loaded:', this.overlays.size.toString());
+    } catch (error: any) {
+      pluginLogger.error('Failed to load overlays:', error);
+    }
   }
 }

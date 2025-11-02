@@ -39,7 +39,7 @@ export async function initEventSourceServices() {
     });
 
     // 初始连接到默认房间（如果有）
-    const defaultRoomId = globalThis.configManager?.readConfig(undefined).defaultRoomId;
+    const defaultRoomId = (globalThis as any).configManager?.readConfig(undefined)?.defaultRoomId;
     if (defaultRoomId) {
       logManager.addLog('eventSource', `Connecting to default room ${defaultRoomId}`, 'info');
       try {

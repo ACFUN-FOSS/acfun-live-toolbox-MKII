@@ -3,6 +3,15 @@ export {};
 declare global {
   interface Window {
     electronApi: {
+      dialog: {
+        showOpenDialog: (options: any) => Promise<{ canceled: boolean; filePaths?: string[]; error?: string }>;
+        showSaveDialog: (options: any) => Promise<{ canceled: boolean; filePath?: string; error?: string }>;
+      };
+      fs: {
+        exists: (path: string) => Promise<boolean>;
+        readFile: (path: string) => Promise<string>;
+        writeFile: (path: string, data: string) => Promise<boolean>;
+      };
       login: {
         qrStart: () => Promise<{ qrCodeDataUrl: string; expiresIn: number } | { error: string }>;
         qrCheck: () => Promise<{ success: boolean; userId?: string; expiresAt?: number; error?: string }>;

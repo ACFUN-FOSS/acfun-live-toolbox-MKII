@@ -65,7 +65,7 @@ function connectWs() {
     ws = new WebSocket(url);
 
     ws.onopen = () => {
-      console.log('Danmu WebSocket connected');
+      // WebSocket connected successfully
     };
 
     ws.onmessage = (ev) => {

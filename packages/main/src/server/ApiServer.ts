@@ -12,6 +12,7 @@ import { CsvExporter, ExportOptions } from '../persistence/CsvExporter';
 import { DatabaseManager } from '../persistence/DatabaseManager';
 import { DiagnosticsService } from '../logging/DiagnosticsService';
 import { OverlayManager } from '../plugins/OverlayManager';
+import { ConsoleManager } from '../console/ConsoleManager';
 import { NormalizedEventType } from '../types';
 
 /**
@@ -38,9 +39,10 @@ export class ApiServer {
   private csvExporter: CsvExporter;
   private diagnosticsService: DiagnosticsService;
   private overlayManager: OverlayManager;
+  private consoleManager: ConsoleManager;
   private pluginRoutes: Map<string, { method: 'GET' | 'POST'; path: string; handler: express.RequestHandler }[]> = new Map();
 
-  constructor(config: ApiServerConfig = { port: 1299 }, databaseManager: DatabaseManager, diagnosticsService: DiagnosticsService, overlayManager: OverlayManager) {
+  constructor(config: ApiServerConfig = { port: 1299 }, databaseManager: DatabaseManager, diagnosticsService: DiagnosticsService, overlayManager: OverlayManager, consoleManager: ConsoleManager) {
     this.config = {
       host: '127.0.0.1',
       enableCors: true,
@@ -56,6 +58,7 @@ export class ApiServer {
     this.csvExporter = new CsvExporter(this.queryService);
     this.diagnosticsService = diagnosticsService;
     this.overlayManager = overlayManager;
+    this.consoleManager = consoleManager;
     
     this.configureMiddleware();
     this.configureRoutes();
@@ -101,6 +104,38 @@ export class ApiServer {
    * 配置路由
    */
   private configureRoutes(): void {
+    // Root endpoint - API server info
+    this.app.get('/', (req: express.Request, res: express.Response) => {
+      res.json({
+        name: 'ACFun Live Toolbox API Server',
+        status: 'running',
+        version: '1.0.0',
+        websocket_clients: this.wsHub?.getClientCount() || 0,
+        websocket_endpoint: `ws://127.0.0.1:${this.config.port}`,
+        endpoints: {
+          api: [
+            { method: 'GET', path: '/api/health', description: 'Server health check' },
+            { method: 'GET', path: '/api/events', description: 'Query events with pagination' },
+            { method: 'GET', path: '/api/stats/events', description: 'Event statistics' },
+            { method: 'GET', path: '/api/diagnostics', description: 'System diagnostics' },
+            { method: 'GET', path: '/api/logs', description: 'Application logs' },
+            { method: 'POST', path: '/api/export', description: 'Export data to CSV' }
+          ],
+          console: [
+            { method: 'GET', path: '/api/console/data', description: 'Get console page data' },
+            { method: 'POST', path: '/api/console/sessions', description: 'Create console session' },
+            { method: 'GET', path: '/api/console/sessions', description: 'List console sessions' },
+            { method: 'DELETE', path: '/api/console/sessions/:id', description: 'Delete console session' },
+            { method: 'POST', path: '/api/console/sessions/:id/execute', description: 'Execute console command' },
+            { method: 'GET', path: '/api/console/commands', description: 'Get available commands' }
+          ],
+          overlay: [
+            { method: 'GET', path: '/api/overlay/:overlayId', description: 'Get overlay data by ID' }
+          ]
+        }
+      });
+    });
+
     // Health check endpoint
     this.app.get('/api/health', (req: express.Request, res: express.Response) => {
       res.json({
@@ -229,46 +264,96 @@ export class ApiServer {
       }
     });
 
-    // GET /console - LAN 控制台
-    this.app.get('/console', (req: express.Request, res: express.Response) => {
-      // TODO: 实现 LAN 控制台页面
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>AcFun Live Toolbox - Console</title>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            .header { border-bottom: 1px solid #ccc; padding-bottom: 20px; }
-            .status { margin: 20px 0; }
-            .placeholder { color: #666; font-style: italic; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>AcFun Live Toolbox Console</h1>
-            <p>Local Area Network Management Interface</p>
-          </div>
-          <div class="status">
-            <h2>Server Status</h2>
-            <p>✅ HTTP Server: Running</p>
-            <p>✅ WebSocket Server: ${this.wsHub?.getClientCount() || 0} clients connected</p>
-          </div>
-          <div class="placeholder">
-            <p>Console interface is under development...</p>
-            <p>API Endpoints:</p>
-            <ul>
-              <li>GET /api/events - Query events</li>
-              <li>POST /api/export - Export to CSV</li>
-              <li>GET /api/diagnostics - Download diagnostic package</li>
-              <li>GET /api/logs - Get recent logs</li>
-              <li>GET /api/health - Health check</li>
-            </ul>
-          </div>
-        </body>
-        </html>
-      `);
+    // GET /api/console/data - 获取控制台页面数据
+    this.app.get('/api/console/data', (req: express.Request, res: express.Response) => {
+      try {
+        const commands = this.consoleManager.getCommands();
+        const sessions = this.consoleManager.getActiveSessions();
+        
+        res.json({
+          success: true,
+          data: {
+            commands,
+            sessions,
+            websocket_clients: this.wsHub?.getClientCount() || 0
+          }
+        });
+      } catch (error) {
+        res.status(500).json({ 
+          success: false, 
+          error: (error as Error).message 
+        });
+      }
+    });
+
+    // Console API endpoints
+    // POST /api/console/sessions - 创建控制台会话
+    this.app.post('/api/console/sessions', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      try {
+        const { name } = req.body;
+        const session = await this.consoleManager.createSession(name);
+        res.json({ success: true, session });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // DELETE /api/console/sessions/:sessionId - 结束控制台会话
+    this.app.delete('/api/console/sessions/:sessionId', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      try {
+        const { sessionId } = req.params;
+        const success = await this.consoleManager.endSession(sessionId);
+        res.json({ success });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // POST /api/console/sessions/:sessionId/execute - 执行控制台命令
+    this.app.post('/api/console/sessions/:sessionId/execute', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      try {
+        const { sessionId } = req.params;
+        const { command } = req.body;
+        const result = await this.consoleManager.executeCommand(sessionId, command);
+        res.json({ success: true, result });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // GET /api/console/commands - 获取可用命令列表
+    this.app.get('/api/console/commands', (req: express.Request, res: express.Response) => {
+      try {
+        const commands = this.consoleManager.getCommands();
+        res.json({ success: true, commands });
+      } catch (error) {
+        res.status(500).json({ success: false, error: (error as Error).message });
+      }
+    });
+
+    // GET /api/console/sessions - 获取活动会话列表
+    this.app.get('/api/console/sessions', (req: express.Request, res: express.Response) => {
+      try {
+        const sessions = this.consoleManager.getActiveSessions();
+        res.json({ success: true, sessions });
+      } catch (error) {
+        res.status(500).json({ success: false, error: (error as Error).message });
+      }
+    });
+
+    // GET /api/console/sessions/:sessionId - 获取特定会话信息
+    this.app.get('/api/console/sessions/:sessionId', (req: express.Request, res: express.Response) => {
+      try {
+        const { sessionId } = req.params;
+        const session = this.consoleManager.getSession(sessionId);
+        if (session) {
+          res.json({ success: true, session });
+        } else {
+          res.status(404).json({ success: false, error: 'Session not found' });
+        }
+      } catch (error) {
+        res.status(500).json({ success: false, error: (error as Error).message });
+      }
     });
 
     // GET /plugins/:id/:rest* - 插件页面托管（Express v5/path-to-regexp@v6 需要命名通配符）
@@ -300,8 +385,8 @@ export class ApiServer {
       }
     });
 
-    // GET /overlay/:overlayId - Overlay 入口
-    this.app.get('/overlay/:overlayId', (req: express.Request, res: express.Response) => {
+    // GET /api/overlay/:overlayId - 获取 Overlay 数据
+    this.app.get('/api/overlay/:overlayId', (req: express.Request, res: express.Response) => {
       const overlayId = req.params.overlayId;
       const room = req.query.room as string;
       const token = req.query.token as string;
@@ -311,84 +396,33 @@ export class ApiServer {
         const overlay = this.overlayManager.getOverlay(overlayId);
         
         if (!overlay) {
-          return res.status(404).send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Overlay Not Found</title>
-              <meta charset="utf-8">
-              <style>
-                body { 
-                  margin: 0; 
-                  padding: 20px; 
-                  font-family: Arial, sans-serif;
-                  background: transparent;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  min-height: 100vh;
-                }
-                .error-info {
-                  background: rgba(255,0,0,0.8);
-                  color: white;
-                  padding: 20px;
-                  border-radius: 8px;
-                  text-align: center;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="error-info">
-                <h3>Overlay Not Found</h3>
-                <p>Overlay ID: ${overlayId}</p>
-                <p>The requested overlay does not exist or has been removed.</p>
-              </div>
-            </body>
-            </html>
-          `);
+          return res.status(404).json({
+            success: false,
+            error: 'OVERLAY_NOT_FOUND',
+            message: `Overlay with ID '${overlayId}' does not exist or has been removed.`,
+            overlayId
+          });
         }
 
-        // 生成overlay页面
-        const overlayHtml = this.generateOverlayPage(overlay, room, token);
-        res.send(overlayHtml);
+        // 返回overlay数据
+        res.json({
+          success: true,
+          data: {
+            overlay,
+            room,
+            token,
+            websocket_endpoint: `ws://127.0.0.1:${this.config.port}`
+          }
+        });
         
       } catch (error) {
-        console.error('[ApiServer] Error generating overlay page:', error);
-        res.status(500).send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Overlay Error</title>
-            <meta charset="utf-8">
-            <style>
-              body { 
-                margin: 0; 
-                padding: 20px; 
-                font-family: Arial, sans-serif;
-                background: transparent;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-              }
-              .error-info {
-                background: rgba(255,165,0,0.8);
-                color: white;
-                padding: 20px;
-                border-radius: 8px;
-                text-align: center;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="error-info">
-              <h3>Overlay Error</h3>
-              <p>An error occurred while generating the overlay page.</p>
-              <p>Please try again later.</p>
-            </div>
-          </body>
-          </html>
-        `);
+        console.error('[ApiServer] Error getting overlay data:', error);
+        res.status(500).json({
+          success: false,
+          error: 'OVERLAY_ERROR',
+          message: 'An error occurred while retrieving overlay data.',
+          details: (error as Error).message
+        });
       }
     });
 
@@ -734,6 +768,456 @@ export class ApiServer {
       "'": '&#039;'
     };
     return text.replace(/[&<>"']/g, (m) => map[m]);
+  }
+
+  /**
+   * 生成控制台页面HTML
+   */
+  private generateConsolePage(): string {
+    const commands = this.consoleManager.getCommands();
+    const sessions = this.consoleManager.getActiveSessions();
+    
+    return `
+      <!DOCTYPE html>
+      <html lang="zh-CN">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AcFun Live Toolbox - Console</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .header {
+            background: #2d2d30;
+            padding: 15px 20px;
+            border-bottom: 1px solid #3e3e42;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          
+          .header h1 {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 600;
+          }
+          
+          .status {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+          }
+          
+          .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+          }
+          
+          .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+          }
+          
+          .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+          }
+          
+          .sidebar {
+            width: 300px;
+            background: #252526;
+            border-right: 1px solid #3e3e42;
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .sidebar-section {
+            padding: 15px;
+            border-bottom: 1px solid #3e3e42;
+          }
+          
+          .sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #cccccc;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+          }
+          
+          .command-list {
+            max-height: 200px;
+            overflow-y: auto;
+          }
+          
+          .command-item {
+            padding: 5px 8px;
+            margin: 2px 0;
+            background: #2d2d30;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+          }
+          
+          .command-item:hover {
+            background: #37373d;
+          }
+          
+          .command-name {
+            color: #4fc1ff;
+            font-weight: 600;
+          }
+          
+          .command-desc {
+            color: #9d9d9d;
+            margin-top: 2px;
+          }
+          
+          .session-list {
+            flex: 1;
+            overflow-y: auto;
+          }
+          
+          .session-item {
+            padding: 8px 12px;
+            margin: 2px 0;
+            background: #2d2d30;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+          }
+          
+          .session-item:hover {
+            background: #37373d;
+          }
+          
+          .session-item.active {
+            background: #0e639c;
+          }
+          
+          .console-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+          }
+          
+          .console-output {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.4;
+          }
+          
+          .console-input {
+            background: #2d2d30;
+            border-top: 1px solid #3e3e42;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          
+          .prompt {
+            color: #4fc1ff;
+            font-weight: 600;
+          }
+          
+          .input-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #d4d4d4;
+            font-family: inherit;
+            font-size: 12px;
+            outline: none;
+          }
+          
+          .btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+          }
+          
+          .btn:hover {
+            background: #1177bb;
+          }
+          
+          .btn-secondary {
+            background: #5a5a5a;
+          }
+          
+          .btn-secondary:hover {
+            background: #6a6a6a;
+          }
+          
+          .output-line {
+            margin: 2px 0;
+          }
+          
+          .output-command {
+            color: #4fc1ff;
+          }
+          
+          .output-result {
+            color: #d4d4d4;
+            margin-left: 15px;
+          }
+          
+          .output-error {
+            color: #f48771;
+          }
+          
+          .output-success {
+            color: #4caf50;
+          }
+          
+          .welcome-message {
+            color: #9d9d9d;
+            text-align: center;
+            margin-top: 50px;
+          }
+          
+          .api-info {
+            background: #2d2d30;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 11px;
+          }
+          
+          .api-endpoint {
+            color: #4fc1ff;
+            margin: 2px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>AcFun Live Toolbox Console</h1>
+          <div class="status">
+            <div class="status-item">
+              <div class="status-dot"></div>
+              <span>HTTP Server</span>
+            </div>
+            <div class="status-item">
+              <div class="status-dot"></div>
+              <span>WebSocket (${this.wsHub?.getClientCount() || 0} clients)</span>
+            </div>
+            <div class="status-item">
+              <div class="status-dot"></div>
+              <span>${sessions.length} Sessions</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="main-content">
+          <div class="sidebar">
+            <div class="sidebar-section">
+              <div class="sidebar-title">Available Commands</div>
+              <div class="command-list">
+                ${commands.map(cmd => `
+                  <div class="command-item" onclick="insertCommand('${cmd.name}')">
+                    <div class="command-name">${cmd.name}</div>
+                    <div class="command-desc">${cmd.description}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="sidebar-section">
+              <div class="sidebar-title">Active Sessions</div>
+              <div class="session-list">
+                ${sessions.length > 0 ? sessions.map(session => `
+                  <div class="session-item" onclick="selectSession('${session.id}')">
+                    <div>${session.name || session.id}</div>
+                    <div style="color: #9d9d9d; font-size: 10px;">
+                      Created: ${new Date(session.createdAt).toLocaleTimeString()}
+                    </div>
+                  </div>
+                `).join('') : '<div style="color: #9d9d9d; padding: 10px; text-align: center;">No active sessions</div>'}
+              </div>
+              
+              <div style="padding: 10px; border-top: 1px solid #3e3e42;">
+                <button class="btn" onclick="createSession()">New Session</button>
+              </div>
+            </div>
+            
+            <div class="sidebar-section">
+              <div class="sidebar-title">API Information</div>
+              <div class="api-info">
+                <div class="api-endpoint">POST /api/console/sessions</div>
+                <div class="api-endpoint">GET /api/console/commands</div>
+                <div class="api-endpoint">POST /api/console/sessions/:id/execute</div>
+                <div style="margin-top: 8px; color: #9d9d9d;">
+                  Use these endpoints to integrate with external tools
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="console-area">
+            <div class="console-output" id="output">
+              <div class="welcome-message">
+                <h3>Welcome to AcFun Live Toolbox Console</h3>
+                <p>Create a session or select an existing one to start executing commands.</p>
+                <p>Type 'help' to see available commands.</p>
+              </div>
+            </div>
+            
+            <div class="console-input">
+              <span class="prompt">></span>
+              <input type="text" class="input-field" id="commandInput" placeholder="Enter command..." disabled>
+              <button class="btn" id="executeBtn" onclick="executeCommand()" disabled>Execute</button>
+              <button class="btn btn-secondary" onclick="clearOutput()">Clear</button>
+            </div>
+          </div>
+        </div>
+        
+        <script>
+          let currentSessionId = null;
+          
+          // 创建新会话
+          async function createSession() {
+            const name = prompt('Session name (optional):') || 'Console Session';
+            try {
+              const response = await fetch('/api/console/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+              });
+              const data = await response.json();
+              if (data.success) {
+                currentSessionId = data.session.id;
+                updateUI();
+                addOutput('System', 'Session created: ' + data.session.id, 'success');
+                location.reload(); // 刷新页面以更新会话列表
+              }
+            } catch (error) {
+              addOutput('Error', 'Failed to create session: ' + error.message, 'error');
+            }
+          }
+          
+          // 选择会话
+          function selectSession(sessionId) {
+            currentSessionId = sessionId;
+            updateUI();
+            addOutput('System', 'Selected session: ' + sessionId, 'success');
+          }
+          
+          // 执行命令
+          async function executeCommand() {
+            const input = document.getElementById('commandInput');
+            const command = input.value.trim();
+            if (!command || !currentSessionId) return;
+            
+            addOutput('Command', command, 'command');
+            input.value = '';
+            
+            try {
+              const response = await fetch('/api/console/sessions/' + currentSessionId + '/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command })
+              });
+              const data = await response.json();
+              if (data.success) {
+                const result = data.result;
+                addOutput('Result', result.output || 'Command executed successfully', result.success ? 'success' : 'error');
+              } else {
+                addOutput('Error', data.error || 'Command execution failed', 'error');
+              }
+            } catch (error) {
+              addOutput('Error', 'Network error: ' + error.message, 'error');
+            }
+          }
+          
+          // 插入命令到输入框
+          function insertCommand(command) {
+            const input = document.getElementById('commandInput');
+            input.value = command;
+            input.focus();
+          }
+          
+          // 添加输出
+          function addOutput(type, message, className = '') {
+            const output = document.getElementById('output');
+            const line = document.createElement('div');
+            line.className = 'output-line';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            line.innerHTML = '<span style="color: #9d9d9d;">[' + timestamp + ']</span> ' +
+                           '<span class="output-' + className + '">' + type + ':</span> ' +
+                           '<span class="output-result">' + message + '</span>';
+            
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+          }
+          
+          // 清空输出
+          function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+          }
+          
+          // 更新UI状态
+          function updateUI() {
+            const input = document.getElementById('commandInput');
+            const btn = document.getElementById('executeBtn');
+            const hasSession = currentSessionId !== null;
+            
+            input.disabled = !hasSession;
+            btn.disabled = !hasSession;
+            
+            // 更新会话选择状态
+            document.querySelectorAll('.session-item').forEach(item => {
+              item.classList.remove('active');
+            });
+            
+            if (hasSession) {
+              const activeItem = document.querySelector('[onclick="selectSession(\\'' + currentSessionId + '\\')"]');
+              if (activeItem) {
+                activeItem.classList.add('active');
+              }
+            }
+          }
+          
+          // 回车执行命令
+          document.getElementById('commandInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              executeCommand();
+            }
+          });
+          
+          // 初始化
+          updateUI();
+        </script>
+      </body>
+      </html>
+    `;
   }
 
   /**

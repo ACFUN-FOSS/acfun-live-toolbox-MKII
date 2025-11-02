@@ -154,6 +154,16 @@
 "acfunProxy": "callAcfun({method,path,body}) 由主进程带 token 转发，插件不可读 token【message\_idx†source】",
 "policy": "允许高权限操作但必须经主进程网关；HTTP/WS 统一经主进程转发【message\_idx†source】"
 },
+"developmentTools": {
+"description": "简化的插件开发调试工具，支持外部项目调试配置",
+"features": \[
+"外部Vue/React项目URL配置与连接测试",
+"Node.js代码路径配置与调试启动",
+"插件热重载与状态监控",
+"调试日志输出与错误追踪"
+],
+"scope": "插件可适配移动端显示，但主进程不做移动端适配"
+},
 "popupWindows": "插件可请求创建独立 BrowserWindow（弹幕显示亦走此机制）【message\_idx†source】",
 "installFlow": "zip/tgz → 校验 manifest → 解包到 plugins/<id>/ → 注册路由/设置/overlay → 可选拉起 Node Worker【message\_idx†source】"
 },
@@ -337,7 +347,7 @@
 "desktopLayout": {
 "style": "A3 插件优先版（默认）【message\_idx†source】",
 "leftPane": \["账号信息+扫码登录","房间列表(≤3)及状态/速率","服务状态(WS/SQLite/HTTP port)"],
-"centerPane": \["插件卡片列表","插件管理（安装/启用/禁用/诊断）","Settings/Logs Tabs"],
+"centerPane": \["插件卡片列表","插件管理（本地安装/启用/禁用/诊断，无依赖、无签名、无在线市场）","Settings/Logs Tabs"],
 "banner": "最新一条弹幕（可展开最近20条；一键打开“弹幕显示插件”弹窗）【message\_idx†source】",
 "popupWindows": "插件可创建独立弹窗（BrowserWindow），用于弹幕显示/运营面板等【message\_idx†source】"
 },
@@ -561,7 +571,8 @@
 "maxRoomsLimit": "implemented",
 "reconnectLogic": "implemented", 
 "statusTracking": "implemented",
-"heartbeat": "implemented"
+"heartbeat": "implemented",
+"backpressureStrategy": "shouldImplement"
 }
 },
 "EventStandardizer": {
@@ -604,7 +615,12 @@
 "pluginApi": "implemented",
 "routeRegistration": "implemented",
 "circuitBreaker": "implemented",
-"lifecycleManagement": "partial"
+"lifecycleManagement": "implemented",
+"localInstallation": "implemented",
+"hotReload": "implemented",
+"versionManagement": "implemented",
+"selfContainedPlugins": "implemented",
+"developmentTools": "implemented"
 }
 },
 "LoggingAndDiagnostics": {

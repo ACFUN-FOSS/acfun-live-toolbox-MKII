@@ -3,12 +3,20 @@ import { RoomManager } from '../rooms/RoomManager';
 import { AuthManager } from '../services/AuthManager';
 import { PluginManager } from '../plugins/PluginManager';
 import { OverlayManager } from '../plugins/OverlayManager';
+import { ConsoleManager } from '../console/ConsoleManager';
+import * as fs from 'fs';
 
 /**
  * Initializes all IPC handlers for the main process.
  * This is where the renderer process can communicate with the main process.
  */
-export function initializeIpcHandlers(roomManager: RoomManager, authManager: AuthManager, pluginManager: PluginManager, overlayManager: OverlayManager) {
+export function initializeIpcHandlers(
+  roomManager: RoomManager, 
+  authManager: AuthManager, 
+  pluginManager: PluginManager, 
+  overlayManager: OverlayManager,
+  consoleManager: ConsoleManager
+) {
   console.log('[IPC] Initializing IPC handlers...');
 
   ipcMain.handle('add-room', (event, roomId: string) => {
@@ -478,6 +486,207 @@ export function initializeIpcHandlers(roomManager: RoomManager, authManager: Aut
       return result;
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // --- Console Management ---
+  
+  // 创建控制台会话
+  ipcMain.handle('console:createSession', async (_event, options: { source: 'local' | 'remote'; userId?: string }) => {
+    try {
+      const sessionId = consoleManager.createSession(options.source, options.userId);
+      const session = consoleManager.getSession(sessionId);
+      return { success: true, data: session };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 结束控制台会话
+  ipcMain.handle('console:endSession', async (_event, options: { sessionId: string }) => {
+    try {
+      consoleManager.endSession(options.sessionId);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 执行控制台命令
+  ipcMain.handle('console:executeCommand', async (_event, options: { sessionId: string; commandLine: string }) => {
+    try {
+      const result = await consoleManager.executeCommand(options.sessionId, options.commandLine);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取可用命令列表
+  ipcMain.handle('console:getCommands', async () => {
+    try {
+      const commands = consoleManager.getCommands();
+      return { success: true, data: commands };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取会话信息
+  ipcMain.handle('console:getSession', async (_event, options: { sessionId: string }) => {
+    try {
+      const session = consoleManager.getSession(options.sessionId);
+      if (session) {
+        return { success: true, data: session };
+      } else {
+        return { success: false, error: 'Session not found' };
+      }
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取活跃会话列表
+  ipcMain.handle('console:getActiveSessions', async () => {
+    try {
+      const sessions = consoleManager.getActiveSessions();
+      return { success: true, data: sessions };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // --- Plugin Development Tools ---
+  
+  // 保存开发工具配置
+  ipcMain.handle('plugin.devtools.saveConfig', async (_event, config: any) => {
+    try {
+      const result = await pluginManager.saveDevConfig(config);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取开发工具配置
+  ipcMain.handle('plugin.devtools.getConfig', async (_event, pluginId?: string) => {
+    try {
+      const config = await pluginManager.getDevConfig(pluginId);
+      return { success: true, data: config };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 启动外部项目调试
+  ipcMain.handle('plugin.devtools.startDebug', async (_event, config: any) => {
+    try {
+      const result = await pluginManager.startExternalDebug(config);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 停止外部项目调试
+  ipcMain.handle('plugin.devtools.stopDebug', async (_event, pluginId: string) => {
+    try {
+      const result = await pluginManager.stopExternalDebug(pluginId);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 测试外部项目连接
+  ipcMain.handle('plugin.devtools.testConnection', async (_event, config: any) => {
+    try {
+      const result = await pluginManager.testExternalConnection(config);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 获取调试状态
+  ipcMain.handle('plugin.devtools.getDebugStatus', async (_event, pluginId: string) => {
+    try {
+      const status = await pluginManager.getDebugStatus(pluginId);
+      return { success: true, data: status };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 启用热重载
+  ipcMain.handle('plugin.devtools.enableHotReload', async (_event, pluginId: string) => {
+    try {
+      const result = await pluginManager.enableHotReload(pluginId);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 禁用热重载
+  ipcMain.handle('plugin.devtools.disableHotReload', async (_event, pluginId: string) => {
+    try {
+      const result = await pluginManager.disableHotReload(pluginId);
+      return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // --- Dialog API ---
+  
+  // 显示打开文件对话框
+  ipcMain.handle('dialog.showOpenDialog', async (_event, options: any) => {
+    try {
+      const result = await dialog.showOpenDialog(options);
+      return result;
+    } catch (err: any) {
+      return { canceled: true, error: err?.message || String(err) };
+    }
+  });
+
+  // 显示保存文件对话框
+  ipcMain.handle('dialog.showSaveDialog', async (_event, options: any) => {
+    try {
+      const result = await dialog.showSaveDialog(options);
+      return result;
+    } catch (err: any) {
+      return { canceled: true, error: err?.message || String(err) };
+    }
+  });
+
+  // --- File System API ---
+  
+  // 检查文件/目录是否存在
+  ipcMain.handle('fs.exists', async (_event, path: string) => {
+    try {
+      return fs.existsSync(path);
+    } catch (err: any) {
+      return false;
+    }
+  });
+
+  // 读取文件
+  ipcMain.handle('fs.readFile', async (_event, path: string) => {
+    try {
+      return fs.readFileSync(path, 'utf8');
+    } catch (err: any) {
+      throw new Error(`Failed to read file: ${err?.message || String(err)}`);
+    }
+  });
+
+  // 写入文件
+  ipcMain.handle('fs.writeFile', async (_event, path: string, data: string) => {
+    try {
+      fs.writeFileSync(path, data, 'utf8');
+      return true;
+    } catch (err: any) {
+      throw new Error(`Failed to write file: ${err?.message || String(err)}`);
     }
   });
 

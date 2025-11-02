@@ -1,33 +1,12 @@
 <template>
   <div class="central-plugin-container">
-    <!-- 默认欢迎页面 -->
-    <div v-if="!currentPlugin" class="welcome-page">
-      <div class="welcome-content">
-        <div class="welcome-icon">
-          <t-icon name="app" size="64px" />
-        </div>
-        <h2>欢迎使用 AcFun 直播工具箱</h2>
-        <p>从左侧选择一个插件开始使用，或者安装新的插件来扩展功能。</p>
-        <div class="quick-actions">
-          <t-button theme="primary" @click="$emit('showInstaller')">
-            <template #icon><t-icon name="add" /></template>
-            安装插件
-          </t-button>
-          <t-button variant="outline" @click="$emit('systemNavigation', 'rooms')">
-            <template #icon><t-icon name="home" /></template>
-            房间管理
-          </t-button>
-        </div>
-      </div>
-    </div>
-
     <!-- 系统页面容器 -->
-    <div v-else-if="isSystemPage" class="system-page-container">
+    <div v-if="isSystemPage" class="system-page-container">
       <component :is="systemComponent" />
     </div>
 
     <!-- 插件容器 -->
-    <div v-else class="plugin-container">
+    <div v-else-if="currentPlugin" class="plugin-container">
       <div class="plugin-header">
         <div class="plugin-info">
           <h3>{{ currentPlugin.name }}</h3>
@@ -82,6 +61,27 @@
         </div>
       </div>
     </div>
+
+    <!-- 默认欢迎页面 -->
+    <div v-else class="welcome-page">
+      <div class="welcome-content">
+        <div class="welcome-icon">
+          <t-icon name="app" size="64px" />
+        </div>
+        <h2>欢迎使用 AcFun 直播工具箱</h2>
+        <p>从左侧选择一个插件开始使用，或者安装新的插件来扩展功能。</p>
+        <div class="quick-actions">
+          <t-button theme="primary" @click="$emit('showInstaller')">
+            <template #icon><t-icon name="add" /></template>
+            安装插件
+          </t-button>
+          <t-button variant="outline" @click="$emit('systemNavigation', 'rooms')">
+            <template #icon><t-icon name="home" /></template>
+            房间管理
+          </t-button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -116,7 +116,10 @@ const systemComponents = {
   rooms: defineAsyncComponent(() => import('../pages/Rooms.vue')),
   settings: defineAsyncComponent(() => import('../pages/Settings.vue')),
   events: defineAsyncComponent(() => import('../pages/Events.vue')),
-  stats: defineAsyncComponent(() => import('../pages/Stats.vue'))
+  stats: defineAsyncComponent(() => import('../pages/Stats.vue')),
+  'api-docs': defineAsyncComponent(() => import('../pages/ApiDocs.vue')),
+  console: defineAsyncComponent(() => import('../pages/Console.vue')),
+  overlay: defineAsyncComponent(() => import('../pages/Overlay.vue'))
 };
 
 const pluginContentRef = ref<HTMLElement>();
@@ -175,17 +178,15 @@ function customFetch(url: string, options?: RequestInit) {
 function onPluginBeforeLoad() {
   isLoading.value = true;
   loadError.value = '';
-  console.log('Plugin before load:', props.currentPlugin?.id);
 }
 
 function onPluginBeforeMount() {
-  console.log('Plugin before mount:', props.currentPlugin?.id);
+  // Plugin is about to mount
 }
 
 function onPluginAfterMount() {
   isLoading.value = false;
   isReloading.value = false;
-  console.log('Plugin after mount:', props.currentPlugin?.id);
   
   // 通知插件已加载
   emit('pluginEvent', { 
@@ -195,11 +196,11 @@ function onPluginAfterMount() {
 }
 
 function onPluginBeforeUnmount() {
-  console.log('Plugin before unmount:', props.currentPlugin?.id);
+  // Plugin is about to unmount
 }
 
 function onPluginAfterUnmount() {
-  console.log('Plugin after unmount:', props.currentPlugin?.id);
+  // Plugin has been unmounted
 }
 
 function onPluginLoadError(error: Error) {
