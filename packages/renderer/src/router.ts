@@ -10,11 +10,7 @@ const routes = [
     component: () => import('./pages/HomePage.vue'),
     meta: { title: '首页' }
   },
-  {
-    path: '/login',
-    component: () => import('./pages/Login.vue'),
-    meta: { title: '登录' }
-  },
+
   // 直播功能路由
   {
     path: '/live',

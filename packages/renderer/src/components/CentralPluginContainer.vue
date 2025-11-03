@@ -1,12 +1,18 @@
 <template>
   <div class="central-plugin-container">
     <!-- 系统页面容器 -->
-    <div v-if="isSystemPage" class="system-page-container">
+    <div
+      v-if="isSystemPage"
+      class="system-page-container"
+    >
       <component :is="systemComponent" />
     </div>
 
     <!-- 插件容器 -->
-    <div v-else-if="currentPlugin" class="plugin-container">
+    <div
+      v-else-if="currentPlugin"
+      class="plugin-container"
+    >
       <div class="plugin-header">
         <div class="plugin-info">
           <h3>{{ currentPlugin.name }}</h3>
@@ -16,16 +22,21 @@
           <t-button 
             size="small" 
             variant="outline"
-            @click="reloadPlugin"
             :loading="isReloading"
+            @click="reloadPlugin"
           >
-            <template #icon><t-icon name="refresh" /></template>
+            <template #icon>
+              <t-icon name="refresh" />
+            </template>
             刷新
           </t-button>
         </div>
       </div>
       
-      <div class="plugin-content" ref="pluginContentRef">
+      <div
+        ref="pluginContentRef"
+        class="plugin-content"
+      >
         <!-- Wujie 微前端容器 -->
         <WujieVue
           v-if="currentPlugin && pluginUrl"
@@ -35,27 +46,42 @@
           :sync="false"
           :fetch="customFetch"
           :props="pluginProps"
-          @beforeLoad="onPluginBeforeLoad"
-          @beforeMount="onPluginBeforeMount"
-          @afterMount="onPluginAfterMount"
-          @beforeUnmount="onPluginBeforeUnmount"
-          @afterUnmount="onPluginAfterUnmount"
-          @loadError="onPluginLoadError"
+          @before-load="onPluginBeforeLoad"
+          @before-mount="onPluginBeforeMount"
+          @after-mount="onPluginAfterMount"
+          @before-unmount="onPluginBeforeUnmount"
+          @after-unmount="onPluginAfterUnmount"
+          @load-error="onPluginLoadError"
         />
         
         <!-- 加载状态 -->
-        <div v-if="isLoading" class="loading-state">
-          <t-loading size="large" text="正在加载插件..." />
+        <div
+          v-if="isLoading"
+          class="loading-state"
+        >
+          <t-loading
+            size="large"
+            text="正在加载插件..."
+          />
         </div>
         
         <!-- 错误状态 -->
-        <div v-if="loadError" class="error-state">
+        <div
+          v-if="loadError"
+          class="error-state"
+        >
           <div class="error-icon">
-            <t-icon name="error-circle" size="48px" />
+            <t-icon
+              name="error-circle"
+              size="48px"
+            />
           </div>
           <h3>插件加载失败</h3>
           <p>{{ loadError }}</p>
-          <t-button theme="primary" @click="reloadPlugin">
+          <t-button
+            theme="primary"
+            @click="reloadPlugin"
+          >
             重新加载
           </t-button>
         </div>
@@ -63,20 +89,36 @@
     </div>
 
     <!-- 默认欢迎页面 -->
-    <div v-else class="welcome-page">
+    <div
+      v-else
+      class="welcome-page"
+    >
       <div class="welcome-content">
         <div class="welcome-icon">
-          <t-icon name="app" size="64px" />
+          <t-icon
+            name="app"
+            size="64px"
+          />
         </div>
         <h2>欢迎使用 AcFun 直播工具箱</h2>
         <p>从左侧选择一个插件开始使用，或者安装新的插件来扩展功能。</p>
         <div class="quick-actions">
-          <t-button theme="primary" @click="$emit('showInstaller')">
-            <template #icon><t-icon name="add" /></template>
+          <t-button
+            theme="primary"
+            @click="$emit('showInstaller')"
+          >
+            <template #icon>
+              <t-icon name="add" />
+            </template>
             安装插件
           </t-button>
-          <t-button variant="outline" @click="$emit('systemNavigation', 'rooms')">
-            <template #icon><t-icon name="home" /></template>
+          <t-button
+            variant="outline"
+            @click="$emit('systemNavigation', 'rooms')"
+          >
+            <template #icon>
+              <t-icon name="home" />
+            </template>
             房间管理
           </t-button>
         </div>

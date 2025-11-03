@@ -2,36 +2,69 @@
   <div class="error-page">
     <div class="error-container">
       <div class="error-icon">
-        <t-icon name="error-circle" size="64px" />
+        <t-icon
+          name="error-circle"
+          size="64px"
+        />
       </div>
       
       <div class="error-content">
-        <h1 class="error-title">{{ errorTitle }}</h1>
-        <p class="error-message">{{ errorMessage }}</p>
+        <h1 class="error-title">
+          {{ errorTitle }}
+        </h1>
+        <p class="error-message">
+          {{ errorMessage }}
+        </p>
         
-        <div v-if="errorDetails" class="error-details">
+        <div
+          v-if="errorDetails"
+          class="error-details"
+        >
           <t-collapse>
-            <t-collapse-panel header="错误详情" value="details">
+            <t-collapse-panel
+              header="错误详情"
+              value="details"
+            >
               <pre class="error-stack">{{ errorDetails }}</pre>
             </t-collapse-panel>
           </t-collapse>
         </div>
         
         <div class="error-actions">
-          <t-button theme="primary" @click="goHome">
-            <template #icon><t-icon name="home" /></template>
+          <t-button
+            theme="primary"
+            @click="goHome"
+          >
+            <template #icon>
+              <t-icon name="home" />
+            </template>
             返回首页
           </t-button>
-          <t-button variant="outline" @click="goBack">
-            <template #icon><t-icon name="arrow-left" /></template>
+          <t-button
+            variant="outline"
+            @click="goBack"
+          >
+            <template #icon>
+              <t-icon name="arrow-left" />
+            </template>
             返回上页
           </t-button>
-          <t-button variant="outline" @click="reload">
-            <template #icon><t-icon name="refresh" /></template>
+          <t-button
+            variant="outline"
+            @click="reload"
+          >
+            <template #icon>
+              <t-icon name="refresh" />
+            </template>
             重新加载
           </t-button>
-          <t-button variant="outline" @click="reportError">
-            <template #icon><t-icon name="bug-report" /></template>
+          <t-button
+            variant="outline"
+            @click="reportError"
+          >
+            <template #icon>
+              <t-icon name="bug-report" />
+            </template>
             报告错误
           </t-button>
         </div>

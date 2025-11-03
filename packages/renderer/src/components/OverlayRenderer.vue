@@ -15,8 +15,8 @@
     
     <!-- Vue组件渲染 -->
     <component 
-      v-else-if="overlay.type === 'component'" 
-      :is="getComponent"
+      :is="getComponent" 
+      v-else-if="overlay.type === 'component'"
       class="overlay-content component-content"
       v-bind="overlay.props || {}"
       @overlay-action="handleComponentAction"
@@ -31,7 +31,10 @@
     </div>
     
     <!-- 默认内容 -->
-    <div v-else class="overlay-content default-content">
+    <div
+      v-else
+      class="overlay-content default-content"
+    >
       <div class="overlay-info">
         <h3>{{ overlay.title || overlay.id }}</h3>
         <p>{{ overlay.description || 'Overlay content' }}</p>
@@ -42,8 +45,8 @@
     <button 
       v-if="overlay.closable !== false" 
       class="overlay-close-btn"
-      @click="handleClose"
       aria-label="Close overlay"
+      @click="handleClose"
     >
       ×
     </button>

@@ -94,7 +94,7 @@ const notification = ref<Notification | null>(null);
 const popupManager = ref<InstanceType<typeof PluginPopupManager> | null>(null);
 const overlayManager = ref<InstanceType<typeof OverlayManager> | null>(null);
 
-let notificationTimer: number | null = null;
+let notificationTimer: ReturnType<typeof setTimeout> | null = null;
 
 // 处理插件选择
 function handlePluginSelected(plugin: Plugin) {
@@ -184,7 +184,7 @@ function showNotification(notif: Notification) {
   if (notif.duration && notif.duration > 0) {
     notificationTimer = setTimeout(() => {
       dismissNotification();
-    }, notif.duration) as any;
+    }, notif.duration);
   }
 }
 

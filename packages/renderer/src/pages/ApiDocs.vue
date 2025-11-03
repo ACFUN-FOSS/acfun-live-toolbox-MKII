@@ -2,15 +2,24 @@
   <div class="api-docs">
     <div class="header">
       <h1>AcFun Live Toolbox API</h1>
-      <div class="server-info" v-if="serverInfo">
-        <div class="status-badge" :class="{ online: serverInfo.status === 'running' }">
+      <div
+        v-if="serverInfo"
+        class="server-info"
+      >
+        <div
+          class="status-badge"
+          :class="{ online: serverInfo.status === 'running' }"
+        >
           {{ serverInfo.status === 'running' ? '在线' : '离线' }}
         </div>
         <span class="version">v{{ serverInfo.version }}</span>
       </div>
     </div>
 
-    <div class="content" v-if="serverInfo">
+    <div
+      v-if="serverInfo"
+      class="content"
+    >
       <div class="server-status">
         <h2>服务器状态</h2>
         <div class="status-grid">
@@ -36,7 +45,11 @@
       <div class="api-endpoints">
         <h2>API 端点</h2>
         
-        <div class="endpoint-group" v-for="(endpoints, groupName) in serverInfo.endpoints" :key="groupName">
+        <div
+          v-for="(endpoints, groupName) in serverInfo.endpoints"
+          :key="groupName"
+          class="endpoint-group"
+        >
           <h3>{{ groupName.toUpperCase() }} API</h3>
           <div class="endpoints-list">
             <div 
@@ -45,7 +58,10 @@
               class="endpoint-item"
             >
               <div class="endpoint-header">
-                <span class="method" :class="endpoint.method?.toLowerCase() || 'get'">
+                <span
+                  class="method"
+                  :class="endpoint.method?.toLowerCase() || 'get'"
+                >
                   {{ endpoint.method || 'GET' }}
                 </span>
                 <span class="path">{{ endpoint.path }}</span>
@@ -59,8 +75,11 @@
       </div>
     </div>
 
-    <div class="loading" v-else>
-      <div class="spinner"></div>
+    <div
+      v-else
+      class="loading"
+    >
+      <div class="spinner" />
       <p>正在加载服务器信息...</p>
     </div>
   </div>

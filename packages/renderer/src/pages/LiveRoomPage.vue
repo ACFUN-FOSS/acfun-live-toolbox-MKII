@@ -3,11 +3,17 @@
     <div class="page-header">
       <h2>直播房间管理</h2>
       <div class="header-actions">
-        <t-button theme="primary" @click="showAddDialog = true">
+        <t-button
+          theme="primary"
+          @click="showAddDialog = true"
+        >
           <t-icon name="add" />
           添加房间
         </t-button>
-        <t-button variant="outline" @click="refreshRooms">
+        <t-button
+          variant="outline"
+          @click="refreshRooms"
+        >
           <t-icon name="refresh" />
           刷新
         </t-button>
@@ -16,34 +22,66 @@
 
     <!-- 房间统计 -->
     <div class="room-stats">
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ roomStore.rooms.length }}</div>
-          <div class="stat-label">总房间数</div>
+          <div class="stat-number">
+            {{ roomStore.rooms.length }}
+          </div>
+          <div class="stat-label">
+            总房间数
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ roomStore.liveRooms.length }}</div>
-          <div class="stat-label">在线房间</div>
+          <div class="stat-number">
+            {{ roomStore.liveRooms.length }}
+          </div>
+          <div class="stat-label">
+            在线房间
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ roomStore.totalViewers.toLocaleString() }}</div>
-          <div class="stat-label">总观众数</div>
+          <div class="stat-number">
+            {{ roomStore.totalViewers.toLocaleString() }}
+          </div>
+          <div class="stat-label">
+            总观众数
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ roomStore.offlineRooms.length }}</div>
-          <div class="stat-label">离线房间</div>
+          <div class="stat-number">
+            {{ roomStore.offlineRooms.length }}
+          </div>
+          <div class="stat-label">
+            离线房间
+          </div>
         </div>
       </t-card>
     </div>
 
     <!-- 房间列表 -->
-    <t-card class="room-list-card" title="房间列表" hoverShadow>
+    <t-card
+      class="room-list-card"
+      title="房间列表"
+      hover-shadow
+    >
       <template #actions>
         <t-input 
           v-model="searchKeyword" 
@@ -57,49 +95,83 @@
         </t-input>
       </template>
 
-      <div v-if="roomStore.isLoading" class="loading-state">
+      <div
+        v-if="roomStore.isLoading"
+        class="loading-state"
+      >
         <t-loading />
         <span>加载房间列表中...</span>
       </div>
 
-      <div v-else-if="filteredRooms.length === 0" class="empty-state">
-        <t-icon name="home" size="48px" />
+      <div
+        v-else-if="filteredRooms.length === 0"
+        class="empty-state"
+      >
+        <t-icon
+          name="home"
+          size="48px"
+        />
         <p>{{ searchKeyword ? '未找到匹配的房间' : '暂无房间连接' }}</p>
-        <t-button v-if="!searchKeyword" theme="primary" @click="showAddDialog = true">
+        <t-button
+          v-if="!searchKeyword"
+          theme="primary"
+          @click="showAddDialog = true"
+        >
           添加第一个房间
         </t-button>
       </div>
 
-      <div v-else class="room-list">
+      <div
+        v-else
+        class="room-list"
+      >
         <div 
           v-for="room in filteredRooms" 
           :key="room.liveId"
           class="room-item"
           :class="{ 
-            online: room.status === 'live',
-            offline: room.status === 'offline',
-            preparing: room.status === 'preparing'
+            online: room.status === 'connected',
+            offline: room.status === 'disconnected',
+            preparing: room.status === 'connecting'
           }"
         >
           <div class="room-avatar">
-            <img :src="room.streamer?.avatar || '/default-avatar.png'" :alt="room.streamer?.userName" />
-            <div class="status-indicator" :class="room.status"></div>
+            <img
+              :src="room.streamer?.avatar || '/default-avatar.png'"
+              :alt="room.streamer?.userName"
+            >
+            <div
+              class="status-indicator"
+              :class="room.status"
+            />
           </div>
           
           <div class="room-info">
-            <div class="room-title">{{ room.title || '未知标题' }}</div>
-            <div class="room-streamer">{{ room.streamer?.userName || '未知主播' }}</div>
-            <div class="room-id">房间ID: {{ room.liveId }}</div>
+            <div class="room-title">
+              {{ room.title || '未知标题' }}
+            </div>
+            <div class="room-streamer">
+              {{ room.streamer?.userName || '未知主播' }}
+            </div>
+            <div class="room-id">
+              房间ID: {{ room.liveId }}
+            </div>
             <div class="room-stats">
               <span class="viewer-count">
                 <t-icon name="user" />
                 {{ room.onlineCount?.toLocaleString() || 0 }}
               </span>
-              <span v-if="room.likeCount" class="like-count">
+              <span
+                v-if="room.likeCount"
+                class="like-count"
+              >
                 <t-icon name="thumb-up" />
                 {{ room.likeCount.toLocaleString() }}
               </span>
-              <span class="status-text" :class="room.status">
+              <span
+                class="status-text"
+                :class="room.status"
+              >
                 {{ getStatusText(room.status) }}
               </span>
             </div>
@@ -108,16 +180,23 @@
           <div class="room-actions">
             <t-button 
               size="small" 
-              :theme="room.status === 'live' ? 'danger' : 'primary'"
+              :theme="room.status === 'connected' ? 'danger' : 'primary'"
               @click="toggleConnection(room)"
             >
-              {{ room.status === 'live' ? '断开' : '连接' }}
+              {{ room.status === 'connected' ? '断开' : '连接' }}
             </t-button>
-            <t-button size="small" variant="outline" @click="viewRoomDetails(room)">
+            <t-button
+              size="small"
+              variant="outline"
+              @click="viewRoomDetails(room)"
+            >
               详情
             </t-button>
             <t-dropdown :options="getRoomMenuOptions(room)">
-              <t-button size="small" variant="text">
+              <t-button
+                size="small"
+                variant="text"
+              >
                 <t-icon name="more" />
               </t-button>
             </t-dropdown>
@@ -134,8 +213,16 @@
       @confirm="addRoom"
       @cancel="resetAddForm"
     >
-      <t-form :data="addForm" :rules="addFormRules" ref="addFormRef" layout="vertical">
-        <t-form-item label="房间ID" name="roomId">
+      <t-form
+        ref="addFormRef"
+        :data="addForm"
+        :rules="addFormRules"
+        layout="vertical"
+      >
+        <t-form-item
+          label="房间ID"
+          name="roomId"
+        >
           <t-input 
             v-model="addForm.roomId" 
             placeholder="请输入AcFun直播房间ID"
@@ -145,7 +232,10 @@
             <span>可以输入完整的直播间链接或房间ID</span>
           </template>
         </t-form-item>
-        <t-form-item label="优先级" name="priority">
+        <t-form-item
+          label="优先级"
+          name="priority"
+        >
           <t-slider 
             v-model="addForm.priority" 
             :min="0" 
@@ -154,13 +244,19 @@
             :marks="{ 0: '低', 5: '中', 10: '高' }"
           />
         </t-form-item>
-        <t-form-item label="标签" name="label">
+        <t-form-item
+          label="标签"
+          name="label"
+        >
           <t-input 
             v-model="addForm.label" 
             placeholder="为房间添加标签（可选）"
           />
         </t-form-item>
-        <t-form-item label="自动连接" name="autoConnect">
+        <t-form-item
+          label="自动连接"
+          name="autoConnect"
+        >
           <t-switch v-model="addForm.autoConnect" />
           <template #help>
             <span>启动时自动连接此房间</span>
@@ -175,7 +271,10 @@
       :title="`房间详情 - ${selectedRoom?.title || '未知'}`"
       width="600px"
     >
-      <div v-if="selectedRoom" class="room-details">
+      <div
+        v-if="selectedRoom"
+        class="room-details"
+      >
         <div class="detail-section">
           <h4>基本信息</h4>
           <div class="detail-grid">
@@ -193,7 +292,10 @@
             </div>
             <div class="detail-item">
               <span class="label">状态:</span>
-              <span class="value" :class="selectedRoom.status">
+              <span
+                class="value"
+                :class="selectedRoom.status"
+              >
                 {{ getStatusText(selectedRoom.status) }}
               </span>
             </div>
@@ -231,7 +333,6 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useRoomStore, type Room } from '../stores/room';
 import { useConsoleStore } from '../stores/console';
-import type { LiveRoomInfo } from 'acfunlive-http-api/src/types';
 
 const router = useRouter();
 const roomStore = useRoomStore();
@@ -323,9 +424,9 @@ const resetAddForm = () => {
   addFormRef.value?.clearValidate();
 };
 
-const toggleConnection = async (room: LiveRoomInfo) => {
+const toggleConnection = async (room: Room) => {
   try {
-    if (room.status === 'live') {
+    if (room.status === 'connected') {
       // 断开连接
       await consoleStore.disconnectRoom(room.liveId);
     } else {
@@ -338,12 +439,12 @@ const toggleConnection = async (room: LiveRoomInfo) => {
   }
 };
 
-const viewRoomDetails = (room: LiveRoomInfo) => {
+const viewRoomDetails = (room: Room) => {
   selectedRoom.value = room as any;
   showDetailsDialog.value = true;
 };
 
-const getRoomMenuOptions = (room: LiveRoomInfo) => [
+const getRoomMenuOptions = (room: Room) => [
   {
     content: '查看弹幕',
     value: 'danmu',
@@ -367,17 +468,17 @@ const getRoomMenuOptions = (room: LiveRoomInfo) => [
   }
 ];
 
-const copyRoomLink = (room: LiveRoomInfo) => {
+const copyRoomLink = (room: Room) => {
   const url = `https://live.acfun.cn/live/${room.liveId}`;
   navigator.clipboard.writeText(url);
   // TODO: 显示成功提示
 };
 
-const editRoom = (_room: LiveRoomInfo) => {
+const editRoom = (_room: Room) => {
   // TODO: 实现房间编辑功能
 };
 
-const deleteRoom = async (room: LiveRoomInfo) => {
+const deleteRoom = async (room: Room) => {
   try {
     await roomStore.removeRoom(room.liveId);
     await refreshRooms();

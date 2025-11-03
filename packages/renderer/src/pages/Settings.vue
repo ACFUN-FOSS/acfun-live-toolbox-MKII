@@ -5,11 +5,20 @@
     </div>
 
     <div class="settings-content">
-      <t-tabs v-model="activeTab" placement="left">
-        <t-tab-panel value="general" label="通用设置">
+      <t-tabs
+        v-model="activeTab"
+        placement="left"
+      >
+        <t-tab-panel
+          value="general"
+          label="通用设置"
+        >
           <div class="settings-section">
             <h3>应用设置</h3>
-            <t-form :data="generalSettings" layout="vertical">
+            <t-form
+              :data="generalSettings"
+              layout="vertical"
+            >
               <t-form-item label="启动时自动连接房间">
                 <t-switch v-model="generalSettings.autoConnect" />
               </t-form-item>
@@ -26,10 +35,16 @@
           </div>
         </t-tab-panel>
 
-        <t-tab-panel value="danmu" label="弹幕设置">
+        <t-tab-panel
+          value="danmu"
+          label="弹幕设置"
+        >
           <div class="settings-section">
             <h3>弹幕显示</h3>
-            <t-form :data="danmuSettings" layout="vertical">
+            <t-form
+              :data="danmuSettings"
+              layout="vertical"
+            >
               <t-form-item label="显示弹幕">
                 <t-switch v-model="danmuSettings.enabled" />
               </t-form-item>
@@ -57,10 +72,16 @@
           </div>
         </t-tab-panel>
 
-        <t-tab-panel value="plugins" label="插件设置">
+        <t-tab-panel
+          value="plugins"
+          label="插件设置"
+        >
           <div class="settings-section">
             <h3>插件管理</h3>
-            <t-form :data="pluginSettings" layout="vertical">
+            <t-form
+              :data="pluginSettings"
+              layout="vertical"
+            >
               <t-form-item label="启用插件系统">
                 <t-switch v-model="pluginSettings.enabled" />
               </t-form-item>
@@ -82,14 +103,23 @@
           </div>
         </t-tab-panel>
 
-        <t-tab-panel value="network" label="网络设置">
+        <t-tab-panel
+          value="network"
+          label="网络设置"
+        >
           <div class="settings-section">
             <h3>网络配置</h3>
-            <t-form :data="networkSettings" layout="vertical">
+            <t-form
+              :data="networkSettings"
+              layout="vertical"
+            >
               <t-form-item label="使用代理">
                 <t-switch v-model="networkSettings.useProxy" />
               </t-form-item>
-              <t-form-item v-if="networkSettings.useProxy" label="代理地址">
+              <t-form-item
+                v-if="networkSettings.useProxy"
+                label="代理地址"
+              >
                 <t-input 
                   v-model="networkSettings.proxyUrl" 
                   placeholder="http://127.0.0.1:8080"
@@ -115,23 +145,43 @@
           </div>
         </t-tab-panel>
 
-        <t-tab-panel value="data" label="数据管理">
+        <t-tab-panel
+          value="data"
+          label="数据管理"
+        >
           <div class="settings-section">
             <h3>配置导出</h3>
-            <t-form :data="exportOptions" layout="vertical">
+            <t-form
+              :data="exportOptions"
+              layout="vertical"
+            >
               <t-form-item label="导出格式">
                 <t-radio-group v-model="exportOptions.format">
-                  <t-radio value="json">JSON</t-radio>
-                  <t-radio value="csv">CSV</t-radio>
-                  <t-radio value="xlsx">Excel</t-radio>
+                  <t-radio value="json">
+                    JSON
+                  </t-radio>
+                  <t-radio value="csv">
+                    CSV
+                  </t-radio>
+                  <t-radio value="xlsx">
+                    Excel
+                  </t-radio>
                 </t-radio-group>
               </t-form-item>
               <t-form-item label="包含数据">
                 <t-checkbox-group v-model="exportOptions.includeData">
-                  <t-checkbox value="settings">应用设置</t-checkbox>
-                  <t-checkbox value="plugins">插件配置</t-checkbox>
-                  <t-checkbox value="rooms">房间信息</t-checkbox>
-                  <t-checkbox value="logs">系统日志</t-checkbox>
+                  <t-checkbox value="settings">
+                    应用设置
+                  </t-checkbox>
+                  <t-checkbox value="plugins">
+                    插件配置
+                  </t-checkbox>
+                  <t-checkbox value="rooms">
+                    房间信息
+                  </t-checkbox>
+                  <t-checkbox value="logs">
+                    系统日志
+                  </t-checkbox>
                 </t-checkbox-group>
               </t-form-item>
               <t-form-item>
@@ -141,13 +191,17 @@
                   :disabled="!canExportData"
                   @click="exportData"
                 >
-                  <template #icon><t-icon name="download" /></template>
+                  <template #icon>
+                    <t-icon name="download" />
+                  </template>
                   导出数据
                 </t-button>
               </t-form-item>
             </t-form>
 
-            <h3 style="margin-top: 32px;">配置导入</h3>
+            <h3 style="margin-top: 32px;">
+              配置导入
+            </h3>
             <t-form layout="vertical">
               <t-form-item label="选择配置文件">
                 <t-upload
@@ -166,7 +220,9 @@
                   :disabled="importFiles.length === 0"
                   @click="importData"
                 >
-                  <template #icon><t-icon name="upload" /></template>
+                  <template #icon>
+                    <t-icon name="upload" />
+                  </template>
                   导入配置
                 </t-button>
               </t-form-item>
@@ -174,21 +230,37 @@
           </div>
         </t-tab-panel>
 
-        <t-tab-panel value="diagnostics" label="系统诊断">
+        <t-tab-panel
+          value="diagnostics"
+          label="系统诊断"
+        >
           <div class="settings-section">
             <h3>诊断工具</h3>
             <p class="section-desc">
               生成系统诊断包，包含日志、配置和系统信息，用于问题排查和技术支持。
             </p>
             
-            <t-form :data="diagnosticOptions" layout="vertical">
+            <t-form
+              :data="diagnosticOptions"
+              layout="vertical"
+            >
               <t-form-item label="包含内容">
                 <t-checkbox-group v-model="diagnosticOptions.includeItems">
-                  <t-checkbox value="logs">系统日志</t-checkbox>
-                  <t-checkbox value="config">应用配置</t-checkbox>
-                  <t-checkbox value="plugins">插件信息</t-checkbox>
-                  <t-checkbox value="system">系统信息</t-checkbox>
-                  <t-checkbox value="network">网络状态</t-checkbox>
+                  <t-checkbox value="logs">
+                    系统日志
+                  </t-checkbox>
+                  <t-checkbox value="config">
+                    应用配置
+                  </t-checkbox>
+                  <t-checkbox value="plugins">
+                    插件信息
+                  </t-checkbox>
+                  <t-checkbox value="system">
+                    系统信息
+                  </t-checkbox>
+                  <t-checkbox value="network">
+                    网络状态
+                  </t-checkbox>
                 </t-checkbox-group>
               </t-form-item>
               <t-form-item label="日志时间范围">
@@ -205,7 +277,9 @@
                     :loading="generatingDiagnostic"
                     @click="generateDiagnostic"
                   >
-                    <template #icon><t-icon name="tools" /></template>
+                    <template #icon>
+                      <t-icon name="tools" />
+                    </template>
                     生成诊断包
                   </t-button>
                   <t-button 
@@ -213,20 +287,31 @@
                     variant="outline"
                     @click="openDiagnosticFolder"
                   >
-                    <template #icon><t-icon name="folder-open" /></template>
+                    <template #icon>
+                      <t-icon name="folder-open" />
+                    </template>
                     打开文件夹
                   </t-button>
                 </t-space>
               </t-form-item>
             </t-form>
 
-            <div v-if="lastDiagnosticPath" class="diagnostic-result">
-              <t-alert theme="success" :message="`诊断包已生成：${lastDiagnosticPath}`" />
+            <div
+              v-if="lastDiagnosticPath"
+              class="diagnostic-result"
+            >
+              <t-alert
+                theme="success"
+                :message="`诊断包已生成：${lastDiagnosticPath}`"
+              />
             </div>
           </div>
         </t-tab-panel>
 
-        <t-tab-panel value="about" label="关于">
+        <t-tab-panel
+          value="about"
+          label="关于"
+        >
           <div class="settings-section">
             <div class="about-content">
               <div class="app-info">
@@ -236,12 +321,22 @@
               </div>
               
               <div class="links">
-                <t-button variant="outline" @click="openLink('https://github.com/your-repo')">
-                  <template #icon><t-icon name="logo-github" /></template>
+                <t-button
+                  variant="outline"
+                  @click="openLink('https://github.com/your-repo')"
+                >
+                  <template #icon>
+                    <t-icon name="logo-github" />
+                  </template>
                   GitHub
                 </t-button>
-                <t-button variant="outline" @click="checkForUpdates">
-                  <template #icon><t-icon name="refresh" /></template>
+                <t-button
+                  variant="outline"
+                  @click="checkForUpdates"
+                >
+                  <template #icon>
+                    <t-icon name="refresh" />
+                  </template>
                   检查更新
                 </t-button>
               </div>
@@ -270,10 +365,16 @@
     </div>
 
     <div class="settings-footer">
-      <t-button @click="resetSettings" variant="outline">
+      <t-button
+        variant="outline"
+        @click="resetSettings"
+      >
         重置设置
       </t-button>
-      <t-button @click="saveSettings" theme="primary">
+      <t-button
+        theme="primary"
+        @click="saveSettings"
+      >
         保存设置
       </t-button>
     </div>

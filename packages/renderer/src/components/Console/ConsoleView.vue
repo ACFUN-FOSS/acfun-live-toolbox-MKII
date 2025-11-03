@@ -2,29 +2,35 @@
   <div class="console-view">
     <div class="console-header">
       <div class="console-title">
-        <i class="fas fa-terminal"></i>
+        <i class="fas fa-terminal" />
         <span>控制台</span>
       </div>
       <div class="console-actions">
         <button 
           class="btn btn-sm btn-outline-secondary"
-          @click="clearConsole"
           title="清空控制台"
+          @click="clearConsole"
         >
-          <i class="fas fa-trash"></i>
+          <i class="fas fa-trash" />
         </button>
         <button 
           class="btn btn-sm btn-outline-secondary"
-          @click="toggleSettings"
           title="设置"
+          @click="toggleSettings"
         >
-          <i class="fas fa-cog"></i>
+          <i class="fas fa-cog" />
         </button>
       </div>
     </div>
 
-    <div class="console-content" ref="consoleContent">
-      <div class="console-output" ref="outputContainer">
+    <div
+      ref="consoleContent"
+      class="console-content"
+    >
+      <div
+        ref="outputContainer"
+        class="console-output"
+      >
         <div 
           v-for="(entry, index) in outputHistory" 
           :key="index"
@@ -35,11 +41,17 @@
             {{ formatTimestamp(entry.timestamp) }}
           </div>
           <div class="entry-content">
-            <div v-if="entry.type === 'command'" class="command-line">
+            <div
+              v-if="entry.type === 'command'"
+              class="command-line"
+            >
               <span class="prompt">$</span>
               <span class="command">{{ entry.command }}</span>
             </div>
-            <div v-else-if="entry.type === 'result'" class="result-content">
+            <div
+              v-else-if="entry.type === 'result'"
+              class="result-content"
+            >
               <div 
                 v-if="entry.result.success" 
                 class="result-success"
@@ -50,7 +62,7 @@
                 v-else 
                 class="result-error"
               >
-                <i class="fas fa-exclamation-triangle"></i>
+                <i class="fas fa-exclamation-triangle" />
                 {{ entry.result.error || entry.result.message }}
               </div>
               <div 
@@ -60,25 +72,37 @@
                 <pre>{{ formatData(entry.result.data) }}</pre>
               </div>
             </div>
-            <div v-else-if="entry.type === 'info'" class="info-content">
-              <i class="fas fa-info-circle"></i>
+            <div
+              v-else-if="entry.type === 'info'"
+              class="info-content"
+            >
+              <i class="fas fa-info-circle" />
               {{ entry.message }}
             </div>
-            <div v-else-if="entry.type === 'warning'" class="warning-content">
-              <i class="fas fa-exclamation-triangle"></i>
+            <div
+              v-else-if="entry.type === 'warning'"
+              class="warning-content"
+            >
+              <i class="fas fa-exclamation-triangle" />
               {{ entry.message }}
             </div>
-            <div v-else-if="entry.type === 'error'" class="error-content">
-              <i class="fas fa-times-circle"></i>
+            <div
+              v-else-if="entry.type === 'error'"
+              class="error-content"
+            >
+              <i class="fas fa-times-circle" />
               {{ entry.message }}
             </div>
           </div>
         </div>
         
-        <div v-if="isExecuting" class="console-entry executing">
+        <div
+          v-if="isExecuting"
+          class="console-entry executing"
+        >
           <div class="entry-content">
             <div class="executing-indicator">
-              <i class="fas fa-spinner fa-spin"></i>
+              <i class="fas fa-spinner fa-spin" />
               执行中...
             </div>
           </div>
@@ -94,13 +118,16 @@
             type="text"
             class="command-input"
             placeholder="输入命令..."
+            :disabled="isExecuting"
             @keydown="handleKeyDown"
             @keyup="handleKeyUp"
-            :disabled="isExecuting"
-          />
+          >
         </div>
         
-        <div v-if="suggestions.length > 0" class="command-suggestions">
+        <div
+          v-if="suggestions.length > 0"
+          class="command-suggestions"
+        >
           <div 
             v-for="(suggestion, index) in suggestions"
             :key="index"
@@ -108,54 +135,73 @@
             :class="{ active: index === selectedSuggestion }"
             @click="applySuggestion(suggestion)"
           >
-            <div class="suggestion-name">{{ suggestion.name }}</div>
-            <div class="suggestion-description">{{ suggestion.description }}</div>
+            <div class="suggestion-name">
+              {{ suggestion.name }}
+            </div>
+            <div class="suggestion-description">
+              {{ suggestion.description }}
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 设置面板 -->
-    <div v-if="showSettings" class="console-settings">
+    <div
+      v-if="showSettings"
+      class="console-settings"
+    >
       <div class="settings-header">
         <h5>控制台设置</h5>
-        <button class="btn-close" @click="toggleSettings"></button>
+        <button
+          class="btn-close"
+          @click="toggleSettings"
+        />
       </div>
       <div class="settings-content">
         <div class="form-group">
           <label>
             <input 
-              type="checkbox" 
-              v-model="showData"
-            />
+              v-model="showData" 
+              type="checkbox"
+            >
             显示命令返回数据
           </label>
         </div>
         <div class="form-group">
           <label>
             <input 
-              type="checkbox" 
-              v-model="showTimestamp"
-            />
+              v-model="showTimestamp" 
+              type="checkbox"
+            >
             显示时间戳
           </label>
         </div>
         <div class="form-group">
           <label>最大历史记录数量</label>
           <input 
-            type="number" 
-            v-model.number="maxHistorySize"
+            v-model.number="maxHistorySize" 
+            type="number"
             min="50"
             max="1000"
             class="form-control"
-          />
+          >
         </div>
         <div class="form-group">
           <label>字体大小</label>
-          <select v-model="fontSize" class="form-control">
-            <option value="12px">小</option>
-            <option value="14px">中</option>
-            <option value="16px">大</option>
+          <select
+            v-model="fontSize"
+            class="form-control"
+          >
+            <option value="12px">
+              小
+            </option>
+            <option value="14px">
+              中
+            </option>
+            <option value="16px">
+              大
+            </option>
           </select>
         </div>
       </div>

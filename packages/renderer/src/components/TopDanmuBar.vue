@@ -2,20 +2,36 @@
   <div class="top-danmu-bar">
     <div class="danmu-container">
       <div class="room-status">
-        <span v-for="(status, roomId) in roomStatuses" :key="roomId" class="room-indicator">
+        <span
+          v-for="(status, roomId) in roomStatuses"
+          :key="roomId"
+          class="room-indicator"
+        >
           <span class="room-id">{{ roomId }}</span>
-          <span class="status-badge" :class="status">{{ status }}</span>
+          <span
+            class="status-badge"
+            :class="status"
+          >{{ status }}</span>
         </span>
       </div>
-      <div class="danmu-scroller" ref="scrollerRef">
-        <div class="danmu-track" :style="{ transform: `translateX(${scrollOffset}px)` }">
+      <div
+        ref="scrollerRef"
+        class="danmu-scroller"
+      >
+        <div
+          class="danmu-track"
+          :style="{ transform: `translateX(${scrollOffset}px)` }"
+        >
           <div 
             v-for="danmu in visibleDanmus" 
             :key="danmu.id" 
             class="danmu-item"
             :style="{ color: danmu.color }"
           >
-            <span class="room-tag" :style="{ backgroundColor: danmu.roomColor }">{{ danmu.roomId }}</span>
+            <span
+              class="room-tag"
+              :style="{ backgroundColor: danmu.roomColor }"
+            >{{ danmu.roomId }}</span>
             <span class="username">{{ danmu.username }}</span>
             <span class="content">{{ danmu.content }}</span>
           </div>

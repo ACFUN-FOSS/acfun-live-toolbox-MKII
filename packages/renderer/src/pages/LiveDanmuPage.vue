@@ -16,11 +16,17 @@
             :label="`${room.streamer?.userName} (${room.liveId})`"
           />
         </t-select>
-        <t-button variant="outline" @click="clearDanmu">
+        <t-button
+          variant="outline"
+          @click="clearDanmu"
+        >
           <t-icon name="delete" />
           清空弹幕
         </t-button>
-        <t-button variant="outline" @click="exportDanmu">
+        <t-button
+          variant="outline"
+          @click="exportDanmu"
+        >
           <t-icon name="download" />
           导出
         </t-button>
@@ -29,44 +35,88 @@
 
     <!-- 弹幕统计 -->
     <div class="danmu-stats">
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ danmuList.length }}</div>
-          <div class="stat-label">总弹幕数</div>
+          <div class="stat-number">
+            {{ danmuList.length }}
+          </div>
+          <div class="stat-label">
+            总弹幕数
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ commentCount }}</div>
-          <div class="stat-label">评论</div>
+          <div class="stat-number">
+            {{ commentCount }}
+          </div>
+          <div class="stat-label">
+            评论
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ giftCount }}</div>
-          <div class="stat-label">礼物</div>
+          <div class="stat-number">
+            {{ giftCount }}
+          </div>
+          <div class="stat-label">
+            礼物
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ likeCount }}</div>
-          <div class="stat-label">点赞</div>
+          <div class="stat-number">
+            {{ likeCount }}
+          </div>
+          <div class="stat-label">
+            点赞
+          </div>
         </div>
       </t-card>
     </div>
 
     <!-- 弹幕过滤器 -->
-    <t-card class="filter-card" title="弹幕过滤" hoverShadow>
+    <t-card
+      class="filter-card"
+      title="弹幕过滤"
+      hover-shadow
+    >
       <div class="filter-controls">
         <div class="filter-group">
           <label>事件类型:</label>
           <t-checkbox-group v-model="activeFilters">
-            <t-checkbox value="comment">评论</t-checkbox>
-            <t-checkbox value="gift">礼物</t-checkbox>
-            <t-checkbox value="like">点赞</t-checkbox>
-            <t-checkbox value="enter_room">进入</t-checkbox>
-            <t-checkbox value="follow">关注</t-checkbox>
-            <t-checkbox value="system">系统</t-checkbox>
+            <t-checkbox value="comment">
+              评论
+            </t-checkbox>
+            <t-checkbox value="gift">
+              礼物
+            </t-checkbox>
+            <t-checkbox value="like">
+              点赞
+            </t-checkbox>
+            <t-checkbox value="enter_room">
+              进入
+            </t-checkbox>
+            <t-checkbox value="follow">
+              关注
+            </t-checkbox>
+            <t-checkbox value="system">
+              系统
+            </t-checkbox>
           </t-checkbox-group>
         </div>
         
@@ -98,22 +148,42 @@
     </t-card>
 
     <!-- 弹幕列表 -->
-    <t-card class="danmu-list-card" title="弹幕列表" hoverShadow>
+    <t-card
+      class="danmu-list-card"
+      title="弹幕列表"
+      hover-shadow
+    >
       <template #actions>
         <span class="danmu-count">{{ filteredDanmu.length }} 条弹幕</span>
       </template>
 
-      <div v-if="!selectedRoomId" class="empty-state">
-        <t-icon name="chat" size="48px" />
+      <div
+        v-if="!selectedRoomId"
+        class="empty-state"
+      >
+        <t-icon
+          name="chat"
+          size="48px"
+        />
         <p>请先选择一个房间</p>
       </div>
 
-      <div v-else-if="filteredDanmu.length === 0" class="empty-state">
-        <t-icon name="chat" size="48px" />
+      <div
+        v-else-if="filteredDanmu.length === 0"
+        class="empty-state"
+      >
+        <t-icon
+          name="chat"
+          size="48px"
+        />
         <p>暂无弹幕数据</p>
       </div>
 
-      <div v-else class="danmu-list" ref="danmuListRef">
+      <div
+        v-else
+        ref="danmuListRef"
+        class="danmu-list"
+      >
         <div 
           v-for="danmu in filteredDanmu" 
           :key="danmu.id"
@@ -130,10 +200,19 @@
             />
           </div>
           <div class="danmu-actions">
-            <t-button size="small" variant="text" @click="copyDanmu(danmu)">
+            <t-button
+              size="small"
+              variant="text"
+              @click="copyDanmu(danmu)"
+            >
               <t-icon name="copy" />
             </t-button>
-            <t-button size="small" variant="text" theme="danger" @click="deleteDanmu(danmu)">
+            <t-button
+              size="small"
+              variant="text"
+              theme="danger"
+              @click="deleteDanmu(danmu)"
+            >
               <t-icon name="delete" />
             </t-button>
           </div>
@@ -147,7 +226,10 @@
       title="弹幕详情"
       width="500px"
     >
-      <div v-if="selectedDanmu" class="danmu-details">
+      <div
+        v-if="selectedDanmu"
+        class="danmu-details"
+      >
         <div class="detail-item">
           <span class="label">时间:</span>
           <span class="value">{{ formatDetailTime(selectedDanmu.timestamp) }}</span>
@@ -164,7 +246,10 @@
           <span class="label">用户ID:</span>
           <span class="value">{{ selectedDanmu.userId || '未知' }}</span>
         </div>
-        <div v-if="selectedDanmu.content" class="detail-item">
+        <div
+          v-if="selectedDanmu.content"
+          class="detail-item"
+        >
           <span class="label">内容:</span>
           <span class="value">{{ selectedDanmu.content }}</span>
         </div>

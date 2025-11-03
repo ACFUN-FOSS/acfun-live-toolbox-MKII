@@ -1,31 +1,20 @@
 import { EventEmitter } from 'events';
-import { AcFunLiveApi } from 'acfunlive-http-api';
+import { AcFunLiveApi, createApi, ApiConfig, DanmuMessage as StandardDanmuMessage, UserInfo, ManagerType } from 'acfunlive-http-api';
 import { AuthManager } from '../services/AuthManager';
+import { TokenManager } from '../services/TokenManager';
 import { ConnectionPoolManager } from './ConnectionPoolManager';
 import { ApiRetryManager } from '../services/ApiRetryManager';
 import { ConnectionErrorHandler } from './ConnectionErrorHandler';
 
 /**
- * 弹幕消息接口
- * 定义从 AcFun 直播间接收到的弹幕消息结构
+ * 弹幕消息接口（扩展标准接口）
+ * 基于 acfunlive-http-api 的标准 DanmuMessage 接口
  */
-export interface DanmuMessage {
-  /** 消息唯一标识符 */
-  id: string;
-  /** 用户ID */
-  userId: string;
-  /** 用户昵称 */
-  nickname: string;
-  /** 弹幕内容 */
-  content: string;
-  /** 发送时间戳 */
-  timestamp: number;
+export interface DanmuMessage extends StandardDanmuMessage {
   /** 消息类型 */
-  type: 'danmu' | 'gift' | 'like' | 'enter' | 'follow';
+  type: 'comment' | 'gift' | 'like' | 'enter' | 'follow' | 'throwBanana' | 'joinClub' | 'shareLive';
   /** 房间ID */
   roomId: string;
-  /** 额外数据（可选） */
-  extra?: any;
 }
 
 /**
@@ -64,6 +53,8 @@ export interface AdapterConfig {
   heartbeatInterval: number;
   /** 是否启用调试模式 */
   debug: boolean;
+  /** API配置 */
+  apiConfig?: Partial<ApiConfig>;
 }
 
 /**
@@ -130,32 +121,36 @@ export class AcfunAdapter extends EventEmitter {
   private connectionState: ConnectionState = ConnectionState.DISCONNECTED;
   /** AcFun Live API 实例 */
   private api: AcFunLiveApi | null = null;
-  /** 认证管理器实例 */
+  /** Token管理器 */
+  private tokenManager: TokenManager;
+  /** 认证管理器 */
   private authManager: AuthManager;
-  /** 连接池管理器实例 */
+  /** 连接池管理器 */
   private connectionPool: ConnectionPoolManager;
-  /** API 重试管理器实例 */
+  /** API 重试管理器 */
   private apiRetryManager: ApiRetryManager;
-  /** 连接错误处理器实例 */
+  /** 连接错误处理器 */
   private connectionErrorHandler: ConnectionErrorHandler;
   /** 重连定时器 */
   private reconnectTimer: NodeJS.Timeout | null = null;
   /** 心跳定时器 */
   private heartbeatTimer: NodeJS.Timeout | null = null;
-  /** 当前重连尝试次数 */
+  /** 重连尝试次数 */
   private reconnectAttempts: number = 0;
   /** 是否正在连接中 */
   private isConnecting: boolean = false;
   /** 是否已销毁 */
   private isdestroyed: boolean = false;
+  /** 弹幕会话ID */
+  private danmuSessionId: string | null = null;
   /** 消息处理器映射 */
   private messageHandlers: Map<string, (data: any) => void> = new Map();
 
   /**
    * 构造函数
    * @param config 适配器配置
-   * @param authManager 认证管理器实例（可选）
-   * @param connectionPool 连接池管理器实例（可选）
+   * @param authManager 认证管理器（可选）
+   * @param connectionPool 连接池管理器（可选）
    */
   constructor(
     config: Partial<AdapterConfig> = {},
@@ -173,14 +168,26 @@ export class AcfunAdapter extends EventEmitter {
       connectionTimeout: 30000,
       heartbeatInterval: 30000,
       debug: false,
+      apiConfig: {
+        timeout: 30000,
+        retryCount: 3,
+        baseUrl: 'https://api-new.acfunchina.com',
+        headers: {
+          'User-Agent': 'AcFun-Live-Toolbox/2.0'
+        }
+      },
       ...config
     };
 
     // 初始化依赖组件
+    this.tokenManager = TokenManager.getInstance();
     this.authManager = authManager || new AuthManager();
     this.connectionPool = connectionPool || new ConnectionPoolManager();
     this.apiRetryManager = new ApiRetryManager();
     this.connectionErrorHandler = new ConnectionErrorHandler();
+
+    // 使用TokenManager提供的统一API实例
+    this.api = this.tokenManager.getApiInstance();
 
     // 设置事件监听器
     this.setupEventListeners();
@@ -218,22 +225,22 @@ export class AcfunAdapter extends EventEmitter {
       }
     });
 
-    // API 重试管理器事件
-    this.apiRetryManager.on('retryAttempt', (attempt: number, error: Error) => {
+    // API 调用管理器事件
+    this.apiRetryManager.on('api-call', (event: { key: string; success: boolean; duration: number }) => {
       if (this.config.debug) {
-        console.log(`[AcfunAdapter] Retry attempt ${attempt}:`, error.message);
+        console.log(`[AcfunAdapter] API call ${event.key}: ${event.success ? 'success' : 'failed'} (${event.duration}ms)`);
       }
     });
 
-    this.apiRetryManager.on('retryFailed', (error: Error) => {
-      console.error('[AcfunAdapter] All retry attempts failed:', error);
-      this.handleConnectionError(error);
+    this.apiRetryManager.on('auth-refresh-failed', (event: { key: string; error: string }) => {
+      console.error('[AcfunAdapter] Authentication refresh failed:', event.error);
+      this.handleConnectionError(new Error(event.error));
     });
 
     // 连接错误处理器事件
     this.connectionErrorHandler.on('connectionLost', () => {
       this.setConnectionState(ConnectionState.DISCONNECTED);
-      if (this.config.autoReconnect && !this.isDestroyed) {
+      if (this.config.autoReconnect && !this.isdestroyed) {
         this.scheduleReconnect();
       }
     });
@@ -253,14 +260,16 @@ export class AcfunAdapter extends EventEmitter {
     // 弹幕消息处理器
     this.messageHandlers.set('danmu', (data: any) => {
       const message: DanmuMessage = {
-        id: data.id || `${Date.now()}_${Math.random()}`,
-        userId: data.userId,
-        nickname: data.nickname,
-        content: data.content,
-        timestamp: data.timestamp || Date.now(),
-        type: 'danmu',
-        roomId: this.config.roomId,
-        extra: data.extra
+        sendTime: data.timestamp || Date.now(),
+        userInfo: {
+          userID: Number(data.userId) || 0,
+          nickname: data.nickname || '',
+          avatar: data.avatar || '',
+          medal: { uperID: 0, userID: Number(data.userId) || 0, clubName: '', level: 0 },
+          managerType: ManagerType.NotManager
+        },
+        type: 'comment',
+        roomId: this.config.roomId
       };
       this.emit('danmu', message);
     });
@@ -268,19 +277,16 @@ export class AcfunAdapter extends EventEmitter {
     // 礼物消息处理器
     this.messageHandlers.set('gift', (data: any) => {
       const message: DanmuMessage = {
-        id: data.id || `${Date.now()}_${Math.random()}`,
-        userId: data.userId,
-        nickname: data.nickname,
-        content: `送出了 ${data.giftName} x${data.count}`,
-        timestamp: data.timestamp || Date.now(),
+        sendTime: data.timestamp || Date.now(),
+        userInfo: {
+          userID: Number(data.userId) || 0,
+          nickname: data.nickname || '',
+          avatar: data.avatar || '',
+          medal: { uperID: 0, userID: Number(data.userId) || 0, clubName: '', level: 0 },
+          managerType: ManagerType.NotManager
+        },
         type: 'gift',
-        roomId: this.config.roomId,
-        extra: {
-          giftId: data.giftId,
-          giftName: data.giftName,
-          count: data.count,
-          value: data.value
-        }
+        roomId: this.config.roomId
       };
       this.emit('gift', message);
     });
@@ -288,14 +294,16 @@ export class AcfunAdapter extends EventEmitter {
     // 点赞消息处理器
     this.messageHandlers.set('like', (data: any) => {
       const message: DanmuMessage = {
-        id: data.id || `${Date.now()}_${Math.random()}`,
-        userId: data.userId,
-        nickname: data.nickname,
-        content: '点赞了直播间',
-        timestamp: data.timestamp || Date.now(),
+        sendTime: data.timestamp || Date.now(),
+        userInfo: {
+          userID: Number(data.userId) || 0,
+          nickname: data.nickname || '',
+          avatar: data.avatar || '',
+          medal: { uperID: 0, userID: Number(data.userId) || 0, clubName: '', level: 0 },
+          managerType: ManagerType.NotManager
+        },
         type: 'like',
-        roomId: this.config.roomId,
-        extra: data.extra
+        roomId: this.config.roomId
       };
       this.emit('like', message);
     });
@@ -303,14 +311,16 @@ export class AcfunAdapter extends EventEmitter {
     // 用户进入房间处理器
     this.messageHandlers.set('enter', (data: any) => {
       const message: DanmuMessage = {
-        id: data.id || `${Date.now()}_${Math.random()}`,
-        userId: data.userId,
-        nickname: data.nickname,
-        content: '进入了直播间',
-        timestamp: data.timestamp || Date.now(),
+        sendTime: data.timestamp || Date.now(),
+        userInfo: {
+          userID: Number(data.userId) || 0,
+          nickname: data.nickname || '',
+          avatar: data.avatar || '',
+          medal: { uperID: 0, userID: Number(data.userId) || 0, clubName: '', level: 0 },
+          managerType: ManagerType.NotManager
+        },
         type: 'enter',
-        roomId: this.config.roomId,
-        extra: data.extra
+        roomId: this.config.roomId
       };
       this.emit('enter', message);
     });
@@ -318,14 +328,16 @@ export class AcfunAdapter extends EventEmitter {
     // 用户关注处理器
     this.messageHandlers.set('follow', (data: any) => {
       const message: DanmuMessage = {
-        id: data.id || `${Date.now()}_${Math.random()}`,
-        userId: data.userId,
-        nickname: data.nickname,
-        content: '关注了主播',
-        timestamp: data.timestamp || Date.now(),
+        sendTime: data.timestamp || Date.now(),
+        userInfo: {
+          userID: Number(data.userId) || 0,
+          nickname: data.nickname || '',
+          avatar: data.avatar || '',
+          medal: { uperID: 0, userID: Number(data.userId) || 0, clubName: '', level: 0 },
+          managerType: ManagerType.NotManager
+        },
         type: 'follow',
-        roomId: this.config.roomId,
-        extra: data.extra
+        roomId: this.config.roomId
       };
       this.emit('follow', message);
     });
@@ -431,6 +443,9 @@ export class AcfunAdapter extends EventEmitter {
 
     // 释放 API 实例
     this.api = null;
+    
+    // 清理弹幕会话ID
+    this.danmuSessionId = null;
 
     if (this.config.debug) {
       console.log('[AcfunAdapter] Disconnected successfully');
@@ -523,7 +538,7 @@ export class AcfunAdapter extends EventEmitter {
    */
   private async ensureAuthentication(): Promise<void> {
     // 检查认证状态并处理
-    const isAuthenticated = await this.authManager.isAuthenticated();
+    const isAuthenticated = await this.tokenManager.isAuthenticated();
     
     if (!isAuthenticated) {
       if (this.config.debug) {
@@ -542,8 +557,39 @@ export class AcfunAdapter extends EventEmitter {
       throw new Error('API instance not available');
     }
 
-    // 启动弹幕服务的具体实现
-    // 这里需要根据实际的 API 接口进行调用
+    try {
+      // 获取认证令牌信息
+      const tokenInfo = await this.tokenManager.getTokenInfo();
+      
+      if (tokenInfo) {
+        // 设置认证令牌到API实例
+        this.api.setAuthToken(tokenInfo.serviceToken);
+      }
+
+      // 启动弹幕服务 - 使用标准的 startDanmu 方法
+      if (this.api.danmu && typeof this.api.danmu.startDanmu === 'function') {
+        const result = await this.api.danmu.startDanmu(this.config.roomId, (event: any) => {
+          // 处理弹幕事件回调
+          this.handleDanmuEvent(event);
+        });
+        
+        if (result.success && result.data) {
+          // 保存会话ID用于后续停止操作
+          this.danmuSessionId = result.data.sessionId;
+          
+          if (this.config.debug) {
+            console.log('[AcfunAdapter] Danmu service started with session ID:', this.danmuSessionId);
+          }
+        } else {
+          throw new Error(result.error || 'Failed to start danmu service');
+        }
+      } else {
+        throw new Error('DanmuService.startDanmu method not available');
+      }
+    } catch (error) {
+      console.error('[AcfunAdapter] Failed to start danmu service:', error);
+      throw error;
+    }
   }
 
   /**
@@ -555,7 +601,214 @@ export class AcfunAdapter extends EventEmitter {
       return;
     }
 
-    // 停止弹幕服务的具体实现
+    try {
+      // 停止弹幕服务 - 使用标准的 stopDanmu 方法
+      if (this.api.danmu && typeof this.api.danmu.stopDanmu === 'function' && this.danmuSessionId) {
+        const result = await this.api.danmu.stopDanmu(this.danmuSessionId);
+        
+        if (result.success) {
+          if (this.config.debug) {
+            console.log('[AcfunAdapter] Danmu service stopped for session:', this.danmuSessionId);
+          }
+        } else {
+          console.warn('[AcfunAdapter] Failed to stop danmu service:', result.error);
+        }
+        
+        // 清除会话ID
+        this.danmuSessionId = null;
+      }
+      
+      // 清除认证令牌
+      this.api.clearAuthToken();
+    } catch (error) {
+      console.error('[AcfunAdapter] Failed to stop danmu service:', error);
+    }
+  }
+
+  /**
+   * 处理弹幕事件回调
+   * @private
+   */
+  private handleDanmuEvent(event: any): void {
+    if (!event || typeof event !== 'object') {
+      return;
+    }
+
+    try {
+      // 根据事件类型分发处理
+      switch (event.type) {
+        case 'comment':
+        case 'danmu':
+          this.handleDanmuMessage(event);
+          break;
+        case 'gift':
+          this.handleGiftMessage(event);
+          break;
+        case 'like':
+          this.handleLikeMessage(event);
+          break;
+        case 'enter':
+          this.handleEnterMessage(event);
+          break;
+        case 'follow':
+          this.handleFollowMessage(event);
+          break;
+        case 'error':
+          this.handleConnectionError(new Error(event.message || 'Danmu service error'));
+          break;
+        default:
+          if (this.config.debug) {
+            console.log('[AcfunAdapter] Unknown danmu event type:', event.type, event);
+          }
+          break;
+      }
+    } catch (error) {
+      console.error('[AcfunAdapter] Error handling danmu event:', error);
+    }
+  }
+
+
+
+  /**
+   * 安全地发射事件，捕获监听器中的错误
+   * @private
+   */
+  private safeEmit(eventName: string, ...args: any[]): void {
+    try {
+      // 检查是否已销毁
+      if (this.isdestroyed) {
+        if (this.config.debug) {
+          console.warn(`[AcfunAdapter] Attempted to emit ${eventName} on destroyed adapter`);
+        }
+        return;
+      }
+
+      // 检查是否有监听器
+      if (this.listenerCount(eventName) === 0) {
+        return;
+      }
+
+      // 获取所有监听器
+      const listeners = this.listeners(eventName);
+      
+      // 逐个调用监听器，捕获每个监听器的错误
+      for (const listener of listeners) {
+        try {
+          if (typeof listener === 'function') {
+            listener.apply(this, args);
+          }
+        } catch (error) {
+          console.error(`[AcfunAdapter] Error in event listener for ${eventName}:`, error);
+          
+          // 发射错误事件，但避免无限递归
+          if (eventName !== 'error') {
+            this.emit('error', error instanceof Error ? error : new Error(String(error)));
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`[AcfunAdapter] Critical error in safeEmit for ${eventName}:`, error);
+    }
+  }
+
+  /**
+   * 处理弹幕消息
+   * @private
+   */
+  private handleDanmuMessage(data: any): void {
+    try {
+      // 直接使用标准的 DanmuMessage 结构
+      const message: DanmuMessage = {
+        ...data,
+        type: 'comment',
+        roomId: this.config.roomId
+      };
+      
+      this.safeEmit('danmu', message);
+    } catch (error) {
+      console.error('[AcfunAdapter] Error handling danmu message:', error);
+      this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * 处理礼物消息
+   * @private
+   */
+  private handleGiftMessage(data: any): void {
+    try {
+      // 直接使用标准的 DanmuMessage 结构
+      const message: DanmuMessage = {
+        ...data,
+        type: 'gift',
+        roomId: this.config.roomId
+      };
+      
+      this.safeEmit('gift', message);
+    } catch (error) {
+      console.error('[AcfunAdapter] Error handling gift message:', error);
+      this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * 处理点赞消息
+   * @private
+   */
+  private handleLikeMessage(data: any): void {
+    try {
+      // 直接使用标准的 DanmuMessage 结构
+      const message: DanmuMessage = {
+        ...data,
+        type: 'like',
+        roomId: this.config.roomId
+      };
+      
+      this.safeEmit('like', message);
+    } catch (error) {
+      console.error('[AcfunAdapter] Error handling like message:', error);
+      this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * 处理进入房间消息
+   * @private
+   */
+  private handleEnterMessage(data: any): void {
+    try {
+      // 直接使用标准的 DanmuMessage 结构
+      const message: DanmuMessage = {
+        ...data,
+        type: 'enter',
+        roomId: this.config.roomId
+      };
+      
+      this.safeEmit('enter', message);
+    } catch (error) {
+      console.error('[AcfunAdapter] Error handling enter message:', error);
+      this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * 处理关注消息
+   * @private
+   */
+  private handleFollowMessage(data: any): void {
+    try {
+      // 直接使用标准的 DanmuMessage 结构
+      const message: DanmuMessage = {
+        ...data,
+        type: 'follow',
+        roomId: this.config.roomId
+      };
+      
+      this.safeEmit('follow', message);
+    } catch (error) {
+      console.error('[AcfunAdapter] Error handling follow message:', error);
+      this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   /**
@@ -576,7 +829,18 @@ export class AcfunAdapter extends EventEmitter {
    */
   private sendHeartbeat(): void {
     if (this.api && this.connectionState === ConnectionState.CONNECTED) {
-      // 发送心跳的具体实现
+      // DanmuService 内部已维护心跳；此处进行轻量健康检查以保持连接状态监控
+      try {
+        if (this.api.danmu && this.danmuSessionId) {
+          const health = this.api.danmu.getSessionHealth(this.danmuSessionId);
+          // 可根据需要使用 health 数据做日志或状态更新（省略）
+        }
+      } catch (error) {
+        if (this.config.debug) {
+          console.warn('[AcfunAdapter] Heartbeat/health check failed:', error);
+        }
+        this.handleConnectionError(error as Error);
+      }
     }
   }
 
@@ -601,7 +865,7 @@ export class AcfunAdapter extends EventEmitter {
     
     this.emit('error', error);
     
-    if (this.config.autoReconnect && !this.isDestroyed) {
+    if (this.config.autoReconnect && !this.isDestroyed()) {
       this.scheduleReconnect();
     }
   }
@@ -663,6 +927,14 @@ export class AcfunAdapter extends EventEmitter {
    */
   getAuthManager(): AuthManager {
     return this.authManager;
+  }
+
+  /**
+   * 获取Token管理器实例
+   * @returns Token管理器实例
+   */
+  getTokenManager(): TokenManager {
+    return this.tokenManager;
   }
 
   /**

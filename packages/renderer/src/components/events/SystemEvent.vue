@@ -7,7 +7,10 @@
       <div class="system-message">
         {{ getSystemMessage() }}
       </div>
-      <div v-if="event.details" class="system-details">
+      <div
+        v-if="event.details"
+        class="system-details"
+      >
         {{ event.details }}
       </div>
     </div>

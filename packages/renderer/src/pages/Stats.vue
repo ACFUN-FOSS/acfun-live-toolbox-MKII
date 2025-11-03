@@ -5,14 +5,27 @@
     <section class="controls">
       <label>
         房间ID
-        <input v-model="roomId" placeholder="可选，留空统计全部房间" />
+        <input
+          v-model="roomId"
+          placeholder="可选，留空统计全部房间"
+        >
       </label>
-      <button @click="loadStats" :disabled="loading">{{ loading ? '加载中…' : '刷新统计' }}</button>
+      <button
+        :disabled="loading"
+        @click="loadStats"
+      >
+        {{ loading ? '加载中…' : '刷新统计' }}
+      </button>
     </section>
 
     <section class="historical">
       <h3>历史统计</h3>
-      <div v-if="loading" class="placeholder">正在加载统计数据…</div>
+      <div
+        v-if="loading"
+        class="placeholder"
+      >
+        正在加载统计数据…
+      </div>
       <div v-else>
         <div class="summary">
           <div>总事件：<strong>{{ hist.total }}</strong></div>
@@ -26,9 +39,20 @@
           </div>
         </div>
         <ul class="type-bars">
-          <li v-for="(count, type) in hist.byType" :key="type">
-            <span class="type" :data-type="type">{{ type }}</span>
-            <div class="bar"><div class="fill" :style="{ width: barWidth(count) + '%' }"></div></div>
+          <li
+            v-for="(count, type) in hist.byType"
+            :key="type"
+          >
+            <span
+              class="type"
+              :data-type="type"
+            >{{ type }}</span>
+            <div class="bar">
+              <div
+                class="fill"
+                :style="{ width: barWidth(count) + '%' }"
+              />
+            </div>
             <span class="count">{{ count }}</span>
           </li>
         </ul>
@@ -41,9 +65,17 @@
         <div>过去60秒事件数：<strong>{{ eventsLastMinute }}</strong></div>
       </div>
       <ul class="epm-bars">
-        <li v-for="(b, idx) in perMinuteBuckets" :key="idx">
+        <li
+          v-for="(b, idx) in perMinuteBuckets"
+          :key="idx"
+        >
           <span class="label">{{ b.label }}</span>
-          <div class="bar"><div class="fill" :style="{ width: barWidthRT(b.count) + '%' }"></div></div>
+          <div class="bar">
+            <div
+              class="fill"
+              :style="{ width: barWidthRT(b.count) + '%' }"
+            />
+          </div>
           <span class="count">{{ b.count }}</span>
         </li>
       </ul>

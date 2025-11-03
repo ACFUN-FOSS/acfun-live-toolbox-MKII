@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import { AcFunLiveApi } from 'acfunlive-http-api';
+import { AcFunLiveApi, createApi, ApiConfig } from 'acfunlive-http-api';
+import { TokenManager } from '../services/TokenManager';
 
 /**
  * 连接池配置接口
@@ -14,10 +15,8 @@ export interface ConnectionPoolConfig {
   connectionTimeout: number;
   /** 空闲超时时间（毫秒） */
   idleTimeout: number;
-  /** 重试次数 */
-  retryAttempts: number;
-  /** 重试延迟（毫秒） */
-  retryDelay: number;
+  /** API重试次数（传递给acfunlive-http-api） */
+  apiRetryCount: number;
   /** 是否启用健康检查 */
   enableHealthCheck: boolean;
   /** 健康检查间隔（毫秒） */
@@ -169,8 +168,7 @@ export class ConnectionPoolManager extends EventEmitter {
       maxConnectionsPerType: 20,
       connectionTimeout: 30000,
       idleTimeout: 300000, // 5 minutes
-      retryAttempts: 3,
-      retryDelay: 1000,
+      apiRetryCount: 3,
       enableHealthCheck: true,
       healthCheckInterval: 60000, // 1 minute
       enableCircuitBreaker: true,
@@ -451,15 +449,9 @@ export class ConnectionPoolManager extends EventEmitter {
     const connectionId = `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     try {
-      // 使用正确的 API 配置创建实例
-      const apiConfig = {
-        timeout: this.config.connectionTimeout,
-        retryAttempts: this.config.retryAttempts,
-        retryDelay: this.config.retryDelay,
-        enableRetry: true
-      };
-      
-      const api = new AcFunLiveApi(apiConfig);
+      // 使用 TokenManager 提供的统一 API 实例
+      const tokenManager = TokenManager.getInstance();
+      const api = tokenManager.getApiInstance();
       
       const connection: PooledConnection = {
         id: connectionId,
@@ -511,7 +503,7 @@ export class ConnectionPoolManager extends EventEmitter {
           console.log(`[ConnectionPool] Health check failed for connection ${connection.id}`);
           
           // 如果连接不健康，尝试重新创建
-          if (connection.retryCount < this.config.retryAttempts) {
+          if (connection.retryCount < this.config.apiRetryCount) {
             connection.retryCount++;
             await this.recreateConnection(connection);
           } else {
@@ -530,7 +522,7 @@ export class ConnectionPoolManager extends EventEmitter {
         connection.isHealthy = false;
         connection.retryCount++;
         
-        if (connection.retryCount >= this.config.retryAttempts) {
+        if (connection.retryCount >= this.config.apiRetryCount) {
           this.destroy(connection.id);
         }
       }
@@ -589,15 +581,9 @@ export class ConnectionPoolManager extends EventEmitter {
     try {
       console.log(`[ConnectionPool] Recreating connection ${connection.id}`);
       
-      // 创建新的 API 实例
-      const apiConfig = {
-        timeout: this.config.connectionTimeout,
-        retryAttempts: this.config.retryAttempts,
-        retryDelay: this.config.retryDelay,
-        enableRetry: true
-      };
-      
-      const newApi = new AcFunLiveApi(apiConfig);
+      // 使用 TokenManager 提供的统一 API 实例
+      const tokenManager = TokenManager.getInstance();
+      const newApi = tokenManager.getApiInstance();
       
       // 更新连接
       connection.api = newApi;

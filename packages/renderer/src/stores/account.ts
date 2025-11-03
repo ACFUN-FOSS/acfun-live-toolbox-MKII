@@ -40,30 +40,40 @@ export const useAccountStore = defineStore('account', () => {
     }
   }
 
+  // 创建基本用户信息的辅助函数
+  function createBasicUserInfo(userId: string): UserInfo {
+    return {
+      userID: parseInt(userId),
+      nickname: `用户${userId}`,
+      avatar: '',
+      medal: {
+        uperID: 0,
+        userID: parseInt(userId),
+        clubName: '',
+        level: 0
+      },
+      managerType: 0
+    };
+  }
+
   async function startLogin() {
     try {
       loginState.value.isLogging = true;
       loginState.value.loginError = undefined;
       
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/auth/qrcode');
-      // const data = await response.json();
+      // 使用真实的preload API
+      const result = await window.electronApi.login.qrStart();
       
-      // Mock数据
-      const data = {
-         success: true,
-         qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
-         token: 'mock_qr_token_' + Date.now(),
-         expiresAt: Date.now() + 300000, // 5分钟后过期
-         message: ''
-       };
+      if ('error' in result) {
+        throw new Error(result.error);
+      }
       
-      if (data.success) {
-        loginState.value.qrCode = data.qrCode;
-        // 开始轮询登录状态
-        pollLoginStatus();
+      if ('qrCodeDataUrl' in result) {
+        loginState.value.qrCode = result.qrCodeDataUrl;
+        // 不再自动开始轮询，由HomePage.vue控制轮询过程
+        // pollLoginStatus();
       } else {
-        throw new Error(data.message || '获取登录二维码失败');
+        throw new Error('获取登录二维码失败');
       }
     } catch (error) {
       console.error('Failed to start login:', error);
@@ -84,66 +94,76 @@ export const useAccountStore = defineStore('account', () => {
       }
       
       try {
-        // TODO: 未实现 - 使用mock数据
-        // const response = await fetch('/api/auth/status');
-        // const data = await response.json();
+        // 使用真实的preload API
+        const result = await window.electronApi.login.qrCheck();
         
-        // Mock数据 - 模拟登录成功（30%概率）
-        const data = Math.random() > 0.7 ? {
-          success: true,
-          userInfo: {
-            userID: 12345,
-            nickname: '模拟用户',
-            avatar: '',
-            followingCount: 100,
-            fansCount: 50,
-            contributeCount: 1000,
-            signature: '这是一个模拟用户',
-            verifiedText: '',
-            isFollowing: false,
-            isFollowed: false,
-            medal: {
-             uperID: 0,
-             userID: 12345,
-             clubName: '测试粉丝团',
-             level: 1
-           },
-            managerType: 0
+        if (result.success && result.tokenInfo) {
+          // 登录成功，使用userId获取完整的用户信息
+          const userId = result.tokenInfo.userID;
+          console.log('Login successful, fetching user info for userId:', userId);
+          
+          try {
+            // 调用HTTP API获取完整的用户信息
+            const userInfoResponse = await fetch(`http://127.0.0.1:18299/api/acfun/user/info?userId=${userId}`);
+            
+            if (userInfoResponse.ok) {
+              const userInfoResult = await userInfoResponse.json();
+              
+              if (userInfoResult.success && userInfoResult.data) {
+                // 使用API返回的完整用户信息
+                const completeUserInfo: UserInfo = {
+                  userID: parseInt(userId),
+                  nickname: userInfoResult.data.username || userInfoResult.data.nickname || `用户${userId}`,
+                  avatar: userInfoResult.data.avatar || '',
+                  medal: {
+                    uperID: 0,
+                    userID: parseInt(userId),
+                    clubName: '',
+                    level: userInfoResult.data.level || 0
+                  },
+                  managerType: 0
+                };
+                
+                userInfo.value = completeUserInfo;
+                console.log('Complete user info fetched:', completeUserInfo);
+              } else {
+                // API调用失败，使用基本信息
+                console.warn('Failed to fetch complete user info, using basic info:', userInfoResult.error);
+                userInfo.value = createBasicUserInfo(userId);
+              }
+            } else {
+              // HTTP请求失败，使用基本信息
+              console.warn('HTTP request failed, using basic user info');
+              userInfo.value = createBasicUserInfo(userId);
+            }
+          } catch (error) {
+            // 网络错误，使用基本信息
+            console.error('Error fetching user info:', error);
+            userInfo.value = createBasicUserInfo(userId);
           }
-        } : Math.random() > 0.5 ? {
-          success: false,
-          expired: true,
-          message: '二维码已过期'
-        } : {
-          success: false,
-          message: '等待扫码登录'
-        };
-        
-        if (data.success && data.userInfo) {
-          // 登录成功
-          userInfo.value = data.userInfo;
+          
           loginState.value.isLoggedIn = true;
           loginState.value.isLogging = false;
           loginState.value.qrCode = undefined;
           
           // 保存到本地存储
-          localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
+          localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
           
-          console.log('Login successful:', data.userInfo);
-        } else if (data.expired) {
-          // 二维码过期
-          loginState.value.loginError = '二维码已过期，请重新获取';
+          console.log('Login completed with user info:', userInfo.value);
+        } else if ('error' in result && result.error) {
+          // 发生错误
+          loginState.value.loginError = result.error;
           loginState.value.isLogging = false;
           loginState.value.qrCode = undefined;
         } else {
           // 继续轮询
           attempts++;
-          setTimeout(poll, 5000); // 5秒后再次检查
+          setTimeout(poll, 2000); // 2秒后再次检查
         }
       } catch (error) {
         console.error('Failed to poll login status:', error);
         attempts++;
-        setTimeout(poll, 5000);
+        setTimeout(poll, 2000);
       }
     };
     
@@ -152,11 +172,11 @@ export const useAccountStore = defineStore('account', () => {
 
   async function logout() {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // await fetch('/api/auth/logout', { method: 'POST' });
+      // 使用真实的preload API
+      await window.electronApi.login.logout();
       
-      // Mock数据 - 模拟退出登录成功
-      console.log('Mock logout successful');
+      // logout API 总是返回 { ok: true }，没有 error 属性
+      console.log('Logout successful');
     } catch (error) {
       console.error('Failed to logout:', error);
     } finally {
@@ -174,40 +194,133 @@ export const useAccountStore = defineStore('account', () => {
     }
   }
 
-  async function refreshUserInfo() {
-    if (!loginState.value.isLoggedIn) return;
-    
+  async function handleLoginSuccess(tokenInfo: any) {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/user/info');
-      // const data = await response.json();
+      console.log('处理登录成功，tokenInfo:', tokenInfo);
       
-      // Mock数据
-       const data = {
-         success: true,
-         userInfo: {
-           ...userInfo.value,
-           followingCount: Math.floor(Math.random() * 1000),
-           fansCount: Math.floor(Math.random() * 10000),
-           contributeCount: Math.floor(Math.random() * 100000),
-           lastUpdate: new Date().toISOString(),
-           userID: userInfo.value?.userID || 12345,
-           nickname: userInfo.value?.nickname || '测试用户',
-           avatar: userInfo.value?.avatar || '',
-           medal: userInfo.value?.medal || {
-             uperID: 0,
-             userID: 12345,
-             clubName: '测试粉丝团',
-             level: 1
-           },
-           managerType: userInfo.value?.managerType || 0
-         }
-       };
-      
-      if (data.success) {
-        userInfo.value = { ...userInfo.value, ...data.userInfo };
-        localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
+      const userId = tokenInfo.userID || tokenInfo.userId;
+      if (!userId) {
+        throw new Error('Token info does not contain user ID');
       }
+
+      // 创建基本用户信息
+      const createBasicUserInfo = (userId: string): UserInfo => ({
+        userID: userId,
+        nickname: `用户${userId}`,
+        avatar: '',
+        medal: {
+          uperID: 0,
+          userID: userId,
+          clubName: '',
+          level: 0
+        },
+        managerType: 0
+      });
+
+      try {
+        // 尝试获取完整的用户信息
+        const userInfoResponse = await fetch(`http://127.0.0.1:18299/api/acfun/user/info?userId=${userId}`);
+        
+        if (userInfoResponse.ok) {
+          const userInfoResult = await userInfoResponse.json();
+          
+          if (userInfoResult.success && userInfoResult.data) {
+            // 使用完整的用户信息
+            const completeUserInfo: UserInfo = {
+              userID: userId,
+              nickname: userInfoResult.data.username || userInfoResult.data.nickname || `用户${userId}`,
+              avatar: userInfoResult.data.avatar || '',
+              medal: {
+                uperID: 0,
+                userID: userId,
+                clubName: '',
+                level: userInfoResult.data.level || 0
+              },
+              managerType: 0
+            };
+            
+            userInfo.value = completeUserInfo;
+            console.log('Complete user info fetched:', completeUserInfo);
+          } else {
+            // API调用失败，使用基本信息
+            console.warn('Failed to fetch complete user info, using basic info:', userInfoResult.error);
+            userInfo.value = createBasicUserInfo(userId);
+          }
+        } else {
+          // HTTP请求失败，使用基本信息
+          console.warn('HTTP request failed, using basic user info');
+          userInfo.value = createBasicUserInfo(userId);
+        }
+      } catch (error) {
+        // 网络错误，使用基本信息
+        console.error('Error fetching user info:', error);
+        userInfo.value = createBasicUserInfo(userId);
+      }
+      
+      // 设置登录状态
+      loginState.value.isLoggedIn = true;
+      loginState.value.isLogging = false;
+      loginState.value.qrCode = undefined;
+      loginState.value.loginError = undefined;
+      
+      // 保存到本地存储
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
+      
+      console.log('Login completed with user info:', userInfo.value);
+    } catch (error) {
+      console.error('Failed to handle login success:', error);
+      loginState.value.loginError = `登录处理失败: ${error instanceof Error ? error.message : String(error)}`;
+      loginState.value.isLogging = false;
+    }
+  }
+
+  async function refreshUserInfo() {
+    try {
+      // 如果用户已经登录，刷新用户信息
+      if (loginState.value.isLoggedIn && userInfo.value?.userID) {
+        console.log('Refreshing user info for logged in user:', userInfo.value.userID);
+        
+        try {
+          // 调用HTTP API获取最新的用户信息
+          const userInfoResponse = await fetch(`http://127.0.0.1:18299/api/acfun/user/info?userId=${userInfo.value.userID}`);
+          
+          if (userInfoResponse.ok) {
+            const userInfoResult = await userInfoResponse.json();
+            
+            if (userInfoResult.success && userInfoResult.data) {
+              // 更新用户信息
+              const updatedUserInfo: UserInfo = {
+                userID: userInfo.value.userID,
+                nickname: userInfoResult.data.username || userInfoResult.data.nickname || userInfo.value.nickname,
+                avatar: userInfoResult.data.avatar || userInfo.value.avatar,
+                medal: {
+                  uperID: 0,
+                  userID: userInfo.value.userID,
+                  clubName: '',
+                  level: userInfoResult.data.level || userInfo.value.medal.level
+                },
+                managerType: userInfo.value.managerType
+              };
+              
+              userInfo.value = updatedUserInfo;
+              localStorage.setItem('userInfo', JSON.stringify(updatedUserInfo));
+              console.log('User info refreshed successfully:', updatedUserInfo);
+            } else {
+              console.warn('Failed to refresh user info:', userInfoResult.error);
+            }
+          } else {
+            console.warn('HTTP request failed when refreshing user info');
+          }
+        } catch (error) {
+          console.error('Error refreshing user info:', error);
+        }
+        
+        return;
+      }
+      
+      // 如果用户未登录，不需要做任何操作
+      console.log('User not logged in, no need to refresh user info');
+      
     } catch (error) {
       console.error('Failed to refresh user info:', error);
     }
@@ -231,5 +344,6 @@ export const useAccountStore = defineStore('account', () => {
     startLogin,
     logout,
     refreshUserInfo,
+    handleLoginSuccess,
   };
 });

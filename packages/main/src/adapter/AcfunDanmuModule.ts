@@ -1,7 +1,7 @@
 import type { AppModule } from '../AppModule';
 import { ModuleContext } from '../ModuleContext';
 import { getLogManager } from '../logging/LogManager';
-import { AcFunLiveApi } from 'acfunlive-http-api';
+import { AcFunLiveApi, createApi, ApiConfig } from 'acfunlive-http-api';
 import { connectionPool, PooledConnection } from './ConnectionPoolManager';
 import { performanceMonitor } from './PerformanceMonitor';
 import { AuthManager } from '../services/AuthManager';
@@ -25,15 +25,23 @@ interface AcfunDanmuConfig {
   debug: boolean;
   logLevel: 'info' | 'debug' | 'error';
   timeout: number;
-  retries: number;
+  // 移除自定义重试配置，使用API内置的retryCount
+  apiConfig: Partial<ApiConfig>;
 }
 
-// 默认配置
+// 默认配置 - 符合acfunlive-http-api规范
 const DEFAULT_CONFIG: AcfunDanmuConfig = {
   debug: false,
   logLevel: 'info',
   timeout: 30000,
-  retries: 3
+  apiConfig: {
+    timeout: 30000,
+    retryCount: 3, // 使用API内置重试配置
+    baseUrl: 'https://api-new.acfunchina.com',
+    headers: {
+      'User-Agent': 'AcFun-Live-Toolbox/2.0'
+    }
+  }
 };
 
 export class AcfunDanmuModule implements AppModule {
@@ -45,9 +53,34 @@ export class AcfunDanmuModule implements AppModule {
   private authManager: AuthManager;
 
   constructor(config: Partial<AcfunDanmuConfig> = {}, authManager?: AuthManager) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    // 合并配置，确保API配置符合规范
+    this.config = this.validateAndMergeConfig(config);
     this.logManager = getLogManager();
     this.authManager = authManager || new AuthManager();
+  }
+
+  /**
+   * 验证和合并配置，确保符合acfunlive-http-api规范
+   */
+  private validateAndMergeConfig(config: Partial<AcfunDanmuConfig>): AcfunDanmuConfig {
+    const mergedConfig = { ...DEFAULT_CONFIG, ...config };
+    
+    // 验证API配置
+    if (mergedConfig.apiConfig) {
+      // 确保timeout是有效数值
+      if (mergedConfig.apiConfig.timeout && (mergedConfig.apiConfig.timeout < 1000 || mergedConfig.apiConfig.timeout > 120000)) {
+        this.log('Invalid timeout value, using default 30000ms', 'error');
+        mergedConfig.apiConfig.timeout = 30000;
+      }
+      
+      // 确保retryCount是有效数值
+      if (mergedConfig.apiConfig.retryCount && (mergedConfig.apiConfig.retryCount < 0 || mergedConfig.apiConfig.retryCount > 10)) {
+        this.log('Invalid retryCount value, using default 3', 'error');
+        mergedConfig.apiConfig.retryCount = 3;
+      }
+    }
+    
+    return mergedConfig;
   }
 
   // 设置日志回调函数
@@ -223,17 +256,17 @@ export class AcfunDanmuModule implements AppModule {
     }, 'unwearMedal');
   }
 
-  // 登录相关方法
-  async login(account: string, password: string): Promise<any> {
-    return this.callApiMethod(async (api) => {
-      return api.auth.qrLogin();
-    }, 'login');
-  }
 
   async loginWithQRCode(): Promise<any> {
     return this.callApiMethod(async (api) => {
-      return api.auth.checkQrLoginStatus();
+      return api.auth.qrLogin();
     }, 'loginWithQRCode');
+  }
+
+  async checkQRLoginStatus(): Promise<any> {
+    return this.callApiMethod(async (api) => {
+      return api.auth.checkQrLoginStatus();
+    }, 'checkQRLoginStatus');
   }
 
   // 观看列表相关方法 - 暂时移除，因为 API 中不存在此方法
@@ -315,7 +348,7 @@ export class AcfunDanmuModule implements AppModule {
   // 用户信息相关方法
   async getUserInfo(userID: number): Promise<any> {
     return this.callApiMethod(async (api) => {
-      return api.live.getUserDetailInfo(userID);
+      return api.user.getUserInfo(userID.toString());
     }, 'getUserInfo');
   }
 

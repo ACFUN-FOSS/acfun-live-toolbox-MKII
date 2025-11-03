@@ -1,29 +1,53 @@
 <template>
   <div class="home-page">
     <!-- 欢迎引导卡片 -->
-    <t-card class="welcome-card" title="欢迎使用 ACLiveFrame" hoverShadow>
+    <t-card
+      class="welcome-card"
+      title="欢迎使用 ACLiveFrame"
+      hover-shadow
+    >
       <div class="welcome-content">
-        <p class="welcome-text">快速开始使用本工具的三个步骤：</p>
+        <p class="welcome-text">
+          快速开始使用本工具的三个步骤：
+        </p>
         <div class="guide-steps">
           <div class="step-item">
-            <div class="step-number">1</div>
+            <div class="step-number">
+              1
+            </div>
             <div class="step-content">
-              <div class="step-title">登录或连接房间</div>
-              <div class="step-desc">使用二维码登录账号，或直接连接直播房间（只读模式）</div>
+              <div class="step-title">
+                登录或连接房间
+              </div>
+              <div class="step-desc">
+                使用二维码登录账号，或直接连接直播房间（只读模式）
+              </div>
             </div>
           </div>
           <div class="step-item">
-            <div class="step-number">2</div>
+            <div class="step-number">
+              2
+            </div>
             <div class="step-content">
-              <div class="step-title">安装/启用所需插件</div>
-              <div class="step-desc">在插件管理中安装弹幕弹窗、礼物提醒等功能插件</div>
+              <div class="step-title">
+                安装/启用所需插件
+              </div>
+              <div class="step-desc">
+                在插件管理中安装弹幕弹窗、礼物提醒等功能插件
+              </div>
             </div>
           </div>
           <div class="step-item">
-            <div class="step-number">3</div>
+            <div class="step-number">
+              3
+            </div>
             <div class="step-content">
-              <div class="step-title">观察指标与日志</div>
-              <div class="step-desc">在系统/控制台中查看实时数据和运行状态</div>
+              <div class="step-title">
+                观察指标与日志
+              </div>
+              <div class="step-desc">
+                在系统/控制台中查看实时数据和运行状态
+              </div>
             </div>
           </div>
         </div>
@@ -31,43 +55,93 @@
     </t-card>
 
     <!-- 用户信息卡片 -->
-    <t-card class="user-info-card" title="用户信息" hoverShadow>
-      <div v-if="!accountStore.isLoggedIn" class="login-section">
+    <t-card
+      class="user-info-card"
+      title="用户信息"
+      hover-shadow
+    >
+      <div
+        v-if="!accountStore.isLoggedIn"
+        class="login-section"
+      >
         <div class="login-prompt">
-          <t-icon name="user" size="48px" class="login-icon" />
-          <p class="login-text">您尚未登录，点击下方按钮使用二维码登录</p>
-          <t-button theme="primary" size="large" @click="showQrLogin">
+          <t-icon
+            name="user"
+            size="48px"
+            class="login-icon"
+          />
+          <p class="login-text">
+            您尚未登录，点击下方按钮使用二维码登录
+          </p>
+          <t-button
+            theme="primary"
+            size="large"
+            @click="showQrLogin"
+          >
             <t-icon name="qrcode" />
             登录
           </t-button>
         </div>
       </div>
-      <div v-else class="user-profile">
+      <div
+        v-else
+        class="user-profile"
+      >
         <div class="profile-header">
           <div class="avatar-section">
-            <img :src="accountStore.userInfo?.avatar || '/default-avatar.png'" 
-                 :alt="accountStore.userInfo?.nickname" 
-                 class="user-avatar" />
+            <img
+              :src="accountStore.userInfo?.avatar || '/default-avatar.png'" 
+              :alt="accountStore.userInfo?.nickname" 
+              class="user-avatar"
+            >
           </div>
           <div class="profile-info">
-            <h3 class="user-nickname">{{ accountStore.displayName }}</h3>
-            <p class="user-uid">UID: {{ accountStore.userInfo?.userID || 'N/A' }}</p>
-            <p class="login-method">登录方式: 二维码</p>
-            <p class="recent-room" v-if="roomStore.liveRooms.length > 0">
+            <h3 class="user-nickname">
+              {{ accountStore.displayName }}
+            </h3>
+            <p class="user-uid">
+              UID: {{ accountStore.userInfo?.userID || 'N/A' }}
+            </p>
+            <p class="login-method">
+              登录方式: 二维码
+            </p>
+            <p
+              v-if="roomStore.liveRooms.length > 0"
+              class="recent-room"
+            >
               活跃房间: {{ roomStore.liveRooms[0].name }}
             </p>
           </div>
         </div>
         <div class="profile-actions">
-          <t-button variant="outline" size="small" @click="switchAccount">切换账号</t-button>
-          <t-button variant="outline" size="small" @click="logout">登出</t-button>
+          <t-button
+            variant="outline"
+            size="small"
+            @click="switchAccount"
+          >
+            切换账号
+          </t-button>
+          <t-button
+            variant="outline"
+            size="small"
+            @click="logout"
+          >
+            登出
+          </t-button>
         </div>
       </div>
     </t-card>
 
     <!-- KPI统计区域 -->
-    <t-card class="kpi-section" title="关键指标统计" hoverShadow>
-      <t-row :gutter="16" class="kpi-row">
+    <t-card
+      class="kpi-section"
+      title="关键指标统计"
+      hover-shadow
+    >
+      <t-row
+        :gutter="16"
+        class="kpi-row"
+      >
         <t-col :span="6">
           <t-statistic 
             title="直播时长" 
@@ -100,9 +174,17 @@
       </t-row>
       
       <!-- 迷你趋势图 -->
-      <div class="chart-section" v-if="!kpiLoading">
-        <h4 class="chart-title">实时趋势（最近10分钟）</h4>
-        <div ref="chartContainer" class="mini-chart"></div>
+      <div
+        v-if="!kpiLoading"
+        class="chart-section"
+      >
+        <h4 class="chart-title">
+          实时趋势（最近10分钟）
+        </h4>
+        <div
+          ref="chartContainer"
+          class="mini-chart"
+        />
       </div>
     </t-card>
 
@@ -115,25 +197,54 @@
     >
       <div class="qr-login-content">
         <div class="qr-code-section">
-          <div v-if="qrSession.status === 'loading'" class="qr-loading">
+          <div
+            v-if="qrSession.status === 'loading'"
+            class="qr-loading"
+          >
             <t-loading />
             <p>正在生成二维码...</p>
           </div>
-          <div v-else-if="qrSession.qrDataUrl" class="qr-display">
-            <img :src="qrSession.qrDataUrl" alt="登录二维码" class="qr-image" />
+          <div
+            v-else-if="qrSession.qrDataUrl"
+            class="qr-display"
+          >
+            <img
+              :src="qrSession.qrDataUrl"
+              alt="登录二维码"
+              class="qr-image"
+            >
             <div class="qr-status">
-              <t-icon :name="getQrStatusIcon()" :class="getQrStatusClass()" />
-              <p class="status-text">{{ getQrStatusText() }}</p>
+              <t-icon
+                :name="getQrStatusIcon()"
+                :class="getQrStatusClass()"
+              />
+              <p class="status-text">
+                {{ getQrStatusText() }}
+              </p>
             </div>
           </div>
-          <div v-else class="qr-error">
-            <t-icon name="close-circle" class="error-icon" />
+          <div
+            v-else
+            class="qr-error"
+          >
+            <t-icon
+              name="close-circle"
+              class="error-icon"
+            />
             <p>二维码生成失败</p>
-            <t-button theme="primary" @click="refreshQrCode">重新生成</t-button>
+            <t-button
+              theme="primary"
+              @click="refreshQrCode"
+            >
+              重新生成
+            </t-button>
           </div>
         </div>
         
-        <div class="qr-countdown" v-if="qrSession.expireAt">
+        <div
+          v-if="qrSession.expireAt"
+          class="qr-countdown"
+        >
           <p>有效期剩余: {{ formatCountdown(qrSession.expireAt) }}</p>
         </div>
         
@@ -152,7 +263,12 @@
           >
             刷新二维码
           </t-button>
-          <t-button variant="outline" @click="cancelQrLogin">取消</t-button>
+          <t-button
+            variant="outline"
+            @click="cancelQrLogin"
+          >
+            取消
+          </t-button>
         </div>
       </template>
     </t-dialog>
@@ -160,17 +276,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useAccountStore } from '../stores/account';
 import { useRoomStore } from '../stores/room';
-import { usePluginStore } from '../stores/plugin';
 import * as echarts from 'echarts';
 
-const router = useRouter();
 const accountStore = useAccountStore();
 const roomStore = useRoomStore();
-const pluginStore = usePluginStore();
 
 // 二维码登录相关状态
 const qrDialogVisible = ref(false);
@@ -178,7 +290,8 @@ const qrSession = ref({
   status: 'idle', // idle, loading, waiting, scanned, expired, error, success
   qrDataUrl: '',
   expireAt: null as Date | null,
-  sessionId: ''
+  sessionId: '',
+  pollInterval: null as NodeJS.Timeout | null
 });
 
 // KPI数据状态
@@ -197,6 +310,7 @@ let chartInstance: echarts.ECharts | null = null;
 // 倒计时相关
 let qrCountdownTimer: NodeJS.Timeout | null = null;
 let kpiUpdateTimer: NodeJS.Timeout | null = null;
+const currentTime = ref(new Date()); // 添加响应式当前时间
 
 // 二维码登录方法
 const showQrLogin = async () => {
@@ -207,28 +321,40 @@ const showQrLogin = async () => {
 const generateQrCode = async () => {
   qrSession.value.status = 'loading';
   
+  // 清理现有的定时器
+  if (qrCountdownTimer) {
+    clearInterval(qrCountdownTimer);
+    qrCountdownTimer = null;
+  }
+  
+  if (qrSession.value.pollInterval) {
+    clearInterval(qrSession.value.pollInterval);
+    qrSession.value.pollInterval = null;
+  }
+  
   try {
-    // 调用后端API生成二维码
-    const response = await fetch('/api/auth/qr/generate', {
-      method: 'POST'
-    });
+    // 使用IPC API生成二维码
+    const result = await window.electronApi.login.qrStart();
     
-    if (!response.ok) {
-      throw new Error('生成二维码失败');
+    if ('error' in result) {
+      throw new Error(result.error);
     }
     
-    const data = await response.json();
-    qrSession.value = {
-      status: 'waiting',
-      qrDataUrl: data.qrDataUrl,
-      expireAt: new Date(Date.now() + 5 * 60 * 1000), // 5分钟后过期
-      sessionId: data.sessionId
-    };
-    
-    // 开始轮询登录状态
-    startQrPolling();
-    startQrCountdown();
-    
+    if ('qrCodeDataUrl' in result) {
+      qrSession.value.qrDataUrl = result.qrCodeDataUrl;
+      qrSession.value.status = 'waiting';
+      
+      // 设置30秒过期时间
+      qrSession.value.expireAt = new Date(Date.now() + 30 * 1000);
+      
+      // 开始倒计时
+      startQrCountdown();
+      
+      // 开始轮询登录状态
+      startQrPolling();
+    } else {
+      throw new Error('获取登录二维码失败');
+    }
   } catch (error) {
     console.error('生成二维码失败:', error);
     qrSession.value.status = 'error';
@@ -236,48 +362,164 @@ const generateQrCode = async () => {
 };
 
 const startQrPolling = () => {
-  const pollInterval = setInterval(async () => {
+  let pollInterval: NodeJS.Timeout;
+  let retryCount = 0;
+  const maxRetries = 3;
+  
+  const poll = async () => {
     if (qrSession.value.status !== 'waiting' && qrSession.value.status !== 'scanned') {
       clearInterval(pollInterval);
       return;
     }
     
     try {
-      const response = await fetch(`/api/auth/qr/status/${qrSession.value.sessionId}`);
-      const data = await response.json();
+      // 使用IPC API检查登录状态
+      const result = await window.electronApi.login.qrCheck();
       
-      switch (data.status) {
-        case 'scanned':
-          qrSession.value.status = 'scanned';
-          break;
-        case 'confirmed':
-          qrSession.value.status = 'success';
-          await accountStore.loginWithQr(data.token);
+      // 重置重试计数器
+      retryCount = 0;
+      
+      if (result.success && result.tokenInfo) {
+        // 登录成功
+        qrSession.value.status = 'success';
+        
+        // 清理定时器
+        if (qrCountdownTimer) {
+          clearInterval(qrCountdownTimer);
+          qrCountdownTimer = null;
+        }
+        
+        if (qrSession.value.pollInterval) {
+          clearInterval(qrSession.value.pollInterval);
+          qrSession.value.pollInterval = null;
+        }
+        
+        // 处理登录成功，更新账户状态
+        await accountStore.handleLoginSuccess(result.tokenInfo);
+        
+        // 关闭对话框
+        setTimeout(() => {
           qrDialogVisible.value = false;
-          clearInterval(pollInterval);
-          break;
-        case 'expired':
+          qrSession.value.status = 'idle';
+        }, 2000);
+        
+        clearInterval(pollInterval);
+      } else if (result.error) {
+        // 检查是否是扫码状态
+        if (result.error.includes('请等待用户确认') || result.error.includes('已扫码')) {
+          qrSession.value.status = 'scanned';
+        } else if (result.error.includes('expired') || result.error.includes('过期')) {
           qrSession.value.status = 'expired';
+          
+          // 清理定时器
+          if (qrCountdownTimer) {
+            clearInterval(qrCountdownTimer);
+            qrCountdownTimer = null;
+          }
+          
+          if (qrSession.value.pollInterval) {
+            clearInterval(qrSession.value.pollInterval);
+            qrSession.value.pollInterval = null;
+          }
+          
           clearInterval(pollInterval);
-          break;
+        } else if (result.error.includes('cancelled') || result.error.includes('取消')) {
+          console.log(123)
+          qrSession.value.status = 'error';
+          
+          // 清理定时器
+          if (qrCountdownTimer) {
+            clearInterval(qrCountdownTimer);
+            qrCountdownTimer = null;
+          }
+          
+          if (qrSession.value.pollInterval) {
+            clearInterval(qrSession.value.pollInterval);
+            qrSession.value.pollInterval = null;
+          }
+          
+          clearInterval(pollInterval);
+        } else if (
+          // 改进等待状态的判断逻辑，包含更多可能的等待状态消息
+          result.error.includes('请等待用户扫描') ||
+          result.error.includes('请等待用户操作') ||
+          result.error.includes('二维码状态为') ||
+          result.error.includes('API错误') ||
+          result.error.includes('No token info received') ||
+          result.error.includes('result: 10') || // AuthManager中标识的等待状态
+          result.error.includes('代码: 10') || // 匹配 "API错误: client error (代码: 10)" 格式
+          result.error.includes('client error') || // 匹配client error消息
+          result.error.includes('API调用失败') // 匹配acfunlive-http-api的错误消息
+        ) {
+          // 这些都是正常的等待状态，继续轮询，但不输出到控制台避免混淆
+          // console.log('QR login waiting:', result.error);
+        } else {
+          // 只有明确的错误才停止轮询
+          console.error('QR login error:', result.error);
+          qrSession.value.status = 'error';
+          
+          // 清理定时器
+          if (qrCountdownTimer) {
+            clearInterval(qrCountdownTimer);
+            qrCountdownTimer = null;
+          }
+          
+          if (qrSession.value.pollInterval) {
+            clearInterval(qrSession.value.pollInterval);
+            qrSession.value.pollInterval = null;
+          }
+          
+          clearInterval(pollInterval);
+        }
       }
+      // 如果没有成功也没有明确错误，继续轮询
     } catch (error) {
       console.error('轮询登录状态失败:', error);
+      retryCount++;
+      
+      if (retryCount >= maxRetries) {
+        console.error(`轮询失败次数过多 (${maxRetries}次)，停止轮询`);
+        qrSession.value.status = 'error';
+        clearInterval(pollInterval);
+      }
+      // 继续轮询，不清除定时器
     }
-  }, 2000);
+  };
+  
+  // 初始轮询间隔为2秒，减少服务器压力
+  pollInterval = setInterval(poll, 2000);
+  
+  // 存储定时器引用以便清理
+  qrSession.value.pollInterval = pollInterval;
 };
 
 const startQrCountdown = () => {
   qrCountdownTimer = setInterval(() => {
     if (!qrSession.value.expireAt) return;
     
-    const now = new Date();
+    // 更新当前时间以触发Vue响应式更新
+    currentTime.value = new Date();
+    
+    const now = currentTime.value;
     if (now >= qrSession.value.expireAt) {
       qrSession.value.status = 'expired';
+      
+      // 清理倒计时定时器
       if (qrCountdownTimer) {
         clearInterval(qrCountdownTimer);
         qrCountdownTimer = null;
       }
+      
+      // 清理轮询定时器
+      if (qrSession.value.pollInterval) {
+        clearInterval(qrSession.value.pollInterval);
+        qrSession.value.pollInterval = null;
+      }
+      
+      // 自动重新生成二维码
+      setTimeout(() => {
+        generateQrCode();
+      }, 1000);
     }
   }, 1000);
 };
@@ -289,10 +531,22 @@ const refreshQrCode = () => {
 const cancelQrLogin = () => {
   qrDialogVisible.value = false;
   qrSession.value.status = 'idle';
+  
+  // 清理所有定时器
   if (qrCountdownTimer) {
     clearInterval(qrCountdownTimer);
     qrCountdownTimer = null;
   }
+  
+  if (qrSession.value.pollInterval) {
+    clearInterval(qrSession.value.pollInterval);
+    qrSession.value.pollInterval = null;
+  }
+  
+  // 重置会话数据
+  qrSession.value.sessionId = '';
+  qrSession.value.qrDataUrl = '';
+  qrSession.value.expireAt = null;
 };
 
 const switchAccount = () => {
@@ -338,7 +592,8 @@ const getQrStatusText = () => {
 };
 
 const formatCountdown = (expireAt: Date) => {
-  const now = new Date();
+  // 使用响应式的当前时间确保每秒更新
+  const now = currentTime.value;
   const diff = Math.max(0, expireAt.getTime() - now.getTime());
   const minutes = Math.floor(diff / 60000);
   const seconds = Math.floor((diff % 60000) / 1000);
@@ -353,15 +608,29 @@ const updateKpiData = async () => {
     // 模拟API调用获取KPI数据
     const response = await fetch('/api/stats/kpi');
     if (response.ok) {
-      const data = await response.json();
-      kpiData.value = {
-        liveTime: data.liveTime || 0,
-        giftCount: data.giftCount || 0,
-        danmuCount: data.danmuCount || 0,
-        likeCount: data.likeCount || 0
-      };
+      // 检查响应的Content-Type是否为JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        kpiData.value = {
+          liveTime: data.liveTime || 0,
+          giftCount: data.giftCount || 0,
+          danmuCount: data.danmuCount || 0,
+          likeCount: data.likeCount || 0
+        };
+      } else {
+        // 响应不是JSON格式，使用模拟数据
+        console.warn('KPI API返回非JSON响应，使用模拟数据');
+        kpiData.value = {
+          liveTime: Math.floor(Math.random() * 300),
+          giftCount: Math.floor(Math.random() * 50),
+          danmuCount: Math.floor(Math.random() * 200),
+          likeCount: Math.floor(Math.random() * 100)
+        };
+      }
     } else {
-      // 使用模拟数据
+      // HTTP错误状态，使用模拟数据
+      console.warn(`KPI API返回错误状态 ${response.status}，使用模拟数据`);
       kpiData.value = {
         liveTime: Math.floor(Math.random() * 300),
         giftCount: Math.floor(Math.random() * 50),
@@ -370,7 +639,8 @@ const updateKpiData = async () => {
       };
     }
   } catch (error) {
-    console.error('获取KPI数据失败:', error);
+    // 网络错误或其他异常，静默处理并使用模拟数据
+    console.warn('KPI数据获取失败，使用模拟数据:', error instanceof Error ? error.message : String(error));
     // 使用模拟数据
     kpiData.value = {
       liveTime: Math.floor(Math.random() * 300),

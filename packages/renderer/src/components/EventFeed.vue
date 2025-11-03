@@ -1,17 +1,38 @@
 <template>
   <section class="events-panel">
     <h2>实时事件（最近 100 条）</h2>
-    <div v-if="events.length === 0" class="placeholder">暂时没有事件，等待广播…</div>
-    <ul v-else class="events-list">
-      <li v-for="(ev, idx) in events" :key="idx" class="event-item">
+    <div
+      v-if="events.length === 0"
+      class="placeholder"
+    >
+      暂时没有事件，等待广播…
+    </div>
+    <ul
+      v-else
+      class="events-list"
+    >
+      <li
+        v-for="(ev, idx) in events"
+        :key="idx"
+        class="event-item"
+      >
         <div class="meta">
           <span class="ts">{{ formatTs(ev.ts) }}</span>
           <span class="room">房间 {{ ev.room_id }}</span>
-          <span class="type" :data-type="ev.event_type">{{ ev.event_type }}</span>
+          <span
+            class="type"
+            :data-type="ev.event_type"
+          >{{ ev.event_type }}</span>
         </div>
         <div class="content">
-          <span class="user" v-if="ev.user_name">{{ ev.user_name }}</span>
-          <span class="text" v-if="ev.content">：{{ ev.content }}</span>
+          <span
+            v-if="ev.user_name"
+            class="user"
+          >{{ ev.user_name }}</span>
+          <span
+            v-if="ev.content"
+            class="text"
+          >：{{ ev.content }}</span>
         </div>
       </li>
     </ul>

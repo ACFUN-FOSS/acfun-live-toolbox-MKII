@@ -34,7 +34,14 @@ export function initializeIpcHandlers(
   // Login: QR start -> returns base64 data URL
   ipcMain.handle('login.qrStart', async () => {
     try {
-      return await authManager.loginWithQRCode();
+      const result = await authManager.loginWithQRCode();
+      
+      if (result.success && result.qrCode) {
+        // 返回前端期望的格式
+        return { qrCodeDataUrl: result.qrCode.qrCodeDataUrl };
+      } else {
+        return { error: result.error || '获取二维码失败' };
+      }
     } catch (err: any) {
       return { error: err?.message || String(err) };
     }

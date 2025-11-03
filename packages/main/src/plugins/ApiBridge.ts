@@ -4,11 +4,10 @@ import { DatabaseManager } from '../persistence/DatabaseManager';
 import { ConfigManager } from '../config/ConfigManager';
 import { PopupManager, PopupOptions, PopupInstance } from './PopupManager';
 import type { NormalizedEvent, NormalizedEventType } from '../types';
-import { AcFunLiveApi } from 'acfunlive-http-api';
-import { AuthManager } from '../services/AuthManager';
+import { TokenManager } from '../services/TokenManager';
 import { rateLimitManager, RateLimitManager } from '../services/RateLimitManager';
 import { EventFilter, DEFAULT_FILTERS, applyFilters, getEventQualityScore } from '../events/normalize';
-import { apiRetryManager, ApiRetryManager, ApiRetryOptions } from '../services/ApiRetryManager';
+import { apiRetryManager, ApiRetryManager, ApiCallOptions } from '../services/ApiRetryManager';
 
 export interface PluginAPI {
   subscribeEvents(
@@ -16,7 +15,7 @@ export interface PluginAPI {
     filter?: { room_id?: string; type?: NormalizedEventType }
   ): () => void;
 
-  callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }, retryOptions?: ApiRetryOptions): Promise<any>;
+  callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }, options?: ApiCallOptions): Promise<any>;
 
   pluginStorage: {
     write(table: string, row: any): Promise<void>;
@@ -26,6 +25,13 @@ export interface PluginAPI {
     def: { method: 'GET' | 'POST'; path: string },
     handler: Parameters<ApiServer['registerPluginRoute']>[2]
   ): void;
+
+  // 认证API
+  auth: {
+    isAuthenticated(): boolean;
+    getTokenInfo(): any;
+    refreshToken(): Promise<any>;
+  };
 
   // 弹窗API
   popup: {
@@ -60,8 +66,8 @@ export class ApiBridge implements PluginAPI {
   private configManager: ConfigManager;
   private popupManager: PopupManager;
   private onPluginFault: (reason: string) => void;
-  private acfunApi: AcFunLiveApi;
-  private authManager: AuthManager;
+  private acfunApi: any;
+  private tokenManager: TokenManager;
 
   constructor(opts: {
     pluginId: string;
@@ -71,7 +77,7 @@ export class ApiBridge implements PluginAPI {
     configManager: ConfigManager;
     popupManager: PopupManager;
     onPluginFault: (reason: string) => void;
-    authManager?: AuthManager;
+    tokenManager?: TokenManager;
   }) {
     this.pluginId = opts.pluginId;
     this.apiServer = opts.apiServer;
@@ -80,18 +86,12 @@ export class ApiBridge implements PluginAPI {
     this.configManager = opts.configManager;
     this.popupManager = opts.popupManager;
     this.onPluginFault = opts.onPluginFault;
-    this.authManager = opts.authManager || new AuthManager();
+    this.tokenManager = opts.tokenManager || new TokenManager();
     
-    // 初始化 AcFun API 实例
-    const apiConfig = {
-      timeout: 30000,
-      retryAttempts: 3,
-      retryDelay: 1000,
-      enableRetry: true
-    };
-    this.acfunApi = new AcFunLiveApi(apiConfig);
+    // 使用TokenManager提供的统一API实例
+    this.acfunApi = this.tokenManager.getApiInstance();
     
-    // 设置认证令牌（如果存在）
+    // 初始化认证（如果需要）
     this.initializeAuthentication();
   }
 
@@ -100,9 +100,12 @@ export class ApiBridge implements PluginAPI {
    */
   private async initializeAuthentication(): Promise<void> {
     try {
-      const tokenInfo = await this.authManager.getTokenInfo();
-      if (tokenInfo && tokenInfo.isValid) {
-        this.acfunApi.setAuthToken(JSON.stringify(tokenInfo));
+      // TokenManager已经处理了API实例的认证状态
+      // 这里只需要检查是否已认证
+      if (this.tokenManager.isAuthenticated()) {
+        console.log(`[ApiBridge] Plugin ${this.pluginId} initialized with authenticated API instance`);
+      } else {
+        console.warn(`[ApiBridge] Plugin ${this.pluginId} initialized without authentication`);
       }
     } catch (error) {
       console.warn('[ApiBridge] Failed to initialize authentication:', error);
@@ -231,6 +234,7 @@ export class ApiBridge implements PluginAPI {
         return this.validateGiftEvent(event);
       case 'enter':
       case 'follow':
+      case 'like':
         return this.validateUserEvent(event);
       default:
         return true; // 未知事件类型，允许通过
@@ -257,9 +261,9 @@ export class ApiBridge implements PluginAPI {
   private validateGiftEvent(event: NormalizedEvent): boolean {
     if (!event.user_id || typeof event.user_id !== 'string') return false;
     if (!event.user_name || typeof event.user_name !== 'string') return false;
-    // 礼物事件通常在 content 中包含礼物信息
-    if (!event.content || typeof event.content !== 'string') return false;
-    
+    // 礼物事件的具体礼物信息来自 raw，不在标准化事件合同中；此处仅做基本校验
+    // 若需要更严格校验，应由上游解析器在 raw 中提供结构化数据
+    if (event.content && typeof event.content !== 'string') return false;
     return true;
   }
 
@@ -289,11 +293,11 @@ export class ApiBridge implements PluginAPI {
   /**
    * 代表插件调用 AcFun API。使用 acfunlive-http-api 进行统一的 API 调用。
    */
-  async callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }, retryOptions?: ApiRetryOptions): Promise<any> {
-    const retryKey = `${this.pluginId}-${req.method}-${req.path}`;
+  async callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }, options?: ApiCallOptions): Promise<any> {
+    const callKey = `${this.pluginId}-${req.method}-${req.path}`;
     
-    return await apiRetryManager.executeWithRetry(
-      retryKey,
+    return await apiRetryManager.executeApiCall(
+      callKey,
       async () => {
         // 检查速率限制
         const rateLimitCheck = await rateLimitManager.canMakeRequest();
@@ -333,16 +337,8 @@ export class ApiBridge implements PluginAPI {
 
           if (!response.success) {
             // 记录错误状态码以便速率限制管理器处理
-            // 从错误消息中推断状态码
-            let statusCode: number | undefined;
-            if (response.error) {
-              if (response.error.includes('429')) statusCode = 429;
-              else if (response.error.includes('503')) statusCode = 503;
-              else if (response.error.includes('401')) statusCode = 401;
-              else if (response.error.includes('403')) statusCode = 403;
-              else if (response.error.includes('500')) statusCode = 500;
-            }
-            
+            const statusCode = response.statusCode || (response.error?.includes('429') ? 429 : 
+                              response.error?.includes('503') ? 503 : undefined);
             if (statusCode) {
               rateLimitManager.recordError(statusCode);
             }
@@ -375,7 +371,7 @@ export class ApiBridge implements PluginAPI {
           throw err;
         }
       },
-      retryOptions
+      options
     );
   }
 
@@ -384,31 +380,26 @@ export class ApiBridge implements PluginAPI {
    */
   private async ensureValidAuthentication(): Promise<void> {
     try {
-      const tokenInfo = await this.authManager.getTokenInfo();
-      
-      if (!tokenInfo) {
+      if (!this.tokenManager.isAuthenticated()) {
         const err = new Error('ACFUN_NOT_LOGGED_IN');
         this.onPluginFault('missing-token');
         throw err;
       }
 
-      if (!tokenInfo.isValid) {
-        // 令牌过期，由于无法自动刷新，清除过期令牌并抛出错误
-        console.warn('[ApiBridge] Token expired, clearing expired token');
-        await this.authManager.logout();
-        const err = new Error('ACFUN_TOKEN_EXPIRED');
-        this.onPluginFault('token-expired');
-        throw err;
-      } else {
-        // 令牌有效，确保设置到 API 实例
-        this.acfunApi.setAuthToken(JSON.stringify(tokenInfo));
-        
-        // 检查是否即将过期，提前警告
-        const isExpiringSoon = await this.authManager.isTokenExpiringSoon();
-        if (isExpiringSoon) {
-          console.warn('[ApiBridge] Token expiring soon, manual re-login may be required');
+      const tokenInfo = this.tokenManager.getTokenInfo();
+      if (!tokenInfo || !tokenInfo.isValid) {
+        // 令牌无效或过期，尝试刷新
+        console.warn('[ApiBridge] Token invalid or expired, attempting refresh');
+        const refreshResult = await this.tokenManager.refreshToken();
+        if (!refreshResult.success) {
+          const err = new Error('ACFUN_TOKEN_REFRESH_FAILED');
+          this.onPluginFault('token-refresh-failed');
+          throw err;
         }
       }
+
+      // TokenManager已经确保API实例使用最新的认证状态
+      console.log(`[ApiBridge] Authentication validated for plugin ${this.pluginId}`);
     } catch (error) {
       console.error('[ApiBridge] Authentication validation failed:', error);
       throw error;
@@ -468,6 +459,23 @@ export class ApiBridge implements PluginAPI {
   ): void {
     this.apiServer.registerPluginRoute(this.pluginId, def, handler);
   }
+
+  /**
+   * 认证API实现
+   */
+  public auth = {
+    isAuthenticated: (): boolean => {
+      return this.tokenManager.isAuthenticated();
+    },
+
+    getTokenInfo: (): any => {
+      return this.tokenManager.getTokenInfo();
+    },
+
+    refreshToken: async (): Promise<any> => {
+      return this.tokenManager.refreshToken();
+    }
+  };
 
   /**
    * 弹窗API实现

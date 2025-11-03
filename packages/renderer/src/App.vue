@@ -1,5 +1,8 @@
 <template>
-  <div id="app" :class="{ 'theme-light': uiStore.theme === 'light', 'theme-dark': uiStore.theme === 'dark' }">
+  <div
+    id="app"
+    :class="{ 'theme-light': uiStore.theme === 'light', 'theme-dark': uiStore.theme === 'dark' }"
+  >
     <LayoutShell />
   </div>
 </template>

@@ -5,9 +5,12 @@
         :src="event.userInfo?.avatar || '/default-avatar.png'" 
         :alt="event.userInfo?.nickname"
         class="user-avatar"
-      />
+      >
       <span class="username">{{ event.userInfo?.nickname || '匿名用户' }}</span>
-      <span v-if="event.userInfo?.medal?.clubName" class="medal">
+      <span
+        v-if="event.userInfo?.medal?.clubName"
+        class="medal"
+      >
         {{ event.userInfo.medal.clubName }} Lv.{{ event.userInfo.medal.level }}
       </span>
     </div>
@@ -18,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Comment } from 'acfunlive-http-api/src/types';
+import type { Comment } from 'acfunlive-http-api';
 
 interface Props {
   event: Comment & { id?: string; type?: string; timestamp?: number };

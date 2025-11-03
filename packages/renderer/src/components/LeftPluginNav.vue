@@ -17,35 +17,58 @@
         v-if="currentView === 'list'"
         theme="primary" 
         size="small" 
-        @click="showInstaller = true"
         :disabled="installing"
         class="install-btn"
+        @click="showInstaller = true"
       >
-        <template #icon><t-icon name="add" /></template>
+        <template #icon>
+          <t-icon name="add" />
+        </template>
         安装插件
       </t-button>
     </div>
 
     <!-- 插件列表 -->
-    <div v-if="currentView === 'list'" class="plugin-list">
-      <div v-if="loading" class="loading-state">
-        <t-loading size="large" text="加载插件中..." />
+    <div
+      v-if="currentView === 'list'"
+      class="plugin-list"
+    >
+      <div
+        v-if="loading"
+        class="loading-state"
+      >
+        <t-loading
+          size="large"
+          text="加载插件中..."
+        />
       </div>
       
-      <div v-else-if="plugins.length === 0" class="empty-state">
+      <div
+        v-else-if="plugins.length === 0"
+        class="empty-state"
+      >
         <t-empty description="暂无插件">
           <template #image>
-            <t-icon name="app" size="48px" />
+            <t-icon
+              name="app"
+              size="48px"
+            />
           </template>
           <template #action>
-            <t-button theme="primary" @click="showInstaller = true">
+            <t-button
+              theme="primary"
+              @click="showInstaller = true"
+            >
               安装第一个插件
             </t-button>
           </template>
         </t-empty>
       </div>
       
-      <div v-else class="plugin-items">
+      <div
+        v-else
+        class="plugin-items"
+      >
         <div 
           v-for="plugin in plugins" 
           :key="plugin.id"
@@ -54,12 +77,24 @@
           @click="selectPlugin(plugin.id)"
         >
           <div class="plugin-icon">
-            <img v-if="plugin.icon" :src="plugin.icon" :alt="plugin.name" />
-            <t-icon v-else name="app" size="24px" />
+            <img
+              v-if="plugin.icon"
+              :src="plugin.icon"
+              :alt="plugin.name"
+            >
+            <t-icon
+              v-else
+              name="app"
+              size="24px"
+            />
           </div>
           <div class="plugin-info">
-            <div class="plugin-name">{{ plugin.name }}</div>
-            <div class="plugin-version">v{{ plugin.version }}</div>
+            <div class="plugin-name">
+              {{ plugin.name }}
+            </div>
+            <div class="plugin-version">
+              v{{ plugin.version }}
+            </div>
           </div>
           <div class="plugin-status">
             <t-tag 
@@ -85,7 +120,10 @@
     </div>
 
     <!-- 插件详情 -->
-    <div v-else-if="currentView === 'detail'" class="plugin-detail-container">
+    <div
+      v-else-if="currentView === 'detail'"
+      class="plugin-detail-container"
+    >
       <PluginDetail 
         :plugin-id="selectedPluginId"
         @back="goBack"
@@ -94,7 +132,9 @@
     </div>
 
     <div class="system-shortcuts">
-      <div class="section-title">系统功能</div>
+      <div class="section-title">
+        系统功能
+      </div>
       <div 
         class="shortcut-item"
         @click="navigateToSystem('rooms')"
@@ -154,7 +194,11 @@
           :auto-upload="false"
           placeholder="选择插件文件 (.zip, .tar.gz)"
         />
-        <div v-if="installStatus" class="install-status" :class="installStatus.type">
+        <div
+          v-if="installStatus"
+          class="install-status"
+          :class="installStatus.type"
+        >
           {{ installStatus.message }}
         </div>
       </div>

@@ -1,13 +1,23 @@
 <template>
   <div class="system-page">
     <div class="page-header">
-      <h1 class="page-title">系统管理</h1>
-      <p class="page-description">系统日志、配置管理和诊断工具</p>
+      <h1 class="page-title">
+        系统管理
+      </h1>
+      <p class="page-description">
+        系统日志、配置管理和诊断工具
+      </p>
     </div>
 
-    <t-tabs v-model="activeTab" class="system-tabs">
+    <t-tabs
+      v-model="activeTab"
+      class="system-tabs"
+    >
       <!-- 日志管理标签页 -->
-      <t-tab-panel value="logs" label="日志">
+      <t-tab-panel
+        value="logs"
+        label="日志"
+      >
         <div class="logs-panel">
           <!-- 日志过滤器 -->
           <div class="logs-filters">
@@ -18,10 +28,22 @@
                 style="width: 120px;"
                 clearable
               >
-                <t-option value="error" label="错误" />
-                <t-option value="warn" label="警告" />
-                <t-option value="info" label="信息" />
-                <t-option value="debug" label="调试" />
+                <t-option
+                  value="error"
+                  label="错误"
+                />
+                <t-option
+                  value="warn"
+                  label="警告"
+                />
+                <t-option
+                  value="info"
+                  label="信息"
+                />
+                <t-option
+                  value="debug"
+                  label="调试"
+                />
               </t-select>
               
               <t-input 
@@ -56,8 +78,8 @@
               <t-button 
                 theme="primary" 
                 variant="outline"
-                @click="exportLogs"
                 :loading="exportingLogs"
+                @click="exportLogs"
               >
                 <t-icon name="download" />
                 导出日志
@@ -66,7 +88,10 @@
           </div>
 
           <!-- 日志列表 -->
-          <div class="logs-container" ref="logsContainer">
+          <div
+            ref="logsContainer"
+            class="logs-container"
+          >
             <t-loading :loading="logsLoading">
               <div class="logs-list">
                 <div 
@@ -75,24 +100,38 @@
                   :class="['log-item', `log-${log.level}`]"
                   @click="selectLog(log)"
                 >
-                  <div class="log-time">{{ formatTime(log.timestamp) }}</div>
-                  <div class="log-level">{{ log.level.toUpperCase() }}</div>
-                  <div class="log-message">{{ log.message }}</div>
-                  <div class="log-source">{{ log.source }}</div>
+                  <div class="log-time">
+                    {{ formatTime(log.timestamp) }}
+                  </div>
+                  <div class="log-level">
+                    {{ log.level.toUpperCase() }}
+                  </div>
+                  <div class="log-message">
+                    {{ log.message }}
+                  </div>
+                  <div class="log-source">
+                    {{ log.source }}
+                  </div>
                   <t-button 
                     v-if="log.level === 'error'"
                     size="small"
                     theme="danger"
                     variant="text"
-                    @click.stop="exportErrorLog(log)"
+                    @click.stop="exportErrorLog()"
                   >
                     导出
                   </t-button>
                 </div>
               </div>
               
-              <div v-if="filteredLogs.length === 0" class="empty-logs">
-                <t-icon name="inbox" size="48px" />
+              <div
+                v-if="filteredLogs.length === 0"
+                class="empty-logs"
+              >
+                <t-icon
+                  name="inbox"
+                  size="48px"
+                />
                 <p>暂无日志数据</p>
               </div>
             </t-loading>
@@ -101,7 +140,10 @@
       </t-tab-panel>
 
       <!-- 配置 & 导出标签页 -->
-      <t-tab-panel value="config_export" label="配置 & 导出">
+      <t-tab-panel
+        value="config_export"
+        label="配置 & 导出"
+      >
         <div class="config-export-panel">
           <div class="panel-section">
             <h3>配置管理</h3>
@@ -113,8 +155,17 @@
                 @blur="saveConfig"
               />
               <div class="config-actions">
-                <t-button @click="resetConfig" variant="outline">重置</t-button>
-                <t-button theme="primary" @click="saveConfig" :loading="savingConfig">
+                <t-button
+                  variant="outline"
+                  @click="resetConfig"
+                >
+                  重置
+                </t-button>
+                <t-button
+                  theme="primary"
+                  :loading="savingConfig"
+                  @click="saveConfig"
+                >
                   保存配置
                 </t-button>
               </div>
@@ -154,16 +205,25 @@
                   placeholder="导出格式"
                   style="width: 150px;"
                 >
-                  <t-option value="csv" label="CSV" />
-                  <t-option value="json" label="JSON" />
-                  <t-option value="xlsx" label="Excel" />
+                  <t-option
+                    value="csv"
+                    label="CSV"
+                  />
+                  <t-option
+                    value="json"
+                    label="JSON"
+                  />
+                  <t-option
+                    value="xlsx"
+                    label="Excel"
+                  />
                 </t-select>
                 
                 <t-button 
                   theme="primary" 
-                  @click="exportData"
                   :loading="exportingData"
                   :disabled="!canExport"
+                  @click="exportData"
                 >
                   <t-icon name="download" />
                   导出数据
@@ -175,11 +235,16 @@
       </t-tab-panel>
 
       <!-- 诊断标签页 -->
-      <t-tab-panel value="diagnostics" label="诊断">
+      <t-tab-panel
+        value="diagnostics"
+        label="诊断"
+      >
         <div class="diagnostics-panel">
           <div class="panel-section">
             <h3>系统诊断</h3>
-            <p class="section-desc">生成包含日志、系统信息、插件列表等的诊断包</p>
+            <p class="section-desc">
+              生成包含日志、系统信息、插件列表等的诊断包
+            </p>
             
             <div class="diagnostic-form">
               <t-date-range-picker 
@@ -189,18 +254,28 @@
               />
               
               <t-checkbox-group v-model="diagnosticOptions.includes">
-                <t-checkbox value="logs">系统日志</t-checkbox>
-                <t-checkbox value="config">配置文件</t-checkbox>
-                <t-checkbox value="plugins">插件信息</t-checkbox>
-                <t-checkbox value="database">数据库结构</t-checkbox>
-                <t-checkbox value="system">系统信息</t-checkbox>
+                <t-checkbox value="logs">
+                  系统日志
+                </t-checkbox>
+                <t-checkbox value="config">
+                  配置文件
+                </t-checkbox>
+                <t-checkbox value="plugins">
+                  插件信息
+                </t-checkbox>
+                <t-checkbox value="database">
+                  数据库结构
+                </t-checkbox>
+                <t-checkbox value="system">
+                  系统信息
+                </t-checkbox>
               </t-checkbox-group>
               
               <t-button 
                 theme="primary" 
                 size="large"
-                @click="generateDiagnostic"
                 :loading="generatingDiagnostic"
+                @click="generateDiagnostic"
               >
                 <t-icon name="file-zip" />
                 生成诊断包
@@ -208,10 +283,18 @@
             </div>
           </div>
 
-          <div v-if="lastDiagnosticPath" class="diagnostic-result">
-            <t-alert theme="success" title="诊断包生成成功">
+          <div
+            v-if="lastDiagnosticPath"
+            class="diagnostic-result"
+          >
+            <t-alert
+              theme="success"
+              title="诊断包生成成功"
+            >
               <p>文件路径: {{ lastDiagnosticPath }}</p>
-              <t-button @click="openDiagnosticFolder">打开所在文件夹</t-button>
+              <t-button @click="openDiagnosticFolder">
+                打开所在文件夹
+              </t-button>
             </t-alert>
           </div>
         </div>
@@ -386,7 +469,7 @@ const exportLogs = async () => {
   }
 }
 
-const exportErrorLog = async (log: LogItem) => {
+const exportErrorLog = async () => {
   try {
     // 模拟导出单个错误日志
     await new Promise(resolve => setTimeout(resolve, 1000))

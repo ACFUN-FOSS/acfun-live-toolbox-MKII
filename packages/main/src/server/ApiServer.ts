@@ -13,6 +13,7 @@ import { DatabaseManager } from '../persistence/DatabaseManager';
 import { DiagnosticsService } from '../logging/DiagnosticsService';
 import { OverlayManager } from '../plugins/OverlayManager';
 import { ConsoleManager } from '../console/ConsoleManager';
+import { AcfunApiProxy } from './AcfunApiProxy';
 import { NormalizedEventType } from '../types';
 
 /**
@@ -40,6 +41,7 @@ export class ApiServer {
   private diagnosticsService: DiagnosticsService;
   private overlayManager: OverlayManager;
   private consoleManager: ConsoleManager;
+  private acfunApiProxy: AcfunApiProxy;
   private pluginRoutes: Map<string, { method: 'GET' | 'POST'; path: string; handler: express.RequestHandler }[]> = new Map();
 
   constructor(config: ApiServerConfig = { port: 1299 }, databaseManager: DatabaseManager, diagnosticsService: DiagnosticsService, overlayManager: OverlayManager, consoleManager: ConsoleManager) {
@@ -59,6 +61,7 @@ export class ApiServer {
     this.diagnosticsService = diagnosticsService;
     this.overlayManager = overlayManager;
     this.consoleManager = consoleManager;
+    this.acfunApiProxy = new AcfunApiProxy();
     
     this.configureMiddleware();
     this.configureRoutes();
@@ -120,6 +123,54 @@ export class ApiServer {
             { method: 'GET', path: '/api/diagnostics', description: 'System diagnostics' },
             { method: 'GET', path: '/api/logs', description: 'Application logs' },
             { method: 'POST', path: '/api/export', description: 'Export data to CSV' }
+          ],
+          acfun: [
+            { method: 'ALL', path: '/api/acfun/*', description: 'AcFun Live API proxy endpoints' },
+            // 认证相关
+            { method: 'GET', path: '/api/acfun/auth/status', description: 'Check authentication status' },
+            { method: 'POST', path: '/api/acfun/auth/qr-login', description: 'Start QR code login' },
+            { method: 'GET', path: '/api/acfun/auth/qr-status', description: 'Check QR code login status' },
+            { method: 'POST', path: '/api/acfun/auth/token', description: 'Set authentication token' },
+            { method: 'DELETE', path: '/api/acfun/auth/token', description: 'Clear authentication token' },
+            // 用户相关
+            { method: 'GET', path: '/api/acfun/user/info', description: 'Get user information' },
+            { method: 'GET', path: '/api/acfun/user/wallet', description: 'Get user wallet information' },
+            // 弹幕相关
+            { method: 'POST', path: '/api/acfun/danmu/start', description: 'Start danmu session' },
+            { method: 'POST', path: '/api/acfun/danmu/stop', description: 'Stop danmu session' },
+            { method: 'GET', path: '/api/acfun/danmu/room-info', description: 'Get live room information' },
+            // 直播相关
+            { method: 'GET', path: '/api/acfun/live/permission', description: 'Check live permission' },
+            { method: 'GET', path: '/api/acfun/live/stream-url', description: 'Get stream URL' },
+            { method: 'GET', path: '/api/acfun/live/stream-settings', description: 'Get stream settings' },
+            { method: 'GET', path: '/api/acfun/live/stream-status', description: 'Get stream status' },
+            { method: 'POST', path: '/api/acfun/live/start', description: 'Start live stream' },
+            { method: 'POST', path: '/api/acfun/live/stop', description: 'Stop live stream' },
+            { method: 'PUT', path: '/api/acfun/live/update', description: 'Update live room settings' },
+            { method: 'GET', path: '/api/acfun/live/statistics', description: 'Get live statistics' },
+            { method: 'GET', path: '/api/acfun/live/summary', description: 'Get live summary' },
+            { method: 'GET', path: '/api/acfun/live/hot-lives', description: 'Get hot live list' },
+            { method: 'GET', path: '/api/acfun/live/categories', description: 'Get live categories' },
+            { method: 'GET', path: '/api/acfun/live/user-info', description: 'Get user live info' },
+            { method: 'GET', path: '/api/acfun/live/clip-permission', description: 'Get clip permission' },
+            { method: 'PUT', path: '/api/acfun/live/clip-permission', description: 'Set clip permission' },
+            // 礼物相关
+            { method: 'GET', path: '/api/acfun/gift/all', description: 'Get all gift list' },
+            { method: 'GET', path: '/api/acfun/gift/live', description: 'Get live gift list' },
+            // 房管相关
+            { method: 'GET', path: '/api/acfun/manager/list', description: 'Get manager list' },
+            { method: 'POST', path: '/api/acfun/manager/add', description: 'Add manager' },
+            { method: 'DELETE', path: '/api/acfun/manager/remove', description: 'Remove manager' },
+            { method: 'GET', path: '/api/acfun/manager/kick-records', description: 'Get kick records' },
+            { method: 'POST', path: '/api/acfun/manager/kick', description: 'Kick user' },
+            // 权限管理相关
+            { method: 'GET', path: '/api/acfun/permissions/plugins', description: 'Get all plugin permissions' },
+            { method: 'POST', path: '/api/acfun/permissions/plugins', description: 'Set plugin permission' },
+            { method: 'GET', path: '/api/acfun/permissions/plugins/:pluginId', description: 'Get specific plugin permission' },
+            { method: 'DELETE', path: '/api/acfun/permissions/plugins/:pluginId', description: 'Remove plugin permission' },
+            { method: 'GET', path: '/api/acfun/permissions/api-endpoints', description: 'Get API endpoint permissions' },
+            { method: 'POST', path: '/api/acfun/permissions/check', description: 'Check permission for plugin and endpoint' },
+            { method: 'POST', path: '/api/acfun/permissions/rate-limit/reset', description: 'Reset rate limit for plugin' }
           ],
           console: [
             { method: 'GET', path: '/api/console/data', description: 'Get console page data' },
@@ -355,6 +406,9 @@ export class ApiServer {
         res.status(500).json({ success: false, error: (error as Error).message });
       }
     });
+
+    // AcFun API 代理路由 - 将所有 /api/acfun/* 请求代理到 AcfunApiProxy
+    this.app.use('/api/acfun', this.acfunApiProxy.createRoutes());
 
     // GET /plugins/:id/:rest* - 插件页面托管（Express v5/path-to-regexp@v6 需要命名通配符）
     this.app.all('/plugins/:id/(.*)', (req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -2,7 +2,10 @@
   <div class="console-page">
     <div class="header">
       <h1>控制台</h1>
-      <div class="stats" v-if="consoleData">
+      <div
+        v-if="consoleData"
+        class="stats"
+      >
         <div class="stat-item">
           <span class="label">WebSocket 连接:</span>
           <span class="value">{{ consoleData.websocketClients }}</span>
@@ -14,7 +17,10 @@
       </div>
     </div>
 
-    <div class="content" v-if="consoleData">
+    <div
+      v-if="consoleData"
+      class="content"
+    >
       <div class="commands-section">
         <h2>可用命令</h2>
         <div class="commands-grid">
@@ -25,21 +31,30 @@
           >
             <div class="command-header">
               <span class="command-name">{{ command.name }}</span>
-              <span class="command-category" :class="getCategoryClass(command.category)">
+              <span
+                class="command-category"
+                :class="getCategoryClass(command.category)"
+              >
                 {{ command.category }}
               </span>
             </div>
             <div class="command-description">
               {{ command.description }}
             </div>
-            <div class="command-usage" v-if="command.usage">
+            <div
+              v-if="command.usage"
+              class="command-usage"
+            >
               <strong>用法:</strong> <code>{{ command.usage }}</code>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="sessions-section" v-if="consoleData?.activeSessions?.length > 0">
+      <div
+        v-if="consoleData?.activeSessions?.length > 0"
+        class="sessions-section"
+      >
         <h2>活跃会话</h2>
         <div class="sessions-list">
           <div 
@@ -49,7 +64,10 @@
           >
             <div class="session-header">
               <span class="session-id">会话 #{{ session.id }}</span>
-              <span class="session-status" :class="getStatusClass(session.status)">
+              <span
+                class="session-status"
+                :class="getStatusClass(session.status)"
+              >
                 {{ getStatusText(session.status) }}
               </span>
             </div>
@@ -62,26 +80,40 @@
                 <span class="label">开始时间:</span>
                 <span class="value">{{ formatDate(session.startTime) }}</span>
               </div>
-              <div class="info-item" v-if="session.lastActivity">
+              <div
+                v-if="session.lastActivity"
+                class="info-item"
+              >
                 <span class="label">最后活动:</span>
                 <span class="value">{{ formatDate(session.lastActivity) }}</span>
               </div>
             </div>
-            <div class="session-details" v-if="session.details">
+            <div
+              v-if="session.details"
+              class="session-details"
+            >
               <strong>详情:</strong> {{ session.details }}
             </div>
           </div>
         </div>
       </div>
 
-      <div class="empty-sessions" v-else>
-        <div class="empty-icon">📭</div>
+      <div
+        v-else
+        class="empty-sessions"
+      >
+        <div class="empty-icon">
+          📭
+        </div>
         <p>当前没有活跃的会话</p>
       </div>
     </div>
 
-    <div class="loading" v-else>
-      <div class="spinner"></div>
+    <div
+      v-else
+      class="loading"
+    >
+      <div class="spinner" />
       <p>正在加载控制台数据...</p>
     </div>
   </div>

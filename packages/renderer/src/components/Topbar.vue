@@ -1,9 +1,15 @@
 <template>
   <div class="topbar">
     <!-- 左侧：应用标题和拖拽区域 -->
-    <div class="topbar-left" data-tauri-drag-region>
+    <div
+      class="topbar-left"
+      data-tauri-drag-region
+    >
       <div class="app-title">
-        <t-icon name="logo-github" class="app-icon" />
+        <t-icon
+          name="logo-github"
+          class="app-icon"
+        />
         <span class="title-text">ACLiveFrame</span>
       </div>
     </div>
@@ -14,32 +20,59 @@
       <t-popup
         v-model="showAccountCard"
         placement="bottom-left"
-        :attach="accountArea"
-        trigger="manual"
+        :attach="getAttachElement"
+        trigger="click"
       >
         <!-- 触发元素 -->
-        <div ref="accountArea" class="account-area" @click="toggleAccountCard">
-          <t-avatar :image="userInfo?.avatar" size="small" />
+        <div
+          ref="accountArea"
+          class="account-area"
+          @click="toggleAccountCard"
+        >
+          <t-avatar
+            :image="userInfo?.avatar"
+            size="small"
+          />
           <span class="username">{{ userInfo?.nickname || '游客' }}</span>
-          <t-icon name="chevron-down" class="dropdown-icon" />
+          <t-icon
+            name="chevron-down"
+            class="dropdown-icon"
+          />
         </div>
         
         <!-- 弹出内容使用 #content 插槽 -->
         <template #content>
           <div class="account-card">
             <div class="account-info">
-              <t-avatar :image="userInfo?.avatar" size="medium" />
+              <t-avatar
+                :image="userInfo?.avatar"
+                size="medium"
+              />
               <div class="user-details">
-                <div class="user-name">{{ userInfo?.nickname || '游客' }}</div>
-                <div class="user-id">ID: {{ userInfo?.userID || 'N/A' }}</div>
+                <div class="user-name">
+                  {{ userInfo?.nickname || '游客' }}
+                </div>
+                <div class="user-id">
+                  ID: {{ userInfo?.userID || 'N/A' }}
+                </div>
               </div>
             </div>
             <t-divider />
             <div class="account-actions">
-              <t-button v-if="!userInfo?.userID" variant="outline" size="small" @click="login">
+              <t-button
+                v-if="!userInfo?.userID"
+                variant="outline"
+                size="small"
+                @click="login"
+              >
                 扫码登录
               </t-button>
-              <t-button v-else variant="outline" size="small" @click="logout">
+              <t-button
+                v-else
+                variant="outline"
+                size="small"
+                @click="logout"
+              >
                 退出登录
               </t-button>
             </div>
@@ -48,14 +81,20 @@
       </t-popup>
       
       <!-- 房间状态指示器 -->
-      <div class="room-status" @click="toggleRoomDrawer">
+      <div
+        class="room-status"
+        @click="toggleRoomDrawer"
+      >
         <t-badge 
           :count="liveRoomCount" 
           :max-count="99"
           :dot="liveRoomCount === 0"
           :color="liveRoomCount > 0 ? 'success' : 'default'"
         >
-          <t-icon name="video" class="room-icon" />
+          <t-icon
+            name="video"
+            class="room-icon"
+          />
         </t-badge>
         <span class="room-text">{{ roomStatusText }}</span>
       </div>
@@ -89,8 +128,14 @@
       size="300px"
     >
       <div class="room-list">
-        <div v-if="rooms.length === 0" class="empty-rooms">
-          <t-icon name="video-off" size="48px" />
+        <div
+          v-if="rooms.length === 0"
+          class="empty-rooms"
+        >
+          <t-icon
+            name="video-off"
+            size="48px"
+          />
           <p>暂无监控房间</p>
         </div>
         <div v-else>
@@ -101,7 +146,9 @@
             :class="{ 'live': room.isLive }"
           >
             <div class="room-info">
-              <div class="room-name">{{ room.name }}</div>
+              <div class="room-name">
+                {{ room.name }}
+              </div>
               <div class="room-stats">
                 <t-tag 
                   :theme="room.isLive ? 'success' : 'default'"
@@ -109,12 +156,19 @@
                 >
                   {{ room.isLive ? '直播中' : '未开播' }}
                 </t-tag>
-                <span v-if="room.isLive" class="viewer-count">
+                <span
+                  v-if="room.isLive"
+                  class="viewer-count"
+                >
                   {{ formatViewerCount(room.viewerCount) }}人观看
                 </span>
               </div>
             </div>
-            <t-button size="small" variant="text" @click="openRoom(room)">
+            <t-button
+              size="small"
+              variant="text"
+              @click="openRoom(room)"
+            >
               <t-icon name="jump" />
             </t-button>
           </div>
@@ -188,6 +242,10 @@ function formatViewerCount(count: number): string {
 function openRoom(room: Room) {
   // 打开房间页面或外部链接
   console.log('Opening room:', room);
+}
+
+function getAttachElement(): HTMLElement | null {
+  return accountArea.value || null;
 }
 
 onMounted(() => {

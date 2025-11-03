@@ -4,28 +4,76 @@
     <section class="filters">
       <div class="row">
         <label>房间ID：</label>
-        <input class="input" v-model="roomId" placeholder="如：12345" />
+        <input
+          v-model="roomId"
+          class="input"
+          placeholder="如：12345"
+        >
         <label>用户ID：</label>
-        <input class="input" v-model="userId" placeholder="可选" />
+        <input
+          v-model="userId"
+          class="input"
+          placeholder="可选"
+        >
         <label>类型：</label>
-        <select class="input" v-model="type">
-          <option value="">全部</option>
-          <option v-for="t in allTypes" :key="t" :value="t">{{ t }}</option>
+        <select
+          v-model="type"
+          class="input"
+        >
+          <option value="">
+            全部
+          </option>
+          <option
+            v-for="t in allTypes"
+            :key="t"
+            :value="t"
+          >
+            {{ t }}
+          </option>
         </select>
       </div>
       <div class="row">
         <label>开始时间：</label>
-        <input class="input" type="datetime-local" v-model="fromStr" />
+        <input
+          v-model="fromStr"
+          class="input"
+          type="datetime-local"
+        >
         <label>结束时间：</label>
-        <input class="input" type="datetime-local" v-model="toStr" />
+        <input
+          v-model="toStr"
+          class="input"
+          type="datetime-local"
+        >
         <label>搜索：</label>
-        <input class="input" v-model="q" placeholder="在用户名/内容/raw中模糊搜索" />
-        <button class="btn" @click="fetchEvents">查询</button>
+        <input
+          v-model="q"
+          class="input"
+          placeholder="在用户名/内容/raw中模糊搜索"
+        >
+        <button
+          class="btn"
+          @click="fetchEvents"
+        >
+          查询
+        </button>
       </div>
       <div class="row meta">
         <span>结果：{{ total }} 条，页 {{ page }} / {{ totalPages }}</span>
-        <button class="btn" @click="prevPage" :disabled="page<=1">上一页</button>
-        <button class="btn" @click="nextPage" :disabled="!hasNext">下一页</button>
+        <button
+          class="btn"
+          :disabled="page<=1"
+          @click="prevPage"
+        >
+          上一页
+        </button>
+        <button
+          class="btn"
+          :disabled="!hasNext"
+          @click="nextPage"
+        >
+          下一页
+        </button>
       </div>
     </section>
 
@@ -37,16 +85,51 @@
     <section class="replay">
       <h3>回放控制</h3>
       <div class="row">
-        <button class="btn" @click="startReplay" :disabled="playing || items.length===0">开始回放</button>
-        <button class="btn" @click="pauseReplay" :disabled="!playing">暂停</button>
-        <button class="btn" @click="resumeReplay" :disabled="playing || replayIndex>=items.length">继续</button>
-        <button class="btn" @click="resetReplay" :disabled="!replayEvents.length">清空回放输出</button>
+        <button
+          class="btn"
+          :disabled="playing || items.length===0"
+          @click="startReplay"
+        >
+          开始回放
+        </button>
+        <button
+          class="btn"
+          :disabled="!playing"
+          @click="pauseReplay"
+        >
+          暂停
+        </button>
+        <button
+          class="btn"
+          :disabled="playing || replayIndex>=items.length"
+          @click="resumeReplay"
+        >
+          继续
+        </button>
+        <button
+          class="btn"
+          :disabled="!replayEvents.length"
+          @click="resetReplay"
+        >
+          清空回放输出
+        </button>
         <label>速度：</label>
-        <select class="input" v-model.number="speed">
-          <option :value="0.5">0.5x</option>
-          <option :value="1">1x</option>
-          <option :value="2">2x</option>
-          <option :value="4">4x</option>
+        <select
+          v-model.number="speed"
+          class="input"
+        >
+          <option :value="0.5">
+            0.5x
+          </option>
+          <option :value="1">
+            1x
+          </option>
+          <option :value="2">
+            2x
+          </option>
+          <option :value="4">
+            4x
+          </option>
         </select>
       </div>
       <div class="row meta">

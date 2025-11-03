@@ -97,22 +97,39 @@ export const usePluginStore = defineStore('plugin', () => {
       isLoading.value = true;
       error.value = null;
       
-      // 从本地存储加载插件列表
-      const savedPlugins = localStorage.getItem('installedPlugins');
-      if (savedPlugins) {
-        const parsed = JSON.parse(savedPlugins);
-        plugins.value = parsed.map((plugin: any) => ({
+      // 使用真实的preload API获取插件列表
+      const result = await window.electronApi.plugin.list();
+      
+      if ('plugins' in result) {
+        plugins.value = result.plugins.map((plugin: any) => ({
           ...plugin,
           installTime: new Date(plugin.installTime),
           lastUpdate: new Date(plugin.lastUpdate),
         }));
+      } else if ('error' in result) {
+        throw new Error(result.error || '获取插件列表失败');
       }
       
-      // 从API获取最新插件状态
+      // 获取最新插件状态
       await refreshPluginStatus();
     } catch (err) {
       console.error('Failed to load plugins:', err);
       error.value = err instanceof Error ? err.message : '加载插件列表失败';
+      
+      // 如果API调用失败，尝试从本地存储加载
+      try {
+        const savedPlugins = localStorage.getItem('installedPlugins');
+        if (savedPlugins) {
+          const parsed = JSON.parse(savedPlugins);
+          plugins.value = parsed.map((plugin: any) => ({
+            ...plugin,
+            installTime: new Date(plugin.installTime),
+            lastUpdate: new Date(plugin.lastUpdate),
+          }));
+        }
+      } catch (storageErr) {
+        console.error('Failed to load plugins from storage:', storageErr);
+      }
     } finally {
       isLoading.value = false;
     }
@@ -120,26 +137,15 @@ export const usePluginStore = defineStore('plugin', () => {
 
   async function refreshPluginStatus() {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/plugins/status');
-      // const data = await response.json();
+      // 使用真实的preload API获取插件统计信息
+      const statsResult = await window.electronApi.plugin.stats();
       
-      // Mock数据
-      const data = {
-        success: true,
-        plugins: plugins.value.map(plugin => ({
-          ...plugin,
-          status: Math.random() > 0.7 ? 'active' as const : Math.random() > 0.5 ? 'inactive' as const : 'error' as const,
-          lastUpdate: new Date().toISOString()
-        }))
-      };
-      
-      if (data.success && data.plugins) {
+      if ('plugins' in statsResult) {
         // 更新插件状态
         plugins.value = plugins.value.map(plugin => {
-          const updatedPlugin = data.plugins.find((p: any) => p.id === plugin.id);
-            if (updatedPlugin) {
-              return {
+          const updatedPlugin = (statsResult.plugins as any[]).find((p: any) => p.id === plugin.id);
+          if (updatedPlugin) {
+            return {
               ...plugin,
               ...updatedPlugin,
               lastUpdate: new Date(),
@@ -159,67 +165,33 @@ export const usePluginStore = defineStore('plugin', () => {
     try {
       installingPlugins.value.add(pluginUrl);
       
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/plugins/install', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ url: pluginUrl }),
-      // });
-      // const data = await response.json();
+      // 使用真实的preload API安装插件
+      const result = await window.electronApi.plugin.install({ url: pluginUrl });
       
-      // Mock数据
-      const pluginId = `plugin_${Date.now()}`;
-      const data = {
-        success: true,
-        plugin: {
-          id: pluginId,
-          name: `插件 ${pluginId}`,
-          version: '1.0.0',
-          description: '这是一个示例插件',
-          author: '示例作者',
-          status: 'inactive' as 'error' | 'loading' | 'active' | 'inactive',
-          enabled: false,
-          autoStart: false,
-          installTime: new Date(),
-          lastUpdate: new Date(),
-          config: {},
-          sidebarDisplay: {
-             show: true,
-             title: `插件 ${pluginId}`,
-             icon: 'plugin',
-             order: 0
-           }
-        },
-        message: ''
-      };
+      if (!result.success) {
+        throw new Error(result.error || '安装插件失败');
+      }
       
-      if (data.success && data.plugin) {
-        const newPlugin: PluginInfo = {
-          ...data.plugin,
-          installTime: new Date(),
-          lastUpdate: new Date(),
-        };
+      if (result.pluginId) {
+        // 安装成功后，重新加载插件列表以获取完整的插件信息
+        await loadPlugins();
         
-        // 检查是否已存在
-        const existingIndex = plugins.value.findIndex(p => p.id === newPlugin.id);
-        if (existingIndex >= 0) {
-          plugins.value[existingIndex] = newPlugin;
+        // 找到新安装的插件
+        const newPlugin = plugins.value.find(p => p.id === result.pluginId);
+        if (newPlugin) {
+          console.log('Plugin installed successfully:', newPlugin.name);
+          
+          // 如果插件启用，注册路由
+          if (newPlugin.enabled && newPlugin.routes) {
+            registerPluginRoutes(newPlugin);
+          }
+          
+          return newPlugin;
         } else {
-          plugins.value.push(newPlugin);
+          throw new Error('安装插件失败：未找到已安装的插件');
         }
-        
-        savePluginsToStorage();
-        
-        // 如果插件启用，注册路由
-        if (newPlugin.enabled && newPlugin.routes) {
-          registerPluginRoutes(newPlugin);
-        }
-        
-        return newPlugin;
       } else {
-        throw new Error(data.message || '安装插件失败');
+        throw new Error('安装插件失败：未返回插件ID');
       }
     } catch (err) {
       console.error('Failed to install plugin:', err);
@@ -323,23 +295,20 @@ export const usePluginStore = defineStore('plugin', () => {
         await togglePlugin(pluginId, false);
       }
       
-      const response = await fetch(`/api/plugins/${pluginId}/uninstall`, {
-        method: 'DELETE',
-      });
+      // 使用真实的preload API卸载插件
+      const result = await window.electronApi.plugin.uninstall(pluginId);
       
-      const data = await response.json();
-      
-      if (data.success) {
-        // 从列表中移除
-        const index = plugins.value.findIndex(p => p.id === pluginId);
-        if (index >= 0) {
-          plugins.value.splice(index, 1);
-        }
-        
-        savePluginsToStorage();
-      } else {
-        throw new Error(data.message || '卸载插件失败');
+      if (!result.success) {
+        throw new Error(result.error || '卸载插件失败');
       }
+      
+      // 从列表中移除
+      const index = plugins.value.findIndex(p => p.id === pluginId);
+      if (index >= 0) {
+        plugins.value.splice(index, 1);
+      }
+      
+      savePluginsToStorage();
     } catch (err) {
       console.error('Failed to uninstall plugin:', err);
       throw err;
@@ -351,29 +320,28 @@ export const usePluginStore = defineStore('plugin', () => {
       const plugin = getPluginById(pluginId);
       if (!plugin) return;
       
-      const response = await fetch(`/api/plugins/${pluginId}/${enabled ? 'enable' : 'disable'}`, {
-        method: 'POST',
-      });
+      // 使用真实的preload API启用/停用插件
+      const result = enabled 
+        ? await window.electronApi.plugin.enable(pluginId)
+        : await window.electronApi.plugin.disable(pluginId);
       
-      const data = await response.json();
-      
-      if (data.success) {
-        // 更新插件状态
-        plugin.enabled = enabled;
-        plugin.status = enabled ? 'active' : 'inactive';
-        plugin.lastUpdate = new Date();
-        
-        // 处理路由注册/注销
-        if (enabled && plugin.routes) {
-          registerPluginRoutes(plugin);
-        } else if (!enabled && plugin.routes) {
-          unregisterPluginRoutes(plugin);
-        }
-        
-        savePluginsToStorage();
-      } else {
-        throw new Error(data.message || `${enabled ? '启用' : '停用'}插件失败`);
+      if (!result.success) {
+        throw new Error(result.error || `${enabled ? '启用' : '停用'}插件失败`);
       }
+      
+      // 更新插件状态
+      plugin.enabled = enabled;
+      plugin.status = enabled ? 'active' : 'inactive';
+      plugin.lastUpdate = new Date();
+      
+      // 处理路由注册/注销
+      if (enabled && plugin.routes) {
+        registerPluginRoutes(plugin);
+      } else if (!enabled && plugin.routes) {
+        unregisterPluginRoutes(plugin);
+      }
+      
+      savePluginsToStorage();
     } catch (err) {
       console.error(`Failed to ${enabled ? 'enable' : 'disable'} plugin:`, err);
       throw err;
@@ -451,9 +419,23 @@ export const usePluginStore = defineStore('plugin', () => {
   // 获取插件日志
   async function getPluginLogs(pluginId: string) {
     try {
-      const response = await fetch(`/api/plugins/${pluginId}/logs`);
-      const data = await response.json();
-      return data.logs || [];
+      // 使用真实的preload API获取插件日志
+      const result = await window.electronApi.plugin.logs(pluginId);
+      
+      if ('logs' in result) {
+        // 转换日志格式以匹配期望的类型
+        return (result.logs || []).map((log: any) => ({
+          timestamp: log.timestamp,
+          level: log.level as 'error' | 'warn' | 'info' | 'debug',
+          source: log.source || 'system',
+          message: log.message
+        }));
+      } else if ('error' in result) {
+        console.error('Failed to get plugin logs:', result.error);
+        return [];
+      } else {
+        return [];
+      }
     } catch (err) {
       console.error('Failed to get plugin logs:', err);
       return [];
@@ -572,12 +554,7 @@ export const usePluginStore = defineStore('plugin', () => {
   // 获取运行时插件列表
   async function getRuntimePlugins() {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/plugins/runtime');
-      // const data = await response.json();
-      // return data.plugins || [];
-      
-      // Mock数据
+      // 使用现有的插件列表，过滤出活跃状态的插件
       return plugins.value.filter(p => p.status === 'active');
     } catch (err) {
       console.error('Failed to get runtime plugins:', err);
@@ -588,22 +565,24 @@ export const usePluginStore = defineStore('plugin', () => {
   // 获取性能数据
   async function getPerformanceData() {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/plugins/performance');
-      // const data = await response.json();
-      // return data.performance || {};
+      // 使用真实的preload API获取插件统计信息
+      const statsResult = await window.electronApi.plugin.stats();
       
-      // Mock数据
-      return {
-        cpu: Math.random() * 100,
-        memory: Math.random() * 1024,
-        uptime: Date.now() - 3600000,
-        plugins: plugins.value.map(p => ({
-          id: p.id,
-          cpu: Math.random() * 10,
-          memory: Math.random() * 100
-        }))
-      };
+      if ('stats' in statsResult && 'performance' in statsResult) {
+        return statsResult.performance;
+      } else {
+        // 如果API不支持性能数据，返回基本信息
+        return {
+          cpu: 0,
+          memory: 0,
+          uptime: Date.now() - 3600000,
+          plugins: plugins.value.map(p => ({
+            id: p.id,
+            cpu: 0,
+            memory: 0
+          }))
+        };
+      }
     } catch (err) {
       console.error('Failed to get performance data:', err);
       return {};
@@ -613,22 +592,24 @@ export const usePluginStore = defineStore('plugin', () => {
   // 获取事件统计
   async function getEventStats() {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/plugins/events/stats');
-      // const data = await response.json();
-      // return data.stats || {};
+      // 使用真实的preload API获取错误统计
+      const errorStatsResult = await window.electronApi.plugin.errorStats();
       
-      // Mock数据
-      return {
-        totalEvents: Math.floor(Math.random() * 10000),
-        eventsPerSecond: Math.random() * 100,
-        errorRate: Math.random() * 0.1,
-        plugins: plugins.value.map(p => ({
-          id: p.id,
-          events: Math.floor(Math.random() * 1000),
-          errors: Math.floor(Math.random() * 10)
-        }))
-      };
+      if ('stats' in errorStatsResult) {
+        return errorStatsResult.stats;
+      } else {
+        // 如果API不支持事件统计，返回基本信息
+        return {
+          totalEvents: 0,
+          eventsPerSecond: 0,
+          errorRate: 0,
+          plugins: plugins.value.map(p => ({
+            id: p.id,
+            events: 0,
+            errors: 0
+          }))
+        };
+      }
     } catch (err) {
       console.error('Failed to get event stats:', err);
       return {};
@@ -638,26 +619,23 @@ export const usePluginStore = defineStore('plugin', () => {
   // 获取系统日志
   async function getSystemLogs() {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/system/logs');
-      // const data = await response.json();
-      // return data.logs || [];
+      // 使用真实的preload API获取系统日志
+      const result = await window.electronApi.plugin.logs(undefined, 100);
       
-      // Mock数据
-      return [
-        {
-          timestamp: Date.now(),
-          level: 'info' as const,
-          message: '系统启动完成',
-          source: 'system'
-        },
-        {
-          timestamp: Date.now() - 60000,
-          level: 'warn' as const,
-          message: '插件加载警告',
-          source: 'plugin'
-        }
-      ];
+      if ('logs' in result) {
+        // 转换日志格式以匹配期望的类型
+        return (result.logs || []).map((log: any) => ({
+          timestamp: log.timestamp,
+          level: log.level as 'error' | 'warn' | 'info' | 'debug',
+          source: log.source || 'system',
+          message: log.message
+        }));
+      } else if ('error' in result) {
+        console.error('Failed to get system logs:', result.error);
+        return [];
+      } else {
+        return [];
+      }
     } catch (err) {
       console.error('Failed to get system logs:', err);
       return [];
@@ -669,58 +647,64 @@ export const usePluginStore = defineStore('plugin', () => {
   }
 
   // 启动所有插件
-  const startAllPlugins = async () => {
+  async function startAllPlugins() {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/plugins/start-all', {
-      //   method: 'POST'
-      // });
-      // if (!response.ok) {
-      //   throw new Error(`启动所有插件失败: ${response.statusText}`);
-      // }
-      
-      // Mock数据 - 启动所有插件
-      plugins.value.forEach(plugin => {
+      const results = [];
+      for (const plugin of plugins.value) {
         if (plugin.status === 'inactive') {
-          plugin.status = 'active';
-          plugin.enabled = true;
+          try {
+            const result = await window.electronApi.plugin.enable(plugin.id);
+            if (result.success) {
+              plugin.status = 'active';
+              results.push({ id: plugin.id, success: true });
+            } else {
+              results.push({ id: plugin.id, success: false, error: 'error' in result ? result.error : 'Unknown error' });
+            }
+          } catch (err) {
+            results.push({ id: plugin.id, success: false, error: err instanceof Error ? err.message : 'Unknown error' });
+          }
+        } else {
+          results.push({ id: plugin.id, success: true, message: 'Already active' });
         }
-      });
-      savePluginsToStorage();
+      }
       
-      await refreshPluginStatus();
-    } catch (error) {
-      console.error('启动所有插件失败:', error);
-      throw error;
+      await savePluginsToStorage();
+      return results;
+    } catch (err) {
+      console.error('Failed to start all plugins:', err);
+      return [];
     }
-  };
+  }
 
   // 停止所有插件
-  const stopAllPlugins = async () => {
+  async function stopAllPlugins() {
     try {
-      // TODO: 未实现 - 使用mock数据
-      // const response = await fetch('/api/plugins/stop-all', {
-      //   method: 'POST'
-      // });
-      // if (!response.ok) {
-      //   throw new Error(`停止所有插件失败: ${response.statusText}`);
-      // }
-      
-      // Mock数据 - 停止所有插件
-      plugins.value.forEach(plugin => {
+      const results = [];
+      for (const plugin of plugins.value) {
         if (plugin.status === 'active') {
-          plugin.status = 'inactive';
-          plugin.enabled = false;
+          try {
+            const result = await window.electronApi.plugin.disable(plugin.id);
+            if (result.success) {
+              plugin.status = 'inactive';
+              results.push({ id: plugin.id, success: true });
+            } else {
+              results.push({ id: plugin.id, success: false, error: 'error' in result ? result.error : 'Unknown error' });
+            }
+          } catch (err) {
+            results.push({ id: plugin.id, success: false, error: err instanceof Error ? err.message : 'Unknown error' });
+          }
+        } else {
+          results.push({ id: plugin.id, success: true, message: 'Already disabled' });
         }
-      });
-      savePluginsToStorage();
+      }
       
-      await refreshPluginStatus();
-    } catch (error) {
-      console.error('停止所有插件失败:', error);
-      throw error;
+      await savePluginsToStorage();
+      return results;
+    } catch (err) {
+      console.error('Failed to stop all plugins:', err);
+      return [];
     }
-  };
+  }
 
   // 初始化
   loadPlugins();

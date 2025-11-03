@@ -1,42 +1,78 @@
 <template>
   <div class="plugin-detail">
-    <div v-if="loading" class="loading-state">
-      <t-loading size="large" text="加载中..." />
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
+      <t-loading
+        size="large"
+        text="加载中..."
+      />
     </div>
     
-    <div v-else-if="plugin" class="plugin-content">
+    <div
+      v-else-if="plugin"
+      class="plugin-content"
+    >
       <!-- 插件头部信息 -->
       <div class="plugin-header">
         <div class="plugin-icon">
-          <img v-if="plugin.icon" :src="plugin.icon" :alt="plugin.name" />
-          <t-icon v-else name="app" size="48px" />
+          <img
+            v-if="plugin.icon"
+            :src="plugin.icon"
+            :alt="plugin.name"
+          >
+          <t-icon
+            v-else
+            name="app"
+            size="48px"
+          />
         </div>
         <div class="plugin-info">
-          <h2 class="plugin-name">{{ plugin.name }}</h2>
+          <h2 class="plugin-name">
+            {{ plugin.name }}
+          </h2>
           <div class="plugin-meta">
-            <t-tag theme="primary" variant="light">v{{ plugin.version }}</t-tag>
-            <t-tag v-if="plugin.author" theme="default" variant="light">{{ plugin.author }}</t-tag>
-            <t-tag :theme="plugin.enabled ? 'success' : 'warning'" variant="light">
+            <t-tag
+              theme="primary"
+              variant="light"
+            >
+              v{{ plugin.version }}
+            </t-tag>
+            <t-tag
+              v-if="plugin.author"
+              theme="default"
+              variant="light"
+            >
+              {{ plugin.author }}
+            </t-tag>
+            <t-tag
+              :theme="plugin.enabled ? 'success' : 'warning'"
+              variant="light"
+            >
               {{ plugin.enabled ? '已启用' : '已禁用' }}
             </t-tag>
           </div>
-          <p v-if="plugin.description" class="plugin-description">
+          <p
+            v-if="plugin.description"
+            class="plugin-description"
+          >
             {{ plugin.description }}
           </p>
         </div>
         <div class="plugin-actions">
           <t-button 
             :theme="plugin.enabled ? 'default' : 'primary'"
-            @click="togglePlugin"
             :loading="toggling"
+            @click="togglePlugin"
           >
             {{ plugin.enabled ? '禁用' : '启用' }}
           </t-button>
           <t-button 
             theme="danger" 
             variant="outline"
-            @click="showUninstallDialog = true"
             :disabled="plugin.enabled"
+            @click="showUninstallDialog = true"
           >
             卸载
           </t-button>
@@ -46,7 +82,10 @@
       <!-- 插件详细信息 -->
       <div class="plugin-details">
         <t-tabs v-model="activeTab">
-          <t-tab-panel value="info" label="基本信息">
+          <t-tab-panel
+            value="info"
+            label="基本信息"
+          >
             <div class="info-section">
               <div class="info-item">
                 <label>插件ID：</label>
@@ -56,13 +95,24 @@
                 <label>版本：</label>
                 <span>{{ plugin.version }}</span>
               </div>
-              <div class="info-item" v-if="plugin.author">
+              <div
+                v-if="plugin.author"
+                class="info-item"
+              >
                 <label>作者：</label>
                 <span>{{ plugin.author }}</span>
               </div>
-              <div class="info-item" v-if="plugin.homepage">
+              <div
+                v-if="plugin.homepage"
+                class="info-item"
+              >
                 <label>主页：</label>
-                <t-link :href="plugin.homepage" target="_blank">{{ plugin.homepage }}</t-link>
+                <t-link
+                  :href="plugin.homepage"
+                  target="_blank"
+                >
+                  {{ plugin.homepage }}
+                </t-link>
               </div>
               <div class="info-item">
                 <label>状态：</label>
@@ -73,13 +123,22 @@
             </div>
           </t-tab-panel>
           
-          <t-tab-panel value="settings" label="设置">
+          <t-tab-panel
+            value="settings"
+            label="设置"
+          >
             <div class="settings-section">
-              <t-alert theme="info" message="插件设置功能正在开发中..." />
+              <t-alert
+                theme="info"
+                message="插件设置功能正在开发中..."
+              />
             </div>
           </t-tab-panel>
           
-          <t-tab-panel value="devtools" label="开发工具">
+          <t-tab-panel
+            value="devtools"
+            label="开发工具"
+          >
             <div class="devtools-section">
               <PluginDevTools 
                 :plugin-id="plugin.id"
@@ -90,10 +149,17 @@
             </div>
           </t-tab-panel>
           
-          <t-tab-panel value="logs" label="日志">
+          <t-tab-panel
+            value="logs"
+            label="日志"
+          >
             <div class="logs-section">
               <div class="logs-header">
-                <t-button size="small" @click="loadLogs" :loading="logsLoading">
+                <t-button
+                  size="small"
+                  :loading="logsLoading"
+                  @click="loadLogs"
+                >
                   刷新日志
                 </t-button>
                 <t-select 
@@ -102,22 +168,49 @@
                   style="width: 120px;"
                   @change="filterLogs"
                 >
-                  <t-option value="all" label="全部" />
-                  <t-option value="error" label="错误" />
-                  <t-option value="warn" label="警告" />
-                  <t-option value="info" label="信息" />
-                  <t-option value="debug" label="调试" />
+                  <t-option
+                    value="all"
+                    label="全部"
+                  />
+                  <t-option
+                    value="error"
+                    label="错误"
+                  />
+                  <t-option
+                    value="warn"
+                    label="警告"
+                  />
+                  <t-option
+                    value="info"
+                    label="信息"
+                  />
+                  <t-option
+                    value="debug"
+                    label="调试"
+                  />
                 </t-select>
               </div>
               
               <div class="logs-content">
-                <div v-if="logsLoading" class="logs-loading">
-                  <t-loading size="small" text="加载日志中..." />
+                <div
+                  v-if="logsLoading"
+                  class="logs-loading"
+                >
+                  <t-loading
+                    size="small"
+                    text="加载日志中..."
+                  />
                 </div>
-                <div v-else-if="filteredLogs.length === 0" class="logs-empty">
+                <div
+                  v-else-if="filteredLogs.length === 0"
+                  class="logs-empty"
+                >
                   <t-empty description="暂无日志记录" />
                 </div>
-                <div v-else class="logs-list">
+                <div
+                  v-else
+                  class="logs-list"
+                >
                   <div 
                     v-for="(log, index) in filteredLogs" 
                     :key="index"
@@ -132,8 +225,13 @@
                       </t-tag>
                       <span class="log-time">{{ formatTime(log.timestamp) }}</span>
                     </div>
-                    <div class="log-message">{{ log.message }}</div>
-                    <div v-if="log.context" class="log-context">
+                    <div class="log-message">
+                      {{ log.message }}
+                    </div>
+                    <div
+                      v-if="log.context"
+                      class="log-context"
+                    >
                       <pre>{{ JSON.stringify(log.context, null, 2) }}</pre>
                     </div>
                   </div>
@@ -142,50 +240,79 @@
             </div>
           </t-tab-panel>
           
-          <t-tab-panel value="errors" label="错误管理">
+          <t-tab-panel
+            value="errors"
+            label="错误管理"
+          >
             <div class="errors-section">
               <div class="errors-header">
-                <t-button size="small" @click="loadErrorHistory" :loading="errorsLoading">
+                <t-button
+                  size="small"
+                  :loading="errorsLoading"
+                  @click="loadErrorHistory"
+                >
                   刷新错误历史
                 </t-button>
                 <t-button 
                   size="small" 
                   theme="warning"
-                  @click="resetErrorCount"
                   :disabled="!errorHistory.length"
+                  @click="resetErrorCount"
                 >
                   重置错误计数
                 </t-button>
               </div>
               
               <div class="errors-content">
-                <div v-if="errorsLoading" class="errors-loading">
-                  <t-loading size="small" text="加载错误历史中..." />
+                <div
+                  v-if="errorsLoading"
+                  class="errors-loading"
+                >
+                  <t-loading
+                    size="small"
+                    text="加载错误历史中..."
+                  />
                 </div>
-                <div v-else-if="errorHistory.length === 0" class="errors-empty">
+                <div
+                  v-else-if="errorHistory.length === 0"
+                  class="errors-empty"
+                >
                   <t-empty description="暂无错误记录" />
                 </div>
-                <div v-else class="errors-list">
+                <div
+                  v-else
+                  class="errors-list"
+                >
                   <div 
                     v-for="(error, index) in errorHistory" 
                     :key="index"
                     class="error-item"
                   >
                     <div class="error-header">
-                      <t-tag theme="danger" size="small">{{ error.type }}</t-tag>
+                      <t-tag
+                        theme="danger"
+                        size="small"
+                      >
+                        {{ error.type }}
+                      </t-tag>
                       <span class="error-time">{{ formatTime(error.timestamp) }}</span>
                       <t-button 
-                        size="small" 
+                        v-if="error.recoveryAction" 
+                        size="small"
                         theme="primary"
                         variant="text"
                         @click="executeRecovery(error)"
-                        v-if="error.recoveryAction"
                       >
                         恢复操作
                       </t-button>
                     </div>
-                    <div class="error-message">{{ error.message }}</div>
-                    <div v-if="error.context" class="error-context">
+                    <div class="error-message">
+                      {{ error.message }}
+                    </div>
+                    <div
+                      v-if="error.context"
+                      class="error-context"
+                    >
                       <t-collapse>
                         <t-collapse-panel header="详细信息">
                           <pre>{{ JSON.stringify(error.context, null, 2) }}</pre>
@@ -201,14 +328,19 @@
       </div>
     </div>
 
-    <div v-else class="error-state">
+    <div
+      v-else
+      class="error-state"
+    >
       <t-result
         theme="error"
         title="插件不存在"
         description="请检查插件ID是否正确"
       >
         <template #extra>
-          <t-button @click="$emit('back')">返回插件列表</t-button>
+          <t-button @click="$emit('back')">
+            返回插件列表
+          </t-button>
         </template>
       </t-result>
     </div>
@@ -217,11 +349,13 @@
     <t-dialog
       v-model:visible="showUninstallDialog"
       header="确认卸载"
-      @confirm="uninstallPlugin"
       :confirm-btn="{ loading: uninstalling }"
+      @confirm="uninstallPlugin"
     >
       <p>确定要卸载插件 <strong>{{ plugin?.name }}</strong> 吗？</p>
-      <p class="warning-text">此操作不可撤销，插件的所有数据将被删除。</p>
+      <p class="warning-text">
+        此操作不可撤销，插件的所有数据将被删除。
+      </p>
     </t-dialog>
   </div>
 </template>

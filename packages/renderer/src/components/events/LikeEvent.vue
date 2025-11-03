@@ -5,16 +5,25 @@
         :src="event.userInfo?.avatar || '/default-avatar.png'" 
         :alt="event.userInfo?.nickname"
         class="user-avatar"
-      />
+      >
       <span class="username">{{ event.userInfo?.nickname || '匿名用户' }}</span>
-      <span v-if="event.userInfo?.medal?.clubName" class="medal">
+      <span
+        v-if="event.userInfo?.medal?.clubName"
+        class="medal"
+      >
         {{ event.userInfo.medal.clubName }} Lv.{{ event.userInfo.medal.level }}
       </span>
     </div>
     <div class="like-content">
-      <t-icon name="thumb-up" class="like-icon" />
+      <t-icon
+        name="thumb-up"
+        class="like-icon"
+      />
       <span class="like-text">点赞了直播间</span>
-      <span v-if="event.count && event.count > 1" class="like-count">
+      <span
+        v-if="event.count && event.count > 1"
+        class="like-count"
+      >
         x{{ event.count }}
       </span>
     </div>
@@ -22,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Like } from 'acfunlive-http-api/src/types';
+import type { Like } from 'acfunlive-http-api';
 
 interface Props {
   event: Like & { id?: string; type?: string; timestamp?: number; count?: number };

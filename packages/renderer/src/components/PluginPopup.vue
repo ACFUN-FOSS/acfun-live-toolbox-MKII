@@ -16,30 +16,39 @@
     @cancel="handleCancel"
   >
     <!-- 自定义内容渲染 -->
-    <div class="popup-content" v-if="popup.content">
+    <div
+      v-if="popup.content"
+      class="popup-content"
+    >
       <!-- HTML内容 -->
       <div 
         v-if="popup.contentType === 'html'" 
-        v-html="popup.content"
         class="html-content"
-      ></div>
+        v-html="popup.content"
+      />
       
       <!-- 组件内容 -->
       <component 
-        v-else-if="popup.contentType === 'component'" 
-        :is="popup.content"
+        :is="popup.content" 
+        v-else-if="popup.contentType === 'component'"
         v-bind="popup.props || {}"
         @action="handleAction"
       />
       
       <!-- 文本内容 -->
-      <div v-else class="text-content">
+      <div
+        v-else
+        class="text-content"
+      >
         {{ popup.content }}
       </div>
     </div>
 
     <!-- 自定义操作按钮 -->
-    <template #footer v-if="popup.actions && popup.actions.length > 0">
+    <template
+      v-if="popup.actions && popup.actions.length > 0"
+      #footer
+    >
       <div class="popup-actions">
         <t-button
           v-for="action in popup.actions"
@@ -51,7 +60,10 @@
           :loading="actionLoading[action.id]"
           @click="handleAction(action.id, action)"
         >
-          <t-icon v-if="action.icon" :name="action.icon" />
+          <t-icon
+            v-if="action.icon"
+            :name="action.icon"
+          />
           {{ action.label }}
         </t-button>
       </div>

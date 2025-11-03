@@ -17,6 +17,7 @@ import { ConnectionPoolManager } from './ConnectionPoolManager';
 import { pluginCacheManager } from './PluginCacheManager';
 import { pluginPerformanceMonitor } from './PluginPerformanceMonitor';
 import { pluginLazyLoader } from './PluginLazyLoader';
+import { TokenManager } from '../services/TokenManager';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -82,6 +83,7 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
   private pluginUpdater: PluginUpdater;
   private memoryPoolManager: MemoryPoolManager;
   private connectionPoolManager: ConnectionPoolManager;
+  private tokenManager: TokenManager;
   private plugins: Map<string, PluginInfo> = new Map();
   private pluginsDir: string;
   private hotReloadWatchers: Map<string, FSWatcher> = new Map();
@@ -91,6 +93,7 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
     roomManager: RoomManager;
     databaseManager: DatabaseManager;
     configManager: ConfigManager;
+    tokenManager: TokenManager;
     processManagerConfig?: Partial<ProcessManagerConfig>;
   }) {
     super();
@@ -98,6 +101,7 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
     this.roomManager = opts.roomManager;
     this.databaseManager = opts.databaseManager;
     this.configManager = opts.configManager;
+    this.tokenManager = opts.tokenManager;
     this.popupManager = new PopupManager();
     this.processManager = new ProcessManager(opts.processManagerConfig);
     this.pluginsDir = path.join(app.getPath('userData'), 'plugins');
@@ -951,6 +955,7 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
       databaseManager: this.databaseManager,
       configManager: this.configManager,
       popupManager: this.popupManager,
+      tokenManager: this.tokenManager,
       onPluginFault: (reason: string) => this.emit('plugin.suspended', { id: pluginId, reason })
     });
   }

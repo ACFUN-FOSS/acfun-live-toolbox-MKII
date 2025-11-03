@@ -3,15 +3,24 @@
     <div class="page-header">
       <h2>插件框架</h2>
       <div class="header-actions">
-        <t-button theme="primary" @click="startAllPlugins">
+        <t-button
+          theme="primary"
+          @click="startAllPlugins"
+        >
           <t-icon name="play" />
           启动全部
         </t-button>
-        <t-button variant="outline" @click="stopAllPlugins">
+        <t-button
+          variant="outline"
+          @click="stopAllPlugins"
+        >
           <t-icon name="stop" />
           停止全部
         </t-button>
-        <t-button variant="outline" @click="refreshFrameStatus">
+        <t-button
+          variant="outline"
+          @click="refreshFrameStatus"
+        >
           <t-icon name="refresh" />
           刷新状态
         </t-button>
@@ -20,60 +29,119 @@
 
     <!-- 框架状态概览 -->
     <div class="frame-overview">
-      <t-card class="status-card" hoverShadow>
+      <t-card
+        class="status-card"
+        hover-shadow
+      >
         <div class="status-content">
-          <div class="status-indicator" :class="frameStatus">
+          <div
+            class="status-indicator"
+            :class="frameStatus"
+          >
             <t-icon :name="getFrameStatusIcon()" />
           </div>
           <div class="status-info">
-            <div class="status-title">框架状态</div>
-            <div class="status-text">{{ getFrameStatusText() }}</div>
+            <div class="status-title">
+              框架状态
+            </div>
+            <div class="status-text">
+              {{ getFrameStatusText() }}
+            </div>
           </div>
         </div>
       </t-card>
 
-      <t-card class="stats-card" hoverShadow>
+      <t-card
+        class="stats-card"
+        hover-shadow
+      >
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-value">{{ runningPlugins.length }}</div>
-            <div class="stat-label">运行中</div>
+            <div class="stat-value">
+              {{ runningPlugins.length }}
+            </div>
+            <div class="stat-label">
+              运行中
+            </div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ totalMemoryUsage }}MB</div>
-            <div class="stat-label">内存使用</div>
+            <div class="stat-value">
+              {{ totalMemoryUsage }}MB
+            </div>
+            <div class="stat-label">
+              内存使用
+            </div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ totalCpuUsage }}%</div>
-            <div class="stat-label">CPU使用</div>
+            <div class="stat-value">
+              {{ totalCpuUsage }}%
+            </div>
+            <div class="stat-label">
+              CPU使用
+            </div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">{{ uptime }}</div>
-            <div class="stat-label">运行时间</div>
+            <div class="stat-value">
+              {{ uptime }}
+            </div>
+            <div class="stat-label">
+              运行时间
+            </div>
           </div>
         </div>
       </t-card>
     </div>
 
     <!-- 插件运行状态 -->
-    <t-card class="plugin-runtime-card" title="插件运行状态" hoverShadow>
+    <t-card
+      class="plugin-runtime-card"
+      title="插件运行状态"
+      hover-shadow
+    >
       <div class="runtime-controls">
         <div class="control-group">
           <label>过滤状态:</label>
           <t-radio-group v-model="runtimeFilter">
-            <t-radio value="all">全部</t-radio>
-            <t-radio value="running">运行中</t-radio>
-            <t-radio value="stopped">已停止</t-radio>
-            <t-radio value="error">错误</t-radio>
+            <t-radio value="all">
+              全部
+            </t-radio>
+            <t-radio value="running">
+              运行中
+            </t-radio>
+            <t-radio value="stopped">
+              已停止
+            </t-radio>
+            <t-radio value="error">
+              错误
+            </t-radio>
           </t-radio-group>
         </div>
         
         <div class="control-group">
-          <t-checkbox v-model="autoRefresh">自动刷新</t-checkbox>
-          <t-select v-model="refreshInterval" style="width: 120px;" :disabled="!autoRefresh">
-            <t-option value="1000" label="1秒" />
-            <t-option value="3000" label="3秒" />
-            <t-option value="5000" label="5秒" />
-            <t-option value="10000" label="10秒" />
+          <t-checkbox v-model="autoRefresh">
+            自动刷新
+          </t-checkbox>
+          <t-select
+            v-model="refreshInterval"
+            style="width: 120px;"
+            :disabled="!autoRefresh"
+          >
+            <t-option
+              value="1000"
+              label="1秒"
+            />
+            <t-option
+              value="3000"
+              label="3秒"
+            />
+            <t-option
+              value="5000"
+              label="5秒"
+            />
+            <t-option
+              value="10000"
+              label="10秒"
+            />
           </t-select>
         </div>
       </div>
@@ -91,12 +159,24 @@
         >
           <div class="plugin-basic-info">
             <div class="plugin-icon">
-              <img v-if="plugin.icon" :src="plugin.icon" :alt="plugin.name" />
-              <t-icon v-else name="plugin" size="24px" />
+              <img
+                v-if="plugin.icon"
+                :src="plugin.icon"
+                :alt="plugin.name"
+              >
+              <t-icon
+                v-else
+                name="plugin"
+                size="24px"
+              />
             </div>
             <div class="plugin-details">
-              <div class="plugin-name">{{ plugin.name }}</div>
-              <div class="plugin-id">{{ plugin.id }}</div>
+              <div class="plugin-name">
+                {{ plugin.name }}
+              </div>
+              <div class="plugin-id">
+                {{ plugin.id }}
+              </div>
             </div>
             <div class="plugin-status">
               <t-tag 
@@ -135,14 +215,25 @@
             >
               {{ plugin.status === 'active' ? '停止' : '启动' }}
             </t-button>
-            <t-button size="small" variant="outline" @click="restartPlugin(plugin)">
+            <t-button
+              size="small"
+              variant="outline"
+              @click="restartPlugin(plugin)"
+            >
               重启
             </t-button>
-            <t-button size="small" variant="outline" @click="viewPluginLogs(plugin)">
+            <t-button
+              size="small"
+              variant="outline"
+              @click="viewPluginLogs(plugin)"
+            >
               日志
             </t-button>
             <t-dropdown :options="getRuntimeMenuOptions(plugin)">
-              <t-button size="small" variant="text">
+              <t-button
+                size="small"
+                variant="text"
+              >
                 <t-icon name="more" />
               </t-button>
             </t-dropdown>
@@ -152,67 +243,129 @@
     </t-card>
 
     <!-- 系统资源监控 -->
-    <t-card class="resource-monitor-card" title="系统资源监控" hoverShadow>
+    <t-card
+      class="resource-monitor-card"
+      title="系统资源监控"
+      hover-shadow
+    >
       <div class="monitor-tabs">
         <t-tabs v-model="monitorTab">
-          <t-tab-panel value="performance" label="性能监控">
+          <t-tab-panel
+            value="performance"
+            label="性能监控"
+          >
             <div class="performance-charts">
               <div class="chart-container">
                 <h4>内存使用趋势</h4>
                 <div class="chart-placeholder">
-                  <t-icon name="chart-line" size="48px" />
+                  <t-icon
+                    name="chart-line"
+                    size="48px"
+                  />
                   <p>内存使用图表</p>
                 </div>
               </div>
               <div class="chart-container">
                 <h4>CPU使用趋势</h4>
                 <div class="chart-placeholder">
-                  <t-icon name="chart-area" size="48px" />
+                  <t-icon
+                    name="chart-area"
+                    size="48px"
+                  />
                   <p>CPU使用图表</p>
                 </div>
               </div>
             </div>
           </t-tab-panel>
           
-          <t-tab-panel value="events" label="事件统计">
+          <t-tab-panel
+            value="events"
+            label="事件统计"
+          >
             <div class="event-stats">
               <div class="event-summary">
                 <div class="summary-item">
-                  <div class="summary-number">{{ totalEvents }}</div>
-                  <div class="summary-label">总事件数</div>
+                  <div class="summary-number">
+                    {{ totalEvents }}
+                  </div>
+                  <div class="summary-label">
+                    总事件数
+                  </div>
                 </div>
                 <div class="summary-item">
-                  <div class="summary-number">{{ eventsPerSecond }}</div>
-                  <div class="summary-label">每秒事件</div>
+                  <div class="summary-number">
+                    {{ eventsPerSecond }}
+                  </div>
+                  <div class="summary-label">
+                    每秒事件
+                  </div>
                 </div>
                 <div class="summary-item">
-                  <div class="summary-number">{{ errorEvents }}</div>
-                  <div class="summary-label">错误事件</div>
+                  <div class="summary-number">
+                    {{ errorEvents }}
+                  </div>
+                  <div class="summary-label">
+                    错误事件
+                  </div>
                 </div>
               </div>
               
               <div class="event-chart">
                 <h4>事件类型分布</h4>
                 <div class="chart-placeholder">
-                  <t-icon name="chart-pie" size="48px" />
+                  <t-icon
+                    name="chart-pie"
+                    size="48px"
+                  />
                   <p>事件分布图表</p>
                 </div>
               </div>
             </div>
           </t-tab-panel>
           
-          <t-tab-panel value="logs" label="系统日志">
+          <t-tab-panel
+            value="logs"
+            label="系统日志"
+          >
             <div class="system-logs">
               <div class="log-controls">
-                <t-select v-model="logLevel" style="width: 120px;">
-                  <t-option value="all" label="全部" />
-                  <t-option value="error" label="错误" />
-                  <t-option value="warn" label="警告" />
-                  <t-option value="info" label="信息" />
-                  <t-option value="debug" label="调试" />
+                <t-select
+                  v-model="logLevel"
+                  style="width: 120px;"
+                >
+                  <t-option
+                    value="all"
+                    label="全部"
+                  />
+                  <t-option
+                    value="error"
+                    label="错误"
+                  />
+                  <t-option
+                    value="warn"
+                    label="警告"
+                  />
+                  <t-option
+                    value="info"
+                    label="信息"
+                  />
+                  <t-option
+                    value="debug"
+                    label="调试"
+                  />
                 </t-select>
-                <t-button variant="outline" @click="clearLogs">清空日志</t-button>
-                <t-button variant="outline" @click="exportLogs">导出日志</t-button>
+                <t-button
+                  variant="outline"
+                  @click="clearLogs"
+                >
+                  清空日志
+                </t-button>
+                <t-button
+                  variant="outline"
+                  @click="exportLogs"
+                >
+                  导出日志
+                </t-button>
               </div>
               
               <div class="log-viewer">
@@ -243,15 +396,43 @@
     >
       <div class="plugin-log-viewer">
         <div class="log-header">
-          <t-select v-model="pluginLogLevel" style="width: 120px;">
-            <t-option value="all" label="全部" />
-            <t-option value="error" label="错误" />
-            <t-option value="warn" label="警告" />
-            <t-option value="info" label="信息" />
-            <t-option value="debug" label="调试" />
+          <t-select
+            v-model="pluginLogLevel"
+            style="width: 120px;"
+          >
+            <t-option
+              value="all"
+              label="全部"
+            />
+            <t-option
+              value="error"
+              label="错误"
+            />
+            <t-option
+              value="warn"
+              label="警告"
+            />
+            <t-option
+              value="info"
+              label="信息"
+            />
+            <t-option
+              value="debug"
+              label="调试"
+            />
           </t-select>
-          <t-button variant="outline" @click="clearPluginLogs">清空</t-button>
-          <t-button variant="outline" @click="exportPluginLogs">导出</t-button>
+          <t-button
+            variant="outline"
+            @click="clearPluginLogs"
+          >
+            清空
+          </t-button>
+          <t-button
+            variant="outline"
+            @click="exportPluginLogs"
+          >
+            导出
+          </t-button>
         </div>
         
         <div class="plugin-logs">
@@ -433,15 +614,34 @@ const refreshFrameStatus = async () => {
     
     // 更新性能数据
     const performance = await pluginStore.getPerformanceData();
-    totalMemoryUsage.value = performance.memory || 0;
-    totalCpuUsage.value = performance.cpu || 0;
-    uptime.value = formatRuntime(performance.uptime || 0);
+    if (performance && typeof performance === 'object') {
+      totalMemoryUsage.value = (performance as any).memory || 0;
+      totalCpuUsage.value = (performance as any).cpu || 0;
+      uptime.value = formatRuntime((performance as any).uptime || 0);
+    } else {
+      totalMemoryUsage.value = 0;
+      totalCpuUsage.value = 0;
+      uptime.value = formatRuntime(0);
+    }
     
     // 更新事件统计
     const eventStats = await pluginStore.getEventStats();
-    totalEvents.value = eventStats.totalEvents || 0;
-    eventsPerSecond.value = eventStats.eventsPerSecond || 0;
-    errorEvents.value = eventStats.errorRate || 0;
+    if ('totalErrors' in eventStats) {
+      // 这是错误统计
+      errorEvents.value = eventStats.totalErrors || 0;
+      totalEvents.value = 0; // 暂时设为0，因为API不提供总事件数
+      eventsPerSecond.value = 0; // 暂时设为0，因为API不提供每秒事件数
+    } else if ('totalEvents' in eventStats) {
+      // 这是事件统计
+      totalEvents.value = eventStats.totalEvents || 0;
+      eventsPerSecond.value = eventStats.eventsPerSecond || 0;
+      errorEvents.value = eventStats.errorRate || 0;
+    } else {
+      // 空对象或错误情况
+      totalEvents.value = 0;
+      eventsPerSecond.value = 0;
+      errorEvents.value = 0;
+    }
     
     // 更新系统日志
     const logs = await pluginStore.getSystemLogs();

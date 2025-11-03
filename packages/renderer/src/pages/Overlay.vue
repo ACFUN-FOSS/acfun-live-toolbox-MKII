@@ -1,5 +1,8 @@
 <template>
-  <div class="overlay-container" v-if="overlayData">
+  <div
+    v-if="overlayData"
+    class="overlay-container"
+  >
     <!-- 文本类型 Overlay -->
     <div 
       v-if="overlayData.overlay.type === 'text'" 
@@ -14,38 +17,50 @@
       v-else-if="overlayData.overlay.type === 'html'" 
       class="html-overlay"
       v-html="overlayData.overlay.content"
-    ></div>
+    />
 
     <!-- 组件类型 Overlay -->
     <component 
-      v-else-if="overlayData.overlay.type === 'component' && overlayData.overlay.component"
       :is="getComponent(overlayData.overlay.component)"
+      v-else-if="overlayData.overlay.type === 'component' && overlayData.overlay.component"
       :config="overlayData.overlay.config"
       :room="overlayData.room"
       :token="overlayData.token"
     />
 
     <!-- 未知类型 -->
-    <div v-else class="error-overlay">
+    <div
+      v-else
+      class="error-overlay"
+    >
       <h3>不支持的 Overlay 类型</h3>
       <p>类型: {{ overlayData.overlay.type }}</p>
     </div>
   </div>
 
   <!-- 错误状态 -->
-  <div v-else-if="error" class="error-container">
+  <div
+    v-else-if="error"
+    class="error-container"
+  >
     <div class="error-content">
       <h3>{{ error.title }}</h3>
       <p>{{ error.message }}</p>
-      <div class="error-details" v-if="error.details">
+      <div
+        v-if="error.details"
+        class="error-details"
+      >
         <strong>详情:</strong> {{ error.details }}
       </div>
     </div>
   </div>
 
   <!-- 加载状态 -->
-  <div v-else class="loading-container">
-    <div class="loading-spinner"></div>
+  <div
+    v-else
+    class="loading-container"
+  >
+    <div class="loading-spinner" />
     <p>正在加载 Overlay...</p>
   </div>
 </template>

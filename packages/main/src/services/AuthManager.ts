@@ -1,22 +1,6 @@
-import { app } from 'electron';
 import { EventEmitter } from 'events';
-import fs from 'fs';
-import path from 'path';
-import { TokenInfo, AcFunLiveApi } from 'acfunlive-http-api';
-
-// 在开发环境中容错加载 acfunlive-http-api：优先尝试 dist，失败则回退到 src TS 文件。
-// 这样可以避免在开发环境中因为未构建的依赖导致应用启动失败。
-
-
-/**
- * 二维码登录结果接口
- */
-export interface QrLoginResult {
-  /** 二维码数据URL（base64格式） */
-  qrCodeDataUrl: string;
-  /** 二维码过期时间（秒） */
-  expiresIn: number;
-}
+import { getLogManager } from '../logging/LogManager';
+import { TokenManager, ExtendedTokenInfo, QrLoginResult, ApiConfig } from './TokenManager';
 
 /**
  * 登录状态接口
@@ -30,16 +14,6 @@ export interface LoginStatus {
   userId?: string;
   /** 令牌过期时间戳（如果成功） */
   expiresAt?: number;
-}
-
-/**
- * 扩展的令牌信息接口，添加了过期时间和有效性字段
- */
-export interface ExtendedTokenInfo extends TokenInfo {
-  /** 令牌过期时间戳 */
-  expiresAt?: number;
-  /** 令牌是否有效 */
-  isValid?: boolean;
 }
 
 /**
@@ -61,60 +35,70 @@ export interface AuthManagerEvents {
 }
 
 /**
- * 认证管理器类
- * 负责处理用户认证、令牌管理、二维码登录等功能
+ * 认证管理器类（已重构为使用 TokenManager）
  * 
- * 主要功能：
- * - 二维码登录流程管理
- * - 令牌自动刷新和过期检查
- * - 认证状态持久化存储
- * - 认证事件通知
+ * 这个类现在作为 TokenManager 的包装器，提供向后兼容的接口。
+ * 所有实际的认证逻辑都委托给 TokenManager 处理。
  * 
+ * @deprecated 建议直接使用 TokenManager，此类仅为向后兼容保留
  * @extends EventEmitter
- * @emits tokenExpiring - 令牌即将过期时触发
- * @emits tokenExpired - 令牌已过期时触发
- * @emits qrCodeReady - 二维码准备就绪时触发
- * @emits loginSuccess - 登录成功时触发
- * @emits loginFailed - 登录失败时触发
- * @emits logout - 登出时触发
  */
 export class AuthManager extends EventEmitter {
-  /** 密钥文件存储路径 */
-  private readonly secretsPath: string;
-  /** AcFun Live API 实例 */
-  private api: AcFunLiveApi;
-  /** 令牌刷新定时器 */
-  private tokenRefreshTimer?: NodeJS.Timeout;
-  /** 当前令牌信息 */
-  private tokenInfo: ExtendedTokenInfo | null = null;
+  /** TokenManager 实例 */
+  private tokenManager: TokenManager;
+  /** 日志管理器 */
+  private logManager: ReturnType<typeof getLogManager>;
 
   /**
    * 构造函数
    * @param customSecretsPath 自定义密钥文件路径（可选，主要用于测试）
+   * @param apiConfig 自定义API配置（可选）
    */
-  constructor(customSecretsPath?: string) {
-    super(); // 调用 EventEmitter 构造函数
+  constructor(customSecretsPath?: string, apiConfig?: Partial<ApiConfig>) {
+    super();
 
-    // 初始化 AcFunLiveApi 实例，设置30秒超时
-    this.api = new AcFunLiveApi({
-      timeout: 30000
+    this.logManager = getLogManager();
+    
+    // 获取 TokenManager 实例
+    this.tokenManager = TokenManager.getInstance(customSecretsPath, apiConfig);
+    
+    // 转发 TokenManager 的事件
+    this.setupEventForwarding();
+    
+    // 初始化 TokenManager
+    this.tokenManager.initialize().catch(error => {
+      this.logManager.error('[AuthManager] Failed to initialize TokenManager:', error);
+    });
+  }
+
+  /**
+   * 设置事件转发
+   * 将 TokenManager 的事件转发到 AuthManager
+   */
+  private setupEventForwarding(): void {
+    this.tokenManager.on('tokenExpiring', (data) => {
+      this.emit('tokenExpiring', data);
     });
 
-    // 设置密钥文件路径
-    if (customSecretsPath) {
-      this.secretsPath = customSecretsPath;
-    } else {
-      try {
-        // 在生产环境中使用 Electron 的用户数据目录
-        this.secretsPath = path.join(app.getPath('userData'), 'secrets.json');
-      } catch (error) {
-        // 在测试环境中可能没有Electron app，使用临时目录
-        this.secretsPath = path.join(require('os').tmpdir(), 'secrets.json');
-      }
-    }
+    this.tokenManager.on('tokenExpired', (data) => {
+      this.emit('tokenExpired', data);
+    });
 
-    // 启动令牌刷新检查定时器
-    this.startTokenRefreshTimer();
+    this.tokenManager.on('qrCodeReady', (data) => {
+      this.emit('qrCodeReady', data);
+    });
+
+    this.tokenManager.on('loginSuccess', (data) => {
+      this.emit('loginSuccess', data);
+    });
+
+    this.tokenManager.on('loginFailed', (data) => {
+      this.emit('loginFailed', data);
+    });
+
+    this.tokenManager.on('logout', () => {
+      this.emit('logout');
+    });
   }
 
   /**
@@ -180,9 +164,36 @@ export class AuthManager extends EventEmitter {
         return { success: true, tokenInfo };
       }
 
-      const error = status?.error || 'No token info received';
-      this.emit('loginFailed', { error });
-      return { success: false, error };
+      // 处理acfunlive-http-api返回的原始错误格式
+      let errorMessage = status?.error || 'No token info received';
+      
+      // 检查是否是等待用户操作的状态（不应该触发 loginFailed 事件）
+      const isWaitingStatus = errorMessage.includes('请等待用户扫描') || 
+                             errorMessage.includes('请等待用户确认') ||
+                             errorMessage.includes('二维码状态为');
+      
+      // 如果status.data包含result和error_msg，说明是后端API的原始错误响应
+      if (status?.data && typeof status.data === 'object') {
+        const data = status.data as any;
+        if (data.result !== undefined && data.error_msg) {
+          errorMessage = `API错误: ${data.error_msg} (代码: ${data.result})`;
+          
+          // result: 10 通常表示等待用户操作，不是真正的错误
+          if (data.result === 10) {
+            console.log('[AuthManager] Waiting for user action:', errorMessage);
+            return { success: false, error: errorMessage };
+          }
+        }
+      }
+
+      // 只有在真正的错误情况下才发送 loginFailed 事件
+      if (!isWaitingStatus) {
+        this.emit('loginFailed', { error: errorMessage });
+      } else {
+        console.log('[AuthManager] QR login waiting:', errorMessage);
+      }
+      
+      return { success: false, error: errorMessage };
     } catch (error) {
       const errorMsg = `QR status check failed: ${error instanceof Error ? error.message : String(error)}`;
       console.error('[AuthManager]', errorMsg);
@@ -195,173 +206,42 @@ export class AuthManager extends EventEmitter {
    * 登出
    */
   async logout(): Promise<void> {
-    try {
-      // 清除内存中的令牌信息
-      this.tokenInfo = null;
-
-      // 停止令牌刷新定时器
-      if (this.tokenRefreshTimer) {
-        clearInterval(this.tokenRefreshTimer);
-        this.tokenRefreshTimer = undefined;
-      }
-
-      // 清除持久化的令牌信息
-      if (fs.existsSync(this.secretsPath)) {
-        const data = JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'));
-        const obj = { ...data };
-
-        // 清除新格式的TokenInfo字段
-        delete obj.userID;
-        delete obj.securityKey;
-        delete obj.serviceToken;
-        delete obj.deviceID;
-        delete obj.cookies;
-        delete obj.expiresAt;
-        delete obj.isValid;
-
-        // 清除旧格式的字段（兼容性）
-        delete obj.userId;
-        delete obj.acfun_token;
-        delete obj.refresh_token;
-        delete obj.token_expires_at;
-
-        fs.writeFileSync(this.secretsPath, JSON.stringify(obj, null, 2));
-      }
-
-      this.emit('logout');
-      console.log('[AuthManager] Logout completed');
-    } catch (error) {
-      console.error('[AuthManager] Error during logout:', error);
-    }
+    return this.tokenManager.logout();
   }
 
   /**
    * 获取当前令牌信息
    */
   async getTokenInfo(): Promise<ExtendedTokenInfo | null> {
-    try {
-      if (!fs.existsSync(this.secretsPath)) {
-        return null;
-      }
-
-      const data = JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'));
-
-      // 检查是否有新格式的TokenInfo数据
-      if (data.userID && data.securityKey && data.serviceToken && data.deviceID) {
-        const now = Date.now();
-        const expiresAt = data.expiresAt || 0;
-        const isValid = expiresAt > now;
-
-        return {
-          userID: data.userID,
-          securityKey: data.securityKey,
-          serviceToken: data.serviceToken,
-          deviceID: data.deviceID,
-          cookies: data.cookies || [],
-          expiresAt,
-          isValid
-        };
-      }
-
-      // 兼容旧格式的数据（如果存在）
-      if (data.acfun_token && data.userId) {
-        const now = Date.now();
-        const expiresAt = data.token_expires_at || 0;
-        const isValid = expiresAt > now;
-
-        return {
-          userID: data.userId,
-          securityKey: '',
-          serviceToken: data.acfun_token,
-          deviceID: '',
-          cookies: [],
-          expiresAt,
-          isValid
-        };
-      }
-
-      return null;
-    } catch (err) {
-      console.error('[AuthManager] Failed to get token info:', err);
-      return null;
-    }
+    return this.tokenManager.getTokenInfo();
   }
 
   /**
    * 检查令牌是否即将过期（30分钟内）
    */
   async isTokenExpiringSoon(): Promise<boolean> {
-    const tokenInfo = this.tokenInfo || await this.getTokenInfo();
-    if (!tokenInfo || !tokenInfo.expiresAt) return false;
-
-    const now = Date.now();
-    const twentyMinutes = 20 * 60 * 1000; // 20分钟阈值，这样15分钟的token会被认为即将过期
-    return tokenInfo.expiresAt - now < twentyMinutes;
+    return this.tokenManager.isTokenExpiringSoon();
   }
 
   /**
    * 验证token的有效性（包括格式和过期时间）
    */
   async validateToken(tokenInfo?: ExtendedTokenInfo): Promise<{ isValid: boolean; reason?: string }> {
-    const token = tokenInfo || await this.getTokenInfo();
-
-    if (!token) {
-      return { isValid: false, reason: 'Token不存在' };
-    }
-
-    // 检查必需字段
-    if (!token.userID || !token.serviceToken || !token.securityKey || !token.deviceID) {
-      return { isValid: false, reason: '缺少必要字段' };
-    }
-
-    // 检查过期时间
-    if (token.expiresAt && token.expiresAt <= Date.now()) {
-      return { isValid: false, reason: 'Token已过期' };
-    }
-
-    return { isValid: true };
+    return this.tokenManager.validateToken(tokenInfo);
   }
 
   /**
    * 检查是否已认证（同步方法）
    */
   isAuthenticated(): boolean {
-    // 如果内存中有有效的token信息，直接检查
-    if (this.tokenInfo) {
-      return this.tokenInfo.isValid === true &&
-        (this.tokenInfo.expiresAt ? this.tokenInfo.expiresAt > Date.now() : true);
-    }
-
-    // 如果内存中没有，尝试从文件中快速检查
-    try {
-      if (!fs.existsSync(this.secretsPath)) {
-        return false;
-      }
-
-      const data = JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'));
-
-      // 检查是否有必要的字段
-      if (!data.userID || !data.securityKey || !data.serviceToken || !data.deviceID) {
-        return false;
-      }
-
-      // 检查过期时间
-      const expiresAt = data.expiresAt || 0;
-      return expiresAt > Date.now();
-    } catch (error) {
-      console.error('[AuthManager] Error checking authentication status:', error);
-      return false;
-    }
+    return this.tokenManager.isAuthenticated();
   }
 
   /**
    * 获取token的剩余有效时间（毫秒）
    */
   async getTokenRemainingTime(): Promise<number> {
-    const tokenInfo = this.tokenInfo || await this.getTokenInfo();
-    if (!tokenInfo || !tokenInfo.expiresAt) return 0;
-
-    return Math.max(0, tokenInfo.expiresAt - Date.now());
+    return this.tokenManager.getTokenRemainingTime();
   }
 
   /**
@@ -369,143 +249,34 @@ export class AuthManager extends EventEmitter {
    * 返回新的二维码登录信息供用户重新登录
    */
   async refreshToken(): Promise<{ success: boolean; qrCode?: any; message?: string }> {
-    console.warn('[AuthManager] acfunlive-http-api AuthService does not support token refreshing. Initiating new QR login process.');
-
-    try {
-      // 由于无法刷新，启动新的二维码登录流程
-      const authService = this.api.auth;
-
-      const qrResult = await authService.qrLogin();
-      if (qrResult.success && qrResult.data) {
-        return {
-          success: true,
-          qrCode: qrResult.data,
-          message: 'Token expired. Please scan the new QR code to re-authenticate.'
-        };
-      } else {
-        return {
-          success: false,
-          message: 'Failed to generate new QR code for re-authentication.'
-        };
-      }
-    } catch (error) {
-      console.error('[AuthManager] Error generating new QR code:', error);
-      return {
-        success: false,
-        message: 'Error occurred while generating new QR code for re-authentication.'
-      };
-    }
-  }
-
-  /**
-   * 启动令牌刷新定时器
-   */
-  private startTokenRefreshTimer(): void {
-    // 清除现有定时器
-    if (this.tokenRefreshTimer) {
-      clearInterval(this.tokenRefreshTimer);
-    }
-
-    // 每3分钟检查一次令牌状态
-    this.tokenRefreshTimer = setInterval(async () => {
-      try {
-        const tokenInfo = await this.getTokenInfo();
-        if (!tokenInfo) {
-          return; // 没有token，无需检查
-        }
-
-        const isExpiringSoon = await this.isTokenExpiringSoon();
-        if (isExpiringSoon) {
-          console.log('[AuthManager] Token is expiring soon, notifying user for re-authentication...');
-
-          // 更新内存中的token信息
-          this.tokenInfo = tokenInfo;
-
-          // 发出令牌即将过期的事件通知
-          this.emit('tokenExpiring', {
-            message: 'Authentication token is expiring soon. Please re-authenticate.',
-            expiresAt: tokenInfo.expiresAt,
-            timeRemaining: tokenInfo.expiresAt ? tokenInfo.expiresAt - Date.now() : 0
-          });
-
-          // 尝试获取新的二维码
-          const refreshResult = await this.refreshToken();
-          if (refreshResult.success && refreshResult.qrCode) {
-            this.emit('qrCodeReady', {
-              qrCode: refreshResult.qrCode,
-              message: refreshResult.message
-            });
-          } else {
-            console.warn('[AuthManager] Failed to generate new QR code, clearing expired token');
-            await this.logout();
-            this.emit('tokenExpired', {
-              message: 'Authentication token has expired. Please log in again.'
-            });
-          }
-        }
-      } catch (error) {
-        console.error('[AuthManager] Error in token refresh timer:', error);
-      }
-    }, 3 * 60 * 1000); // 3分钟
+    return this.tokenManager.refreshToken();
   }
 
   /**
    * 销毁 AuthManager
    */
   destroy(): void {
-    if (this.tokenRefreshTimer) {
-      clearInterval(this.tokenRefreshTimer);
-      this.tokenRefreshTimer = undefined;
-    }
+    this.tokenManager.destroy();
   }
 
   /**
-   * 保存令牌信息到文件
+   * 更新令牌信息
    */
-  private async saveTokenInfo(tokenInfo: ExtendedTokenInfo): Promise<void> {
-    try {
-      const existing = fs.existsSync(this.secretsPath)
-        ? JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'))
-        : {};
-
-      const next = {
-        ...existing,
-        // 保存acfunlive-http-api格式的令牌信息
-        userID: tokenInfo.userID,
-        securityKey: tokenInfo.securityKey,
-        serviceToken: tokenInfo.serviceToken,
-        deviceID: tokenInfo.deviceID,
-        cookies: tokenInfo.cookies,
-        expiresAt: tokenInfo.expiresAt,
-        isValid: tokenInfo.isValid,
-        updated_at: Date.now(),
-      };
-
-      fs.mkdirSync(path.dirname(this.secretsPath), { recursive: true });
-      fs.writeFileSync(this.secretsPath, JSON.stringify(next, null, 2));
-    } catch (err) {
-      console.error('[AuthManager] Failed to persist token info:', err);
-    }
+  async updateTokenInfo(tokenInfo: any): Promise<void> {
+    return this.tokenManager.updateTokenInfo(tokenInfo);
   }
 
-  private saveToken(data: { token: string; userId: string; expiresAt: number; refreshToken?: string }) {
-    try {
-      const existing = fs.existsSync(this.secretsPath)
-        ? JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'))
-        : {};
-      const next = {
-        ...existing,
-        acfun_token: data.token,
-        refresh_token: data.refreshToken,
-        userId: data.userId,
-        token_expires_at: data.expiresAt,
-        updated_at: Date.now(),
-      };
-      fs.mkdirSync(path.dirname(this.secretsPath), { recursive: true });
-      fs.writeFileSync(this.secretsPath, JSON.stringify(next, null, 2));
-    } catch (err) {
-      // Do not expose sensitive details to renderer
-      console.error('[AuthManager] Failed to persist token:', err);
-    }
+  /**
+   * 清除令牌信息
+   */
+  async clearTokenInfo(): Promise<void> {
+    return this.tokenManager.clearTokenInfo();
+  }
+
+  /**
+   * 获取API实例
+   */
+  getApiInstance() {
+    return this.tokenManager.getApiInstance();
   }
 }

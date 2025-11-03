@@ -2,12 +2,19 @@
   <div class="not-found-page">
     <div class="not-found-container">
       <div class="not-found-icon">
-        <t-icon name="file-search" size="80px" />
+        <t-icon
+          name="file-search"
+          size="80px"
+        />
       </div>
       
       <div class="not-found-content">
-        <h1 class="not-found-title">404</h1>
-        <h2 class="not-found-subtitle">页面未找到</h2>
+        <h1 class="not-found-title">
+          404
+        </h1>
+        <h2 class="not-found-subtitle">
+          页面未找到
+        </h2>
         <p class="not-found-message">
           抱歉，您访问的页面不存在或已被移动。
         </p>
@@ -20,18 +27,31 @@
             @enter="handleSearch"
           >
             <template #suffix-icon>
-              <t-icon name="search" @click="handleSearch" />
+              <t-icon
+                name="search"
+                @click="handleSearch"
+              />
             </template>
           </t-input>
         </div>
         
         <div class="not-found-actions">
-          <t-button theme="primary" @click="goHome">
-            <template #icon><t-icon name="home" /></template>
+          <t-button
+            theme="primary"
+            @click="goHome"
+          >
+            <template #icon>
+              <t-icon name="home" />
+            </template>
             返回首页
           </t-button>
-          <t-button variant="outline" @click="goBack">
-            <template #icon><t-icon name="arrow-left" /></template>
+          <t-button
+            variant="outline"
+            @click="goBack"
+          >
+            <template #icon>
+              <t-icon name="arrow-left" />
+            </template>
             返回上页
           </t-button>
         </div>
@@ -41,28 +61,64 @@
     <div class="quick-links">
       <h3>快速导航</h3>
       <div class="links-grid">
-        <div class="link-item" @click="navigateTo('/home')">
-          <t-icon name="home" size="24px" />
+        <div
+          class="link-item"
+          @click="navigateTo('/home')"
+        >
+          <t-icon
+            name="home"
+            size="24px"
+          />
           <span>首页</span>
         </div>
-        <div class="link-item" @click="navigateTo('/live/room')">
-          <t-icon name="video" size="24px" />
+        <div
+          class="link-item"
+          @click="navigateTo('/live/room')"
+        >
+          <t-icon
+            name="video"
+            size="24px"
+          />
           <span>直播间</span>
         </div>
-        <div class="link-item" @click="navigateTo('/plugins/management')">
-          <t-icon name="app" size="24px" />
+        <div
+          class="link-item"
+          @click="navigateTo('/plugins/management')"
+        >
+          <t-icon
+            name="app"
+            size="24px"
+          />
           <span>插件管理</span>
         </div>
-        <div class="link-item" @click="navigateTo('/system/settings')">
-          <t-icon name="setting" size="24px" />
+        <div
+          class="link-item"
+          @click="navigateTo('/system/settings')"
+        >
+          <t-icon
+            name="setting"
+            size="24px"
+          />
           <span>系统设置</span>
         </div>
-        <div class="link-item" @click="navigateTo('/system/console')">
-          <t-icon name="console" size="24px" />
+        <div
+          class="link-item"
+          @click="navigateTo('/system/console')"
+        >
+          <t-icon
+            name="console"
+            size="24px"
+          />
           <span>系统控制台</span>
         </div>
-        <div class="link-item" @click="navigateTo('/settings')">
-          <t-icon name="tools" size="24px" />
+        <div
+          class="link-item"
+          @click="navigateTo('/settings')"
+        >
+          <t-icon
+            name="tools"
+            size="24px"
+          />
           <span>应用设置</span>
         </div>
       </div>

@@ -2,7 +2,9 @@
   <div class="plugin-dev-tools">
     <div class="dev-tools-header">
       <h3>插件开发工具</h3>
-      <p class="description">配置外部Vue/React项目进行插件开发和调试</p>
+      <p class="description">
+        配置外部Vue/React项目进行插件开发和调试
+      </p>
     </div>
 
     <div class="dev-tools-content">
@@ -17,8 +19,15 @@
             placeholder="http://localhost:3000"
             @blur="validateUrl"
           />
-          <div v-if="urlError" class="error-message">{{ urlError }}</div>
-          <div class="help-text">输入您的Vue/React开发服务器地址</div>
+          <div
+            v-if="urlError"
+            class="error-message"
+          >
+            {{ urlError }}
+          </div>
+          <div class="help-text">
+            输入您的Vue/React开发服务器地址
+          </div>
         </div>
 
         <div class="form-group">
@@ -29,11 +38,16 @@
               placeholder="C:\path\to\your\plugin\backend"
               readonly
             />
-            <t-button @click="selectNodePath" variant="outline">
+            <t-button
+              variant="outline"
+              @click="selectNodePath"
+            >
               选择目录
             </t-button>
           </div>
-          <div class="help-text">选择包含Node.js后端代码的目录</div>
+          <div class="help-text">
+            选择包含Node.js后端代码的目录
+          </div>
         </div>
 
         <div class="form-group">
@@ -42,7 +56,9 @@
             v-model="config.pluginId"
             placeholder="my-dev-plugin"
           />
-          <div class="help-text">用于标识开发中的插件</div>
+          <div class="help-text">
+            用于标识开发中的插件
+          </div>
         </div>
       </div>
 
@@ -54,21 +70,27 @@
           <t-checkbox v-model="config.hotReload">
             启用热重载
           </t-checkbox>
-          <div class="help-text">文件变化时自动重新加载插件</div>
+          <div class="help-text">
+            文件变化时自动重新加载插件
+          </div>
         </div>
 
         <div class="checkbox-group">
           <t-checkbox v-model="config.debugMode">
             调试模式
           </t-checkbox>
-          <div class="help-text">启用详细的调试日志输出</div>
+          <div class="help-text">
+            启用详细的调试日志输出
+          </div>
         </div>
 
         <div class="checkbox-group">
           <t-checkbox v-model="config.autoConnect">
             自动连接
           </t-checkbox>
-          <div class="help-text">启动时自动连接到外部项目</div>
+          <div class="help-text">
+            启动时自动连接到外部项目
+          </div>
         </div>
       </div>
 
@@ -81,7 +103,10 @@
           <t-tag :theme="frontendStatus.connected ? 'success' : 'default'">
             {{ frontendStatus.connected ? '已连接' : '未连接' }}
           </t-tag>
-          <span v-if="frontendStatus.url" class="status-url">{{ frontendStatus.url }}</span>
+          <span
+            v-if="frontendStatus.url"
+            class="status-url"
+          >{{ frontendStatus.url }}</span>
         </div>
 
         <div class="status-item">
@@ -89,7 +114,10 @@
           <t-tag :theme="backendStatus.loaded ? 'success' : 'default'">
             {{ backendStatus.loaded ? '已加载' : '未加载' }}
           </t-tag>
-          <span v-if="backendStatus.path" class="status-path">{{ backendStatus.path }}</span>
+          <span
+            v-if="backendStatus.path"
+            class="status-path"
+          >{{ backendStatus.path }}</span>
         </div>
       </div>
 
@@ -97,39 +125,42 @@
       <div class="actions-section">
         <t-button 
           theme="primary" 
-          @click="startDebugging"
           :loading="starting"
           :disabled="!canStart"
+          @click="startDebugging"
         >
           开始调试
         </t-button>
         
         <t-button 
-          @click="stopDebugging"
           :disabled="!isDebugging"
+          @click="stopDebugging"
         >
           停止调试
         </t-button>
         
         <t-button 
           variant="outline"
-          @click="testConnection"
           :loading="testing"
+          @click="testConnection"
         >
           测试连接
         </t-button>
         
         <t-button 
           variant="outline"
-          @click="saveConfig"
           :loading="saving"
+          @click="saveConfig"
         >
           保存配置
         </t-button>
       </div>
 
       <!-- 日志输出 -->
-      <div v-if="config.debugMode" class="logs-section">
+      <div
+        v-if="config.debugMode"
+        class="logs-section"
+      >
         <h4>调试日志</h4>
         <div class="logs-container">
           <div 
@@ -144,8 +175,19 @@
           </div>
         </div>
         <div class="logs-actions">
-          <t-button size="small" @click="clearLogs">清空日志</t-button>
-          <t-button size="small" variant="outline" @click="exportLogs">导出日志</t-button>
+          <t-button
+            size="small"
+            @click="clearLogs"
+          >
+            清空日志
+          </t-button>
+          <t-button
+            size="small"
+            variant="outline"
+            @click="exportLogs"
+          >
+            导出日志
+          </t-button>
         </div>
       </div>
     </div>

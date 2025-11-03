@@ -5,9 +5,12 @@
         :src="event.userInfo?.avatar || '/default-avatar.png'" 
         :alt="event.userInfo?.nickname"
         class="user-avatar"
-      />
+      >
       <span class="username">{{ event.userInfo?.nickname || '匿名用户' }}</span>
-      <span v-if="event.userInfo?.medal?.clubName" class="medal">
+      <span
+        v-if="event.userInfo?.medal?.clubName"
+        class="medal"
+      >
         {{ event.userInfo.medal.clubName }} Lv.{{ event.userInfo.medal.level }}
       </span>
     </div>
@@ -18,17 +21,26 @@
           :src="event.giftDetail.smallPngPic" 
           :alt="event.giftDetail.giftName"
           class="gift-icon"
-        />
+        >
         <span class="gift-text">
           送出了 
           <span class="gift-name">{{ event.giftDetail?.giftName || '礼物' }}</span>
-          <span v-if="event.count > 1" class="gift-count">x{{ event.count }}</span>
+          <span
+            v-if="event.count > 1"
+            class="gift-count"
+          >x{{ event.count }}</span>
         </span>
       </div>
-      <div v-if="event.value" class="gift-value">
+      <div
+        v-if="event.value"
+        class="gift-value"
+      >
         价值 {{ formatPrice(event.value) }} AC币
       </div>
-      <div v-if="event.combo > 1" class="combo-info">
+      <div
+        v-if="event.combo > 1"
+        class="combo-info"
+      >
         连击 x{{ event.combo }}
       </div>
     </div>
@@ -36,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Gift } from 'acfunlive-http-api/src/types';
+import type { Gift } from 'acfunlive-http-api';
 
 interface Props {
   event: Gift & { id?: string; type?: string; timestamp?: number };

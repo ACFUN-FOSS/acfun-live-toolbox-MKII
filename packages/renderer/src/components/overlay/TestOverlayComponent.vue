@@ -2,7 +2,12 @@
   <div class="test-overlay-component">
     <div class="header">
       <h3>{{ title }}</h3>
-      <button class="close-btn" @click="closeOverlay">×</button>
+      <button
+        class="close-btn"
+        @click="closeOverlay"
+      >
+        ×
+      </button>
     </div>
     
     <div class="content">
@@ -10,15 +15,40 @@
       <div class="counter-section">
         <p>计数器: {{ localCounter }}</p>
         <div class="button-group">
-          <button @click="increment" class="btn btn-primary">+1</button>
-          <button @click="decrement" class="btn btn-secondary">-1</button>
-          <button @click="reset" class="btn btn-warning">重置</button>
+          <button
+            class="btn btn-primary"
+            @click="increment"
+          >
+            +1
+          </button>
+          <button
+            class="btn btn-secondary"
+            @click="decrement"
+          >
+            -1
+          </button>
+          <button
+            class="btn btn-warning"
+            @click="reset"
+          >
+            重置
+          </button>
         </div>
       </div>
       
       <div class="action-section">
-        <button @click="sendAction" class="btn btn-success">发送动作到插件</button>
-        <button @click="updateOverlay" class="btn btn-info">更新Overlay</button>
+        <button
+          class="btn btn-success"
+          @click="sendAction"
+        >
+          发送动作到插件
+        </button>
+        <button
+          class="btn btn-info"
+          @click="updateOverlay"
+        >
+          更新Overlay
+        </button>
       </div>
     </div>
   </div>

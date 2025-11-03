@@ -17,7 +17,7 @@ export const useSidebarStore = defineStore('sidebar', () => {
     console.log('Sidebar collapse is disabled - always expanded');
   }
 
-  function setCollapsed(value: boolean) {
+  function setCollapsed(_value: boolean) {
     // 不执行任何操作，保持展开状态
     console.log('Sidebar collapse is disabled - always expanded');
   }

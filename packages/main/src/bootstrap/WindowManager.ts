@@ -28,6 +28,23 @@ export class WindowManager {
       },
     });
 
+    // Set Content Security Policy to allow TDesign icons
+    this.mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self' 'unsafe-inline' data:;",
+            "script-src 'self' 'unsafe-inline' https://tdesign.gtimg.com;",
+            "style-src 'self' 'unsafe-inline' https://tdesign.gtimg.com;",
+            "font-src 'self' data: https://tdesign.gtimg.com;",
+            "img-src 'self' data: blob: https://tdesign.gtimg.com;",
+            "connect-src 'self' https: http://127.0.0.1:* ws://127.0.0.1:* wss://127.0.0.1:*;"
+          ].join(' ')
+        }
+      });
+    });
+
     this.mainWindow.once('ready-to-show', () => {
       this.mainWindow?.show();
       // Automatically open DevTools in development

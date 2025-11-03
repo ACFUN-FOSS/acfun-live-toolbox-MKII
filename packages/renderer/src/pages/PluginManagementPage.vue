@@ -3,15 +3,24 @@
     <div class="page-header">
       <h2>插件管理</h2>
       <div class="header-actions">
-        <t-button theme="primary" @click="showInstallDialog = true">
+        <t-button
+          theme="primary"
+          @click="showInstallDialog = true"
+        >
           <t-icon name="add" />
           安装插件
         </t-button>
-        <t-button variant="outline" @click="refreshPlugins">
+        <t-button
+          variant="outline"
+          @click="refreshPlugins"
+        >
           <t-icon name="refresh" />
           刷新
         </t-button>
-        <t-button variant="outline" @click="openPluginFolder">
+        <t-button
+          variant="outline"
+          @click="openPluginFolder"
+        >
           <t-icon name="folder" />
           插件目录
         </t-button>
@@ -20,42 +29,82 @@
 
     <!-- 插件统计 -->
     <div class="plugin-stats">
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ pluginStore.plugins.length }}</div>
-          <div class="stat-label">总插件数</div>
+          <div class="stat-number">
+            {{ pluginStore.plugins.length }}
+          </div>
+          <div class="stat-label">
+            总插件数
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ pluginStore.activePlugins.length }}</div>
-          <div class="stat-label">已启用</div>
+          <div class="stat-number">
+            {{ pluginStore.activePlugins.length }}
+          </div>
+          <div class="stat-label">
+            已启用
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ pluginStore.inactivePlugins.length }}</div>
-          <div class="stat-label">已禁用</div>
+          <div class="stat-number">
+            {{ pluginStore.inactivePlugins.length }}
+          </div>
+          <div class="stat-label">
+            已禁用
+          </div>
         </div>
       </t-card>
-      <t-card class="stat-card" hoverShadow>
+      <t-card
+        class="stat-card"
+        hover-shadow
+      >
         <div class="stat-content">
-          <div class="stat-number">{{ pluginStore.errorPlugins.length }}</div>
-          <div class="stat-label">错误</div>
+          <div class="stat-number">
+            {{ pluginStore.errorPlugins.length }}
+          </div>
+          <div class="stat-label">
+            错误
+          </div>
         </div>
       </t-card>
     </div>
 
     <!-- 插件过滤器 -->
-    <t-card class="filter-card" title="插件过滤" hoverShadow>
+    <t-card
+      class="filter-card"
+      title="插件过滤"
+      hover-shadow
+    >
       <div class="filter-controls">
         <div class="filter-group">
           <label>状态:</label>
           <t-radio-group v-model="statusFilter">
-            <t-radio value="all">全部</t-radio>
-            <t-radio value="active">已启用</t-radio>
-            <t-radio value="inactive">已禁用</t-radio>
-            <t-radio value="error">错误</t-radio>
+            <t-radio value="all">
+              全部
+            </t-radio>
+            <t-radio value="active">
+              已启用
+            </t-radio>
+            <t-radio value="inactive">
+              已禁用
+            </t-radio>
+            <t-radio value="error">
+              错误
+            </t-radio>
           </t-radio-group>
         </div>
         
@@ -75,32 +124,67 @@
         
         <div class="filter-group">
           <label>排序:</label>
-          <t-select v-model="sortBy" style="width: 150px;">
-            <t-option value="name" label="名称" />
-            <t-option value="version" label="版本" />
-            <t-option value="status" label="状态" />
-            <t-option value="installTime" label="安装时间" />
+          <t-select
+            v-model="sortBy"
+            style="width: 150px;"
+          >
+            <t-option
+              value="name"
+              label="名称"
+            />
+            <t-option
+              value="version"
+              label="版本"
+            />
+            <t-option
+              value="status"
+              label="状态"
+            />
+            <t-option
+              value="installTime"
+              label="安装时间"
+            />
           </t-select>
         </div>
       </div>
     </t-card>
 
     <!-- 插件列表 -->
-    <t-card class="plugin-list-card" title="插件列表" hoverShadow>
-      <div v-if="pluginStore.isLoading" class="loading-state">
+    <t-card
+      class="plugin-list-card"
+      title="插件列表"
+      hover-shadow
+    >
+      <div
+        v-if="pluginStore.isLoading"
+        class="loading-state"
+      >
         <t-loading />
         <span>加载插件列表中...</span>
       </div>
 
-      <div v-else-if="filteredPlugins.length === 0" class="empty-state">
-        <t-icon name="plugin" size="48px" />
+      <div
+        v-else-if="filteredPlugins.length === 0"
+        class="empty-state"
+      >
+        <t-icon
+          name="plugin"
+          size="48px"
+        />
         <p>{{ searchKeyword ? '未找到匹配的插件' : '暂无插件' }}</p>
-        <t-button v-if="!searchKeyword" theme="primary" @click="showInstallDialog = true">
+        <t-button
+          v-if="!searchKeyword"
+          theme="primary"
+          @click="showInstallDialog = true"
+        >
           安装第一个插件
         </t-button>
       </div>
 
-      <div v-else class="plugin-grid">
+      <div
+        v-else
+        class="plugin-grid"
+      >
         <div 
           v-for="plugin in filteredPlugins" 
           :key="plugin.id"
@@ -113,12 +197,24 @@
         >
           <div class="plugin-header">
             <div class="plugin-icon">
-              <img v-if="plugin.icon" :src="plugin.icon" :alt="plugin.name" />
-              <t-icon v-else name="plugin" size="32px" />
+              <img
+                v-if="plugin.icon"
+                :src="plugin.icon"
+                :alt="plugin.name"
+              >
+              <t-icon
+                v-else
+                name="plugin"
+                size="32px"
+              />
             </div>
             <div class="plugin-info">
-              <div class="plugin-name">{{ plugin.name }}</div>
-              <div class="plugin-version">v{{ plugin.version }}</div>
+              <div class="plugin-name">
+                {{ plugin.name }}
+              </div>
+              <div class="plugin-version">
+                v{{ plugin.version }}
+              </div>
             </div>
             <div class="plugin-status">
               <t-tag 
@@ -153,11 +249,18 @@
             >
               {{ plugin.status === 'active' ? '禁用' : '启用' }}
             </t-button>
-            <t-button size="small" variant="outline" @click="configurePlugin(plugin)">
+            <t-button
+              size="small"
+              variant="outline"
+              @click="configurePlugin(plugin)"
+            >
               配置
             </t-button>
             <t-dropdown :options="getPluginMenuOptions(plugin)">
-              <t-button size="small" variant="text">
+              <t-button
+                size="small"
+                variant="text"
+              >
                 <t-icon name="more" />
               </t-button>
             </t-dropdown>
@@ -175,10 +278,21 @@
       @cancel="resetInstallForm"
     >
       <t-tabs v-model="installMethod">
-        <t-tab-panel value="file" label="本地文件">
+        <t-tab-panel
+          value="file"
+          label="本地文件"
+        >
           <div class="install-form">
-            <t-form :data="installForm" :rules="installFormRules" ref="installFormRef" layout="vertical">
-              <t-form-item label="插件文件" name="file">
+            <t-form
+              ref="installFormRef"
+              :data="installForm"
+              :rules="installFormRules"
+              layout="vertical"
+            >
+              <t-form-item
+                label="插件文件"
+                name="file"
+              >
                 <t-upload
                   v-model="installForm.files"
                   theme="file"
@@ -192,10 +306,21 @@
           </div>
         </t-tab-panel>
         
-        <t-tab-panel value="url" label="在线安装">
+        <t-tab-panel
+          value="url"
+          label="在线安装"
+        >
           <div class="install-form">
-            <t-form :data="installForm" :rules="installFormRules" ref="installFormRef" layout="vertical">
-              <t-form-item label="插件URL" name="url">
+            <t-form
+              ref="installFormRef"
+              :data="installForm"
+              :rules="installFormRules"
+              layout="vertical"
+            >
+              <t-form-item
+                label="插件URL"
+                name="url"
+              >
                 <t-input 
                   v-model="installForm.url" 
                   placeholder="输入插件下载链接或Git仓库地址"
@@ -205,7 +330,10 @@
           </div>
         </t-tab-panel>
         
-        <t-tab-panel value="store" label="插件商店">
+        <t-tab-panel
+          value="store"
+          label="插件商店"
+        >
           <div class="plugin-store">
             <t-input 
               v-model="storeSearchKeyword" 
@@ -224,8 +352,12 @@
                 class="store-plugin-item"
               >
                 <div class="store-plugin-info">
-                  <div class="store-plugin-name">{{ storePlugin.name }}</div>
-                  <div class="store-plugin-description">{{ storePlugin.description }}</div>
+                  <div class="store-plugin-name">
+                    {{ storePlugin.name }}
+                  </div>
+                  <div class="store-plugin-description">
+                    {{ storePlugin.description }}
+                  </div>
                   <div class="store-plugin-meta">
                     <span>{{ storePlugin.author }}</span>
                     <span>v{{ storePlugin.version }}</span>
@@ -233,7 +365,11 @@
                   </div>
                 </div>
                 <div class="store-plugin-actions">
-                  <t-button size="small" theme="primary" @click="installStorePlugin(storePlugin)">
+                  <t-button
+                    size="small"
+                    theme="primary"
+                    @click="installStorePlugin(storePlugin)"
+                  >
                     安装
                   </t-button>
                 </div>
@@ -251,8 +387,14 @@
       width="700px"
       @confirm="savePluginConfig"
     >
-      <div v-if="selectedPlugin" class="plugin-config">
-        <t-form :data="pluginConfig" layout="vertical">
+      <div
+        v-if="selectedPlugin"
+        class="plugin-config"
+      >
+        <t-form
+          :data="pluginConfig"
+          layout="vertical"
+        >
           <t-form-item 
             v-for="(config, key) in selectedPlugin.config" 
             :key="key"
@@ -263,7 +405,10 @@
               v-model="pluginConfig[key]"
               v-bind="getConfigProps(config)"
             />
-            <template v-if="config.description" #help>
+            <template
+              v-if="config.description"
+              #help
+            >
               <span>{{ config.description }}</span>
             </template>
           </t-form-item>

@@ -1,12 +1,30 @@
 <template>
   <div class="filter-bar">
     <span class="label">事件类型筛选：</span>
-    <label v-for="t in allTypes" :key="t" class="type-chip">
-      <input type="checkbox" :value="t" v-model="selected" />
+    <label
+      v-for="t in allTypes"
+      :key="t"
+      class="type-chip"
+    >
+      <input
+        v-model="selected"
+        type="checkbox"
+        :value="t"
+      >
       <span :data-type="t">{{ t }}</span>
     </label>
-    <button class="btn" @click="selectAll">全选</button>
-    <button class="btn" @click="clearAll">清空</button>
+    <button
+      class="btn"
+      @click="selectAll"
+    >
+      全选
+    </button>
+    <button
+      class="btn"
+      @click="clearAll"
+    >
+      清空
+    </button>
   </div>
 </template>
 

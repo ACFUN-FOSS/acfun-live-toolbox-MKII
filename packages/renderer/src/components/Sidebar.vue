@@ -10,7 +10,10 @@
         @change="handleMenuChange"
       >
         <!-- 首页 -->
-        <t-menu-item value="home" @click="navigateTo('/home')">
+        <t-menu-item
+          value="home"
+          @click="navigateTo('/home')"
+        >
           <template #icon>
             <t-icon name="home" />
           </template>
@@ -18,17 +21,26 @@
         </t-menu-item>
         
         <!-- 直播功能 -->
-        <t-submenu value="live" title="直播功能">
+        <t-submenu
+          value="live"
+          title="直播功能"
+        >
           <template #icon>
             <t-icon name="video" />
           </template>
-          <t-menu-item value="live-room" @click="navigateTo('/live/room')">
+          <t-menu-item
+            value="live-room"
+            @click="navigateTo('/live/room')"
+          >
             <template #icon>
               <t-icon name="desktop" />
             </template>
             房间管理
           </t-menu-item>
-          <t-menu-item value="live-danmu" @click="navigateTo('/live/danmu')">
+          <t-menu-item
+            value="live-danmu"
+            @click="navigateTo('/live/danmu')"
+          >
             <template #icon>
               <t-icon name="chat" />
             </template>
@@ -37,11 +49,17 @@
         </t-submenu>
         
         <!-- 插件管理 -->
-        <t-submenu value="plugins" title="插件管理">
+        <t-submenu
+          value="plugins"
+          title="插件管理"
+        >
           <template #icon>
             <t-icon name="app" />
           </template>
-          <t-menu-item value="plugin-management" @click="navigateTo('/plugins/management')">
+          <t-menu-item
+            value="plugin-management"
+            @click="navigateTo('/plugins/management')"
+          >
             <template #icon>
               <t-icon name="setting" />
             </template>
@@ -50,23 +68,35 @@
         </t-submenu>
         
         <!-- 系统功能 -->
-        <t-submenu value="system" title="系统功能">
+        <t-submenu
+          value="system"
+          title="系统功能"
+        >
           <template #icon>
             <t-icon name="tools" />
           </template>
-          <t-menu-item value="system-settings" @click="navigateTo('/system/settings')">
+          <t-menu-item
+            value="system-settings"
+            @click="navigateTo('/system/settings')"
+          >
             <template #icon>
               <t-icon name="setting-1" />
             </template>
             系统设置
           </t-menu-item>
-          <t-menu-item value="system-console" @click="navigateTo('/system/console')">
+          <t-menu-item
+            value="system-console"
+            @click="navigateTo('/system/console')"
+          >
             <template #icon>
               <t-icon name="code" />
             </template>
             控制台
           </t-menu-item>
-          <t-menu-item value="system-develop" @click="navigateTo('/system/develop')">
+          <t-menu-item
+            value="system-develop"
+            @click="navigateTo('/system/develop')"
+          >
             <template #icon>
               <t-icon name="bug" />
             </template>
@@ -80,10 +110,19 @@
     <t-divider v-if="dynamicPlugins.length > 0" />
     
     <!-- 动态插件导航 -->
-    <div v-if="dynamicPlugins.length > 0" class="plugin-nav">
+    <div
+      v-if="dynamicPlugins.length > 0"
+      class="plugin-nav"
+    >
       <div class="plugin-nav-header">
-        <t-icon name="plugin" class="plugin-icon" />
-        <span v-if="!collapsed" class="plugin-title">插件导航</span>
+        <t-icon
+          name="plugin"
+          class="plugin-icon"
+        />
+        <span
+          v-if="!collapsed"
+          class="plugin-title"
+        >插件导航</span>
       </div>
       
       <div class="plugin-list">
@@ -100,11 +139,22 @@
               :src="plugin.icon" 
               :alt="plugin.name"
               class="plugin-avatar"
+            >
+            <t-icon
+              v-else
+              name="app"
+              class="plugin-default-icon"
             />
-            <t-icon v-else name="app" class="plugin-default-icon" />
-            <div v-if="!collapsed" class="plugin-details">
-              <div class="plugin-name">{{ plugin.name }}</div>
-              <div class="plugin-version">v{{ plugin.version }}</div>
+            <div
+              v-if="!collapsed"
+              class="plugin-details"
+            >
+              <div class="plugin-name">
+                {{ plugin.name }}
+              </div>
+              <div class="plugin-version">
+                v{{ plugin.version }}
+              </div>
             </div>
           </div>
           
@@ -119,8 +169,6 @@
         </div>
       </div>
     </div>
-    
-
   </div>
 </template>
 
