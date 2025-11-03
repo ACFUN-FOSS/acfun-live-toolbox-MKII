@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ApiRetryManager, ApiErrorType } from '../services/ApiRetryManager';
-import { AuthManager } from '../services/AuthManager';
+import { ApiRetryManager } from '../../../packages/main/src/services/ApiRetryManager';
+import { AuthManager } from '../../../packages/main/src/services/AuthManager';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AuthManager } from '../services/AuthManager';
+import { AuthManager } from '../../../packages/main/src/services/AuthManager';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -38,18 +38,33 @@ describe('认证流程集成测试', () => {
         expect(result.qrCode).toBeDefined();
         expect(result.qrCode.qrCodeDataUrl).toMatch(/^data:image\/png;base64,/);
         expect(result.qrCode.expiresIn).toBeGreaterThan(0);
+        
+        // 立即显示二维码
+        console.log('\n=== 二维码登录 ===');
+        console.log('二维码数据URL:', result.qrCode.qrCodeDataUrl);
+        console.log('过期时间:', result.qrCode.expiresIn, '秒');
+        console.log('请使用AcFun手机客户端扫描二维码登录');
+        console.log('==================\n');
       } else {
         // 如果失败，应该有错误信息
         expect(result.error).toBeDefined();
         console.log('QR login failed (expected in test environment):', result.error);
       }
-    }, 10000);
+    }, 30000);
 
     it('应该能够检查二维码登录状态', async () => {
       // 首先启动二维码登录
       const loginResult = await authManager.loginWithQRCode();
       
       if (loginResult.success) {
+        // 立即显示二维码
+        console.log('\n=== 二维码登录状态检查 ===');
+        console.log('二维码数据URL:', loginResult.qrCode.qrCodeDataUrl);
+        console.log('过期时间:', loginResult.qrCode.expiresIn, '秒');
+        console.log('请使用AcFun手机客户端扫描二维码登录');
+        console.log('正在检查登录状态...');
+        console.log('========================\n');
+        
         // 检查登录状态
         const statusResult = await authManager.checkQRLoginStatus();
         
@@ -70,7 +85,7 @@ describe('认证流程集成测试', () => {
       } else {
         console.log('Skipping status check due to QR login failure');
       }
-    }, 15000);
+    }, 30000);
   });
 
   describe('令牌管理', () => {

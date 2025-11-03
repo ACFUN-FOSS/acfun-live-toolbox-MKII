@@ -13,6 +13,6 @@
   "license": "MIT",
   "keywords": ["example", "test", "demo"],
   "engines": {
-    "acfun-live-toolbox": ">=2.0.0"
+    "ACLiveFrame": ">=2.0.0"
   }
 }

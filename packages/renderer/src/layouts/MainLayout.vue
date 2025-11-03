@@ -184,7 +184,7 @@ function showNotification(notif: Notification) {
   if (notif.duration && notif.duration > 0) {
     notificationTimer = setTimeout(() => {
       dismissNotification();
-    }, notif.duration);
+    }, notif.duration) as any;
   }
 }
 

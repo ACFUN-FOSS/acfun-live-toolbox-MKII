@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { setupLazyLoaderTest, lazyLoader } from '../../shared/helpers/lazy-loader-test-setup';
 
-describe('PluginLazyLoader - 插件暂停恢复和状态查�?, () => {
+describe('PluginLazyLoader - 插件暂停恢复和状态查�?, () => {
   setupLazyLoaderTest();
 
-  describe('插件暂停和恢�?, () => {
+  describe('插件暂停和恢�?, () => {
     it('应该能够暂停插件', async () => {
       const pluginId = 'suspendable-plugin';
       
@@ -33,8 +33,8 @@ describe('PluginLazyLoader - 插件暂停恢复和状态查�?, () => {
     });
   });
 
-  describe('状态查�?, () => {
-    it('应该提供正确的加载统�?, async () => {
+  describe('状态查�?, () => {
+    it('应该提供正确的加载统�?, async () => {
       const plugin1 = 'stats-plugin-1';
       const plugin2 = 'stats-plugin-2';
       const plugin3 = 'stats-plugin-3';
@@ -60,7 +60,7 @@ describe('PluginLazyLoader - 插件暂停恢复和状态查�?, () => {
       expect(stats.suspendedPlugins).toBe(1);
     });
 
-    it('应该提供所有插件状�?, () => {
+    it('应该提供所有插件状�?, () => {
       const plugin1 = 'all-states-plugin-1';
       const plugin2 = 'all-states-plugin-2';
       

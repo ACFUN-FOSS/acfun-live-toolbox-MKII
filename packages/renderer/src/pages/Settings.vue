@@ -115,6 +115,117 @@
           </div>
         </t-tab-panel>
 
+        <t-tab-panel value="data" label="数据管理">
+          <div class="settings-section">
+            <h3>配置导出</h3>
+            <t-form :data="exportOptions" layout="vertical">
+              <t-form-item label="导出格式">
+                <t-radio-group v-model="exportOptions.format">
+                  <t-radio value="json">JSON</t-radio>
+                  <t-radio value="csv">CSV</t-radio>
+                  <t-radio value="xlsx">Excel</t-radio>
+                </t-radio-group>
+              </t-form-item>
+              <t-form-item label="包含数据">
+                <t-checkbox-group v-model="exportOptions.includeData">
+                  <t-checkbox value="settings">应用设置</t-checkbox>
+                  <t-checkbox value="plugins">插件配置</t-checkbox>
+                  <t-checkbox value="rooms">房间信息</t-checkbox>
+                  <t-checkbox value="logs">系统日志</t-checkbox>
+                </t-checkbox-group>
+              </t-form-item>
+              <t-form-item>
+                <t-button 
+                  theme="primary" 
+                  :loading="exportingData"
+                  :disabled="!canExportData"
+                  @click="exportData"
+                >
+                  <template #icon><t-icon name="download" /></template>
+                  导出数据
+                </t-button>
+              </t-form-item>
+            </t-form>
+
+            <h3 style="margin-top: 32px;">配置导入</h3>
+            <t-form layout="vertical">
+              <t-form-item label="选择配置文件">
+                <t-upload
+                  v-model="importFiles"
+                  :auto-upload="false"
+                  accept=".json,.csv,.xlsx"
+                  :max="1"
+                  theme="file-input"
+                  placeholder="选择配置文件"
+                />
+              </t-form-item>
+              <t-form-item>
+                <t-button 
+                  variant="outline"
+                  :loading="importingData"
+                  :disabled="importFiles.length === 0"
+                  @click="importData"
+                >
+                  <template #icon><t-icon name="upload" /></template>
+                  导入配置
+                </t-button>
+              </t-form-item>
+            </t-form>
+          </div>
+        </t-tab-panel>
+
+        <t-tab-panel value="diagnostics" label="系统诊断">
+          <div class="settings-section">
+            <h3>诊断工具</h3>
+            <p class="section-desc">
+              生成系统诊断包，包含日志、配置和系统信息，用于问题排查和技术支持。
+            </p>
+            
+            <t-form :data="diagnosticOptions" layout="vertical">
+              <t-form-item label="包含内容">
+                <t-checkbox-group v-model="diagnosticOptions.includeItems">
+                  <t-checkbox value="logs">系统日志</t-checkbox>
+                  <t-checkbox value="config">应用配置</t-checkbox>
+                  <t-checkbox value="plugins">插件信息</t-checkbox>
+                  <t-checkbox value="system">系统信息</t-checkbox>
+                  <t-checkbox value="network">网络状态</t-checkbox>
+                </t-checkbox-group>
+              </t-form-item>
+              <t-form-item label="日志时间范围">
+                <t-date-range-picker 
+                  v-model="diagnosticOptions.logTimeRange"
+                  format="YYYY-MM-DD HH:mm:ss"
+                  :presets="logTimePresets"
+                />
+              </t-form-item>
+              <t-form-item>
+                <t-space>
+                  <t-button 
+                    theme="primary"
+                    :loading="generatingDiagnostic"
+                    @click="generateDiagnostic"
+                  >
+                    <template #icon><t-icon name="tools" /></template>
+                    生成诊断包
+                  </t-button>
+                  <t-button 
+                    v-if="lastDiagnosticPath"
+                    variant="outline"
+                    @click="openDiagnosticFolder"
+                  >
+                    <template #icon><t-icon name="folder-open" /></template>
+                    打开文件夹
+                  </t-button>
+                </t-space>
+              </t-form-item>
+            </t-form>
+
+            <div v-if="lastDiagnosticPath" class="diagnostic-result">
+              <t-alert theme="success" :message="`诊断包已生成：${lastDiagnosticPath}`" />
+            </div>
+          </div>
+        </t-tab-panel>
+
         <t-tab-panel value="about" label="关于">
           <div class="settings-section">
             <div class="about-content">
@@ -170,7 +281,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { MessagePlugin } from 'tdesign-vue-next';
 
 const activeTab = ref('general');
 
@@ -201,6 +313,47 @@ const networkSettings = ref({
   timeout: 10,
   reconnectInterval: 5
 });
+
+// 数据导出相关
+const exportOptions = ref({
+  format: 'json',
+  includeData: ['settings', 'plugins']
+});
+
+const importFiles = ref([]);
+const exportingData = ref(false);
+const importingData = ref(false);
+
+const canExportData = computed(() => {
+  return exportOptions.value.includeData.length > 0 && exportOptions.value.format;
+});
+
+// 系统诊断相关
+const diagnosticOptions = ref({
+  includeItems: ['logs', 'config', 'system'],
+  logTimeRange: []
+});
+
+const generatingDiagnostic = ref(false);
+const lastDiagnosticPath = ref('');
+
+const logTimePresets = {
+  '最近1小时': () => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 60 * 60 * 1000);
+    return [start, end];
+  },
+  '最近24小时': () => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+    return [start, end];
+  },
+  '最近7天': () => {
+    const end = new Date();
+    const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return [start, end];
+  }
+};
 
 const appVersion = ref('2.0.0');
 const buildTime = ref('2024-01-01 12:00:00');
@@ -233,6 +386,57 @@ function saveSettings() {
 
 function loadSettings() {
   // TODO: 从主进程加载设置
+}
+
+// 数据导出方法
+async function exportData() {
+  exportingData.value = true;
+  try {
+    // 模拟数据导出
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    MessagePlugin.success(`数据导出成功 (${exportOptions.value.format.toUpperCase()} 格式)`);
+  } catch (error) {
+    MessagePlugin.error('数据导出失败');
+  } finally {
+    exportingData.value = false;
+  }
+}
+
+async function importData() {
+  importingData.value = true;
+  try {
+    // 模拟数据导入
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    MessagePlugin.success('配置导入成功');
+    importFiles.value = [];
+  } catch (error) {
+    MessagePlugin.error('配置导入失败');
+  } finally {
+    importingData.value = false;
+  }
+}
+
+// 系统诊断方法
+async function generateDiagnostic() {
+  generatingDiagnostic.value = true;
+  try {
+    // 模拟生成诊断包
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    lastDiagnosticPath.value = `C:\\Users\\用户\\Desktop\\diagnostic-${timestamp}.zip`;
+    
+    MessagePlugin.success('诊断包生成成功');
+  } catch (error) {
+    MessagePlugin.error('诊断包生成失败');
+  } finally {
+    generatingDiagnostic.value = false;
+  }
+}
+
+function openDiagnosticFolder() {
+  // 模拟打开文件夹
+  MessagePlugin.info('正在打开文件夹...');
 }
 
 onMounted(() => {
@@ -337,6 +541,17 @@ onMounted(() => {
   padding-top: 24px;
   border-top: 1px solid var(--td-border-color);
   margin-top: 24px;
+}
+
+.section-desc {
+  font-size: 14px;
+  color: var(--td-text-color-secondary);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.diagnostic-result {
+  margin-top: 16px;
 }
 
 :deep(.t-tabs__content) {

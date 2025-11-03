@@ -31,8 +31,8 @@ describe('PluginPerformanceMonitor', () => {
     monitor.destroy();
   });
 
-  describe('初始�?, () => {
-    it('应该使用默认配置初始�?, () => {
+  describe('初始化', () => {
+    it('应该使用默认配置初始化', () => {
       const defaultMonitor = new PluginPerformanceMonitor();
       expect(defaultMonitor).toBeDefined();
       defaultMonitor.destroy();
@@ -54,7 +54,7 @@ describe('PluginPerformanceMonitor', () => {
   });
 
   describe('监控管理', () => {
-    it('应该开始监控插�?, () => {
+    it('应该开始监控插�?, () => {
       expect(() => monitor.startMonitoringPlugin(pluginId)).not.toThrow();
     });
 
@@ -75,19 +75,19 @@ describe('PluginPerformanceMonitor', () => {
       monitor.startMonitoringPlugin(pluginId);
     });
 
-    it('应该开始操作计�?, () => {
+    it('应该开始操作计�?, () => {
       const operationId = 'test-operation';
       expect(() => monitor.startOperation(pluginId, operationId)).not.toThrow();
     });
 
-    it('应该结束操作计时并返回持续时�?, () => {
+    it('应该结束操作计时并返回持续时间', () => {
       const operationId = 'test-operation';
       monitor.startOperation(pluginId, operationId);
       
       // 等待一小段时间
       const start = Date.now();
       while (Date.now() - start < 10) {
-        // 忙等�?      }
+        // 忙等�?      }
       
       const duration = monitor.endOperation(pluginId, operationId);
       expect(duration).toBeGreaterThan(0);
@@ -105,15 +105,15 @@ describe('PluginPerformanceMonitor', () => {
       monitor.startMonitoringPlugin(pluginId);
     });
 
-    it('应该记录成功的网络请�?, () => {
+    it('应该记录成功的网络请�?, () => {
       expect(() => monitor.recordNetworkRequest(pluginId, 100, true, 1024)).not.toThrow();
     });
 
-    it('应该记录失败的网络请�?, () => {
+    it('应该记录失败的网络请求', () => {
       expect(() => monitor.recordNetworkRequest(pluginId, 500, false, 0)).not.toThrow();
     });
 
-    it('应该处理默认字节传输�?, () => {
+    it('应该处理默认字节传输量', () => {
       expect(() => monitor.recordNetworkRequest(pluginId, 200, true)).not.toThrow();
     });
   });
@@ -131,14 +131,14 @@ describe('PluginPerformanceMonitor', () => {
       }, 150);
     });
 
-    it('应该限制返回的指标数�?, () => {
+    it('应该限制返回的指标数�?, () => {
       setTimeout(() => {
         const metrics = monitor.getMetrics(pluginId, 5);
         expect(metrics.length).toBeLessThanOrEqual(5);
       }, 150);
     });
 
-    it('应该返回空数组对于未监控的插�?, () => {
+    it('应该返回空数组对于未监控的插件', () => {
       const metrics = monitor.getMetrics('non-existent-plugin');
       expect(metrics).toEqual([]);
     });
@@ -163,7 +163,7 @@ describe('PluginPerformanceMonitor', () => {
       }
     });
 
-    it('应该生成指定时间范围的报�?, async () => {
+    it('应该生成指定时间范围的报�?, async () => {
       await new Promise(resolve => setTimeout(resolve, 200));
       
       const now = Date.now();
@@ -196,7 +196,7 @@ describe('PluginPerformanceMonitor', () => {
 
       // 触发指标收集
       setTimeout(() => {
-        // 指标应该在监控间隔后被收�?      }, 150);
+        // 指标应该在监控间隔后被收�?      }, 150);
     });
 
     it('应该发射性能警告事件', async () => {
@@ -214,7 +214,7 @@ describe('PluginPerformanceMonitor', () => {
         });
 
         // 模拟高内存使用来触发警告
-        // 这需要实际的内存使用，在测试环境中可能不会触�?        setTimeout(() => {
+        // 这需要实际的内存使用，在测试环境中可能不会触�?        setTimeout(() => {
           // 如果没有警告被触发，手动完成测试
           if (!alertReceived) {
             resolve();
@@ -230,7 +230,7 @@ describe('PluginPerformanceMonitor', () => {
       expect(() => monitor.stopMonitoringPlugin('')).not.toThrow();
     });
 
-    it('应该处理重复的监控开�?, () => {
+    it('应该处理重复的监控开�?, () => {
       monitor.startMonitoringPlugin(pluginId);
       expect(() => monitor.startMonitoringPlugin(pluginId)).not.toThrow();
     });
@@ -241,7 +241,7 @@ describe('PluginPerformanceMonitor', () => {
   });
 
   describe('性能测试', () => {
-    it('应该快速处理大量操�?, () => {
+    it('应该快速处理大量操�?, () => {
       monitor.startMonitoringPlugin(pluginId);
       
       const start = Date.now();
@@ -254,7 +254,7 @@ describe('PluginPerformanceMonitor', () => {
       }
       
       const duration = Date.now() - start;
-      expect(duration).toBeLessThan(1000); // 应该�?秒内完成
+      expect(duration).toBeLessThan(1000); // 应该�?秒内完成
     });
 
     it('应该处理并发监控', async () => {

@@ -1,318 +1,290 @@
 
-> [!Important]
-> This project is maintained by developer from Ukraine 🇺🇦
-> 
-> I do my best, but due to Russia's ongoing full-scale invasion of Ukraine, I barely have the energy to support open source projects.
->
-> If my work has been useful to you, please consider [supporting Ukraine](https://stand-with-ukraine.pp.ua/) or [me personally](https://send.monobank.ua/6SmojkkR9i). Even your **$1** has an impact!
+# ACLiveFrame
 
-![IMG_0875](https://github.com/user-attachments/assets/590de304-e2c4-4935-9814-c18ade52fd8e)
+<div align="center">
+  <img src="./assets/logo.png" alt="ACLiveFrame Logo" width="128" height="128">
+  <h3>适用于ACFUN的开放式直播框架工具</h3>
+  <p>一个功能强大、可扩展的 AcFun 直播工具框架，提供弹幕收集、数据分析、插件系统等功能</p>
+  
+  [![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/your-org/ACLiveFrame)
+  [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+  [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/your-org/ACLiveFrame)
+</div>
 
+## ✨ 特性
 
-# Vite Electron Builder Boilerplate
+### 🎯 直播工具集成
+- **实时弹幕捕获**: 高性能弹幕消息实时获取和处理
+- **礼物统计分析**: 自动统计礼物数据，支持多维度分析
+- **观众互动管理**: 智能自动回复和互动功能
+- **多格式数据导出**: 支持 JSON、CSV、Excel 等格式导出
 
-![GitHub last commit](https://img.shields.io/github/last-commit/cawa-93/vite-electron-builder?label=last%20update)
-![GitHub package.json dev/peer/optional dependency version](https://img.shields.io/github/package-json/dependency-version/cawa-93/vite-electron-builder/dev/electron) 
-![GitHub package.json dev/peer/optional dependency version](https://img.shields.io/github/package-json/dependency-version/cawa-93/vite-electron-builder/dev/electron-builder)
-![GitHub package.json dev/peer/optional dependency version](https://img.shields.io/github/package-json/dependency-version/cawa-93/vite-electron-builder/dev/vite?filename=packages%2Fmain%2Fpackage.json)
-![GitHub package.json dev/peer/optional dependency version](https://img.shields.io/github/package-json/dependency-version/cawa-93/vite-electron-builder/dev/playwright)
+### 🔌 开放式插件生态
+- **模块化架构**: 支持插件动态加载、卸载和热更新
+- **丰富API接口**: 完整的插件开发 API 和事件系统
+- **插件市场**: 开放的插件分享和下载平台
+- **开发工具**: 内置插件开发调试工具
 
-This is a template for secure electron applications. Written following the latest safety requirements, recommendations
-and best practices.
+### 🛡️ 安全与稳定
+- **安全认证**: 加密存储用户凭据，支持二维码登录
+- **智能重连**: 自动检测连接状态，智能故障转移
+- **连接池管理**: 优化的连接池，支持多房间并发
+- **错误恢复**: 分级错误处理和自动恢复机制
 
-## Get started
+### 🚀 高性能设计
+- **异步架构**: 全异步处理，支持高并发
+- **智能缓存**: 减少 API 调用，提升响应速度
+- **资源优化**: 内存池和连接池优化，防止资源泄漏
+- **性能监控**: 实时性能分析和诊断工具
 
-Follow these steps to get started with the template:
+## 🚀 快速开始
 
-1. Click the **[Use this template](https://github.com/cawa-93/vite-electron-builder/generate)** button (you must be logged in) or just clone this repo.
-2. Go to project folder and run `npm run init`.
-3. Start application in development mode by `npm start`.
-4. Compile executable by `npm run compile`.
- 
-That's all you need. 😉
+### 环境要求
 
-> [!TIP]
-> You can explore the demo application for various frameworks and operating systems in the [Deployment](https://github.com/cawa-93/vite-electron-builder/deployments) section.
-> This will allow you to see how the application performs across different environments.
-> Additionally, you can verify the auto-update functionality by installing an outdated version of the application.
+- **Node.js**: >= 18.0.0
+- **pnpm**: >= 8.0.0 (推荐包管理器)
+- **操作系统**: Windows 10+, macOS 10.15+, Linux (Ubuntu 20.04+)
 
-❤️ **If you like this template, give a ⭐ or [send support](https://www.buymeacoffee.com/kozack/)!**
+### 安装和运行
 
-## Features
+1. **克隆项目**
+   ```bash
+   git clone https://github.com/your-org/ACLiveFrame.git
+   cd ACLiveFrame
+   ```
 
-### Lightweight
-When designing this template, I tried to keep it minimal, using the platform's native features to the maximum and minimizing the number of third-party dependencies.
+2. **安装依赖**
+   ```bash
+   pnpm install
+   ```
 
-### Electron
+3. **启动开发环境**
+   ```bash
+   pnpm start
+   ```
 
-- This template uses the latest electron version with all the latest security patches.
-- The architecture of the application is built according to the security [guides](https://www.electronjs.org/docs/tutorial/security) and best practices.
-- The latest version of the [electron-builder] is used to package the application.
+4. **构建生产版本**
+   ```bash
+   pnpm build
+   ```
 
-### Automatic tests
+### 首次使用
 
-- End-to-end are placed in the root [`tests`](tests) directory and use [playwright].
-- You may write any unit tests inside each package and use whatever you ~~want~~ need.
+1. **启动应用**: 运行 `pnpm start` 启动开发环境
+2. **账号登录**: 使用 AcFun 手机客户端扫描二维码登录
+3. **连接直播间**: 输入房间号或主播ID开始监听
+4. **配置功能**: 根据需要启用相应的功能模块
 
-### Continuous Integration
+## 🔐 认证设置
 
-- The configured workflow will check the types for each push and PR.
-- Code signing supported. See [code-signing documentation](https://www.electron.build/code-signing.html).
+### 二维码登录（推荐）
 
-### Auto-update
+1. 启动应用后，点击"登录"按钮
+2. 使用 AcFun 手机客户端扫描二维码
+3. 确认登录后，系统会自动保存认证信息
 
-Each time you push changes to the `main` branch,
-the [`ci`](.github/workflows/ci.yml) workflow starts to create and deploy a new application version with then will be downloaded and applied by each app instance.
+### 手动配置
 
-## Project Structure
+如果二维码登录失败，可以手动配置认证信息：
 
-The project is designed as monorepo where each part of the application is an independent package.
-Each package could have own tech stack, tests, dependencies, frameworks, etc.
-All internal names are prefixed by `@app/*`.
-There are no technical reasons for this.
-It's just for you to make it easier to understand the architecture.
+1. **获取认证令牌**:
+   - 登录 AcFun 网页版
+   - 打开浏览器开发者工具 (F12)
+   - 在网络请求中找到包含认证信息的请求
+   - 复制相关的认证参数
 
-Initially, the repository contains only a few packages.4
+2. **配置认证信息**:
+   ```json
+   {
+     "userID": "你的用户ID",
+     "securityKey": "安全密钥",
+     "serviceToken": "服务令牌",
+     "deviceID": "设备ID"
+   }
+   ```
 
-### Packages with building tools:
+详细的认证设置请参考 [集成指南](docs/integration-guide.md)。
 
-- [`packages/integrate-renderer`](packages/integrate-renderer) - A helper package that is not included in the runtime.
-  It is used in `npm run init` to configure a new interface package.
-- [`packages/electron-versions`](packages/electron-versions) - A set of helper functions to get the versions of internal components bundled within Electron.
+## 🔌 插件开发
 
-### Packages with app logic:
+ACLiveFrame 提供了强大的插件系统，支持开发者创建自定义功能。
 
-- [`packages/main`](packages/main) - Implementation of Electron's [**main script**](https://www.electronjs.org/docs/tutorial/quick-start#create-the-main-script-file).
-- [`packages/preload`](packages/preload) - Implementation of Electron's [**preload scripts**](https://www.electronjs.org/docs/latest/tutorial/tutorial-preload).
+### 快速创建插件
 
-### Renderer is not included
+```bash
+# 使用插件模板创建新插件
+pnpm create-plugin my-awesome-plugin
 
-As you may have noticed, the repository does **not** contain a package that implements the application interface.
-The reason is that since the entire application is a mono-repository,
-you can use any web application based on any framework or bundler as a package for the interface.
+# 进入插件目录
+cd plugins/my-awesome-plugin
 
-There is only one requirement: the template expects to import renderer by `@app/renderer` name.
+# 安装依赖
+pnpm install
 
-> [!TIP]
-> You can create new renderer package in interactive mode by `npm run init`.
+# 开发模式
+pnpm dev
+```
 
-> [!NOTE]
-> If you are using a bundler other than vite,
-> you may need to slightly change the [dev-mode.js](packages/dev-mode.js) script to run it correctly.
+### 插件示例
 
-## How It works
+```typescript
+import { Plugin, PluginContext } from '@acliveframe/plugin-api';
 
-### Compile executable
-
-When an application is ready to distribute, you need to compile it into executable.
-We are using [electron-builder] for
-this.
-
-- You can compile application locally by `npm run compile`.
-  In this case, you will get executable that you cat share, but it will not support auto-updates out-of-box.
-- To have auto-updater, you should compile an application and publish it to one or more supported sources for distribution. In this case, all application instances will download and apply all new updates. This is done by GitHub action in [release.yml](.github/workflows/release.yml).
-
-> [!TIP]
-> This template is configured to use GitHub Releases to distribute updates, but you can configure whatever you need.
-> Find more in [electron-builder docs](https://www.electron.build/configuration/publish).
-
-
-### Working with third-party dependencies
-
-Because the `renderer` works and builds like a _regular web application_, you can only use dependencies that support the
-browser or compile to a browser-friendly format.
-
-This means that in the `renderer` you are free to use any frontend dependencies such as Vue, React, lodash, axios and so
-on. However, you _CANNOT_ use any native Node.js APIs, such as, `systeminformation`. These APIs are _only_ available in
-a Node.js runtime environment and will cause your application to crash if used in the `renderer` layer. Instead, if you
-need access to Node.js runtime APIs in your frontend, export a function form the `preload` package.
-
-All dependencies that require Node.js api can be used in
-the [`preload` script](https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts).
-
-#### Expose in the main world
-
-Here is an example. Let's say you need to read some data from the file system or database in the renderer.
-
-In the preload context, create a function that reads and returns data. To make the function announced in the preload
-available in the render, you usually need to call
-the [`electron.contextBridge.exposeInMainWorld`](https://www.electronjs.org/ru/docs/latest/api/context-bridge).
-
-However, this template is designed to use all power of ES modules.
-You can import anything from `preload` in `renderer`.
-All the data will quietly throw through the `electron.contextBridge.exposeInMainWorld()`,
-so you don't need to worry about it.
-
-```ts
-// preload/src/index.ts
-import {readFile} from 'node:fs/promises';
-
-// Encapsulate types if you use typescript
-interface UserData {
-  prop: string
-}
-
-// Will call `electron.contextBridge.exposeInMainWorld('getUserData', getUserData)`
-export function getUserData(): Promise<UserData> {
-  return readFile('/path/to/file/in/user/filesystem.json', {encoding: 'utf8'}).then(JSON.parse);
+export default class MyPlugin extends Plugin {
+  async onLoad(context: PluginContext) {
+    // 监听弹幕消息
+    context.on('danmaku', (message) => {
+      console.log('收到弹幕:', message.content);
+    });
+    
+    // 监听礼物消息
+    context.on('gift', (gift) => {
+      console.log('收到礼物:', gift.name, gift.count);
+    });
+  }
+  
+  async onUnload() {
+    // 清理资源
+  }
 }
 ```
 
-Now you can import and call the method in renderer
+更多插件开发信息请参考 [插件开发指南](docs/plugin-development.md)。
 
-```ts
-// renderer/src/anywere/component.ts
-import {getUserData} from '@app/preload'
+## 📁 项目架构
 
-// Method will came from exposed context
-// const userData = globalThis['getUserData']
-const userData = await getUserData()
-```
+### 技术栈
 
-> [!TIP]
-> Find more
-> in [Context Isolation tutorial](https://www.electronjs.org/docs/tutorial/context-isolation#security-considerations).
+- **前端框架**: Vue 3 + TypeScript + Vite
+- **桌面框架**: Electron
+- **API集成**: acfunlive-http-api
+- **UI组件**: TDesign Vue Next
+- **测试框架**: Vitest + Playwright
+- **包管理**: pnpm workspaces
 
-### Working with Electron API
-
-Although the preload has access to all of Node.js API, it **still runs in the BrowserWindow context**, so only limited
-electron modules are available in it.
-
-> [!TIP]
-> Check the [electron docs](https://www.electronjs.org/ru/docs/latest/api/clipboard) for the full list of available
-> methods.
-
-All other electron methods can be invoked in the `main`.
-
-As a result, the architecture of interaction between all modules is as follows:
-
-```mermaid
-sequenceDiagram
-renderer->>+preload: Read data from file system
-preload->>-renderer: Data
-renderer->>preload: Maximize window
-activate preload
-preload-->>main: Invoke IPC command
-activate main
-main-->>preload: IPC response
-deactivate main
-preload->>renderer: Window maximized
-deactivate preload
-```
-
-> [!TIP]
-> Find more in [Inter-Process Communication tutorial](https://www.electronjs.org/docs/latest/tutorial/ipc).
-
-### Modes and Environment Variables
-
-All environment variables are set as part of the `import.meta`, so you can access them vie the following
-way: `import.meta.env`.
-
-> [!NOTE]
-> If you are using TypeScript and want to get code completion,
-> you must add all the environment variables to the [`ImportMetaEnv` in `types/env.d.ts`](types/env.d.ts).
-
-The mode option is used to specify the value of `import.meta.env.MODE` and the corresponding environment variables files
-that need to be loaded.
-
-By default, there are two modes:
-
-- `production` is used by default
-- `development` is used by `npm start` script
-
-When running the build script, the environment variables are loaded from the following files in your project root:
+### 目录结构
 
 ```
-.env                # loaded in all cases
-.env.local          # loaded in all cases, ignored by git
-.env.[mode]         # only loaded in specified env mode
-.env.[mode].local   # only loaded in specified env mode, ignored by git
+ACLiveFrame/
+├── packages/
+│   ├── main/                 # Electron 主进程
+│   │   ├── src/
+│   │   │   ├── adapter/      # AcFun API 适配器
+│   │   │   ├── services/     # 核心服务
+│   │   │   ├── plugins/      # 插件管理
+│   │   │   ├── server/       # API 服务器
+│   │   │   └── utils/        # 工具函数
+│   │   └── package.json
+│   ├── preload/              # 预加载脚本
+│   │   └── src/
+│   │       └── index.ts      # IPC 桥接
+│   └── renderer/             # 渲染进程 (Vue 应用)
+│       ├── src/
+│       │   ├── components/   # Vue 组件
+│       │   ├── pages/        # 页面组件
+│       │   ├── stores/       # Pinia 状态管理
+│       │   ├── router/       # Vue Router
+│       │   └── utils/        # 前端工具
+│       └── package.json
+├── plugins/                  # 插件目录
+│   └── example-plugin/       # 示例插件
+├── docs/                     # 文档
+│   ├── api-reference.md      # API 参考
+│   ├── plugin-development.md # 插件开发指南
+│   └── integration-guide.md  # 集成指南
+├── test/                     # 测试文件
+├── openspec/                 # OpenSpec 规范
+└── assets/                   # 静态资源
 ```
 
-> [!WARNING]
-> To prevent accidentally leaking env variables to the client, only variables prefixed with `VITE_` are exposed to your
-> Vite-processed code.
+## 🛠️ 故障排除
 
-For example, let's take the following `.env` file:
+### 常见问题
 
+#### 连接问题
+- **无法连接到直播间**
+  1. 检查网络连接状态
+  2. 验证房间ID是否正确
+  3. 确认认证状态是否有效
+  4. 查看控制台错误日志
+
+#### 认证失败
+- **登录失败或令牌过期**
+  1. 重新进行二维码登录
+  2. 清除旧的认证信息
+  3. 检查 AcFun 账号状态
+  4. 确认网络可以访问 AcFun 服务
+
+#### 性能问题
+- **应用运行缓慢或内存占用过高**
+  1. 减少同时连接的房间数量
+  2. 调整事件处理批次大小
+  3. 清理过期的缓存数据
+  4. 重启应用释放资源
+
+### 日志和诊断
+
+- **应用日志**: `%APPDATA%/ACLiveFrame/logs/`
+- **插件日志**: 应用内插件管理页面查看
+- **控制台日志**: 按 F12 打开开发者工具
+- **诊断报告**: 菜单 → 帮助 → 生成诊断报告
+
+## 🤝 贡献指南
+
+我们欢迎所有形式的贡献！
+
+### 开发环境设置
+
+1. Fork 本仓库
+2. 创建功能分支: `git checkout -b feature/amazing-feature`
+3. 安装依赖: `pnpm install`
+4. 进行开发和测试
+5. 提交更改: `git commit -m 'Add amazing feature'`
+6. 推送分支: `git push origin feature/amazing-feature`
+7. 创建 Pull Request
+
+### 代码规范
+
+- 使用 TypeScript 进行开发
+- 遵循 ESLint 和 Prettier 配置
+- 编写单元测试和集成测试
+- 更新相关文档
+
+### 测试
+
+```bash
+# 运行单元测试
+pnpm test
+
+# 运行集成测试
+pnpm test:e2e
+
+# 测试覆盖率
+pnpm test:coverage
 ```
-DB_PASSWORD=foobar
-VITE_SOME_KEY=123
-```
 
-Only `VITE_SOME_KEY` will be exposed as `import.meta.env.VITE_SOME_KEY` to your client source code, but `DB_PASSWORD`
-will not.
+## 📄 许可证
 
-> [!TIP]
-> You can change that prefix or add another. See [`envPrefix`](https://vitejs.dev/config/shared-options.html#envprefix).
+本项目采用 [MIT 许可证](LICENSE)。
 
-### NPM Scripts
+## 🙏 致谢
 
-```sh
-npm start
-```
-Start application in development more with hot-reload.
+- [AcFun](https://www.acfun.cn/) - 提供直播平台
+- [acfunlive-http-api](https://github.com/wpscott/acfunlive-http-api) - AcFun 直播 API
+- [Vue.js](https://vuejs.org/) - 前端框架
+- [Electron](https://www.electronjs.org/) - 桌面应用框架
+- [TDesign](https://tdesign.tencent.com/) - UI 组件库
+
+## 📞 支持
+
+- **问题反馈**: [GitHub Issues](https://github.com/your-org/ACLiveFrame/issues)
+- **功能建议**: [GitHub Discussions](https://github.com/your-org/ACLiveFrame/discussions)
+- **社区论坛**: [ACLiveFrame 社区](https://community.ACLiveFrame.com)
+- **开发文档**: [docs.ACLiveFrame.com](https://docs.ACLiveFrame.com)
 
 ---
-```sh
-npm run build
-```
-Runs the `build` command in all workspaces if present.
 
----
-```sh
-npm run compile
-```
-First runs the `build` script,
-then compiles the project into executable using `electron-builder` with the specified configuration.
-
----
-```sh
-npm run compile -- --dir -c.asar=false
-```
-Same as `npm run compile` but pass to `electron-builder` additional parameters to disable asar archive and installer
-creating.
-Useful for debugging compiled application.
-
----
-```sh
-npm run test
-```
-Executes end-to-end tests on **compiled app** using Playwright.
-
----
-```sh
-npm run typecheck
-```
-Runs the `typecheck` command in all workspaces if present.
-
----
-```sh
-npm run create-renderer
-```
-Initializes a new Vite project named `renderer`. Basically same as `npm create vite`.
-
----
-```sh
-npm run integrate-renderer
-```
-Starts the integration process of the renderer using the Vite Electron builder.
-
----
-```sh
-npm run init
-```
-Set up the initial environment by creating a new renderer, integrating it, and installing the necessary packages.
-
-## Contribution
-
-See [Contributing Guide](CONTRIBUTING.md).
-
-
-[vite]: https://github.com/vitejs/vite/
-
-[electron]: https://github.com/electron/electron
-
-[electron-builder]: https://github.com/electron-userland/electron-builder
-
-[playwright]: https://playwright.dev
+<div align="center">
+  <p>如果这个项目对你有帮助，请给我们一个 ⭐️</p>
+  <p>Made with ❤️ by ACLiveFrame Team</p>
+</div>

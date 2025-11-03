@@ -2,8 +2,8 @@
   <div class="login-page">
     <div class="login-container">
       <div class="login-header">
-        <h1 class="login-title">AcFun 直播工具箱</h1>
-        <p class="login-subtitle">请使用 AcFun App 扫码登录</p>
+        <h1 class="login-title">ACLiveFrame</h1>
+      <p class="login-subtitle">适用于ACFUN的开放式直播框架工具</p>
       </div>
 
       <!-- 登录状态卡片 -->
@@ -82,57 +82,53 @@
 
       <!-- 操作按钮 -->
       <div class="login-actions">
-        <button 
+        <t-button 
           v-if="loginState === 'idle' || loginState === 'error'" 
-          class="btn btn-primary" 
+          theme="primary"
+          size="large"
           @click="startQrLogin"
-          :disabled="isLoading"
+          :loading="isLoading"
         >
-          <svg v-if="isLoading" class="icon spin" viewBox="0 0 24 24">
-            <path d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"/>
-          </svg>
-          <svg v-else class="icon" viewBox="0 0 24 24">
-            <path d="M3,11H5V13H3V11M11,5H13V9H11V5M9,11H13V15H11V13H9V11M15,11H17V13H15V11M19,5H21V9H19V5M5,5H9V9H7V7H5V5M3,19H5V21H3V19M5,15H7V19H5V15M19,15H21V19H19V15M15,19H17V21H15V19M17,5V7H19V5H17M9,19V21H13V19H11V17H9V19M21,11H23V13H21V11M17,15H19V17H17V15M9,5V7H11V5H9Z"/>
-          </svg>
+          <template #icon>
+            <t-icon name="qrcode" />
+          </template>
           开始扫码登录
-        </button>
+        </t-button>
         
-        <button 
+        <t-button 
           v-if="loginState === 'qr_ready'" 
-          class="btn btn-secondary" 
+          variant="outline"
+          size="large"
           @click="refreshQrCode"
-          :disabled="isLoading"
+          :loading="isLoading"
         >
-          <svg class="icon" viewBox="0 0 24 24">
-            <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
-          </svg>
+          <template #icon>
+            <t-icon name="refresh" />
+          </template>
           刷新二维码
-        </button>
+        </t-button>
         
-        <button 
+        <t-button 
           v-if="loginState === 'success'" 
-          class="btn btn-danger" 
+          theme="danger"
+          size="large"
           @click="logout"
-          :disabled="isLoading"
+          :loading="isLoading"
         >
-          <svg class="icon" viewBox="0 0 24 24">
-            <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
-          </svg>
+          <template #icon>
+            <t-icon name="logout" />
+          </template>
           退出登录
-        </button>
+        </t-button>
       </div>
 
       <!-- 错误信息 -->
       <div v-if="loginState === 'error'" class="error-details">
-        <div class="error-message">
-          <svg class="icon" viewBox="0 0 24 24">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-          </svg>
-          <span>{{ errorMessage }}</span>
-        </div>
-        <div class="error-actions">
-          <button class="btn btn-text" @click="startQrLogin">重试</button>
-        </div>
+        <t-alert theme="error" :message="errorMessage">
+          <template #operation>
+            <t-button variant="text" theme="primary" @click="startQrLogin">重试</t-button>
+          </template>
+        </t-alert>
       </div>
     </div>
   </div>
@@ -140,6 +136,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted, onMounted } from 'vue';
+import { Button as TButton, Icon as TIcon, Alert as TAlert } from 'tdesign-vue-next';
 
 // 响应式状态
 const loginState = ref<'idle' | 'qr_ready' | 'success' | 'error'>('idle');
@@ -337,69 +334,93 @@ onUnmounted(() => {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--td-bg-color-page);
 }
 
 .login-container {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  padding: 40px;
-  max-width: 500px;
   width: 100%;
-  text-align: center;
+  max-width: 480px;
+  background: var(--td-bg-color-container);
+  border-radius: var(--td-radius-large);
+  box-shadow: var(--td-shadow-3);
+  overflow: hidden;
 }
 
 .login-header {
-  margin-bottom: 32px;
+  padding: 32px 32px 24px;
+  text-align: center;
+  background: var(--td-bg-color-container);
+  border-bottom: 1px solid var(--td-border-level-1-color);
 }
 
-.login-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #2d3748;
+.app-logo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: var(--td-brand-color);
+  border-radius: var(--td-radius-circle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-logo .icon {
+  width: 32px;
+  height: 32px;
+  fill: var(--td-text-color-anti);
+}
+
+.app-title {
   margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--td-text-color-primary);
 }
 
-.login-subtitle {
-  font-size: 16px;
-  color: #718096;
+.app-subtitle {
   margin: 0;
+  font-size: 14px;
+  color: var(--td-text-color-secondary);
+}
+
+.login-content {
+  padding: 24px 32px 32px;
 }
 
 /* 状态卡片 */
 .status-card {
   display: flex;
   align-items: center;
-  padding: 20px;
-  border-radius: 12px;
+  padding: 16px;
+  border-radius: var(--td-radius-default);
   margin-bottom: 24px;
   transition: all 0.3s ease;
 }
 
 .status-card.status-idle {
-  background: #f7fafc;
-  border: 2px solid #e2e8f0;
+  background: var(--td-bg-color-component);
+  border: 1px solid var(--td-border-level-1-color);
 }
 
 .status-card.status-loading {
-  background: #ebf8ff;
-  border: 2px solid #3182ce;
+  background: var(--td-brand-color-1);
+  border: 1px solid var(--td-brand-color-3);
 }
 
 .status-card.status-success {
-  background: #f0fff4;
-  border: 2px solid #38a169;
+  background: var(--td-success-color-1);
+  border: 1px solid var(--td-success-color-3);
 }
 
 .status-card.status-error {
-  background: #fed7d7;
-  border: 2px solid #e53e3e;
+  background: var(--td-error-color-1);
+  border: 1px solid var(--td-error-color-3);
 }
 
 .status-icon {
@@ -412,19 +433,19 @@ onUnmounted(() => {
 }
 
 .status-card.status-idle .icon {
-  fill: #718096;
+  fill: var(--td-text-color-placeholder);
 }
 
 .status-card.status-loading .icon {
-  fill: #3182ce;
+  fill: var(--td-brand-color);
 }
 
 .status-card.status-success .icon {
-  fill: #38a169;
+  fill: var(--td-success-color);
 }
 
 .status-card.status-error .icon {
-  fill: #e53e3e;
+  fill: var(--td-error-color);
 }
 
 .status-content {
@@ -436,12 +457,12 @@ onUnmounted(() => {
   font-size: 18px;
   font-weight: 600;
   margin: 0 0 4px 0;
-  color: #2d3748;
+  color: var(--td-text-color-primary);
 }
 
 .status-message {
   font-size: 14px;
-  color: #718096;
+  color: var(--td-text-color-secondary);
   margin: 0;
 }
 
@@ -464,9 +485,9 @@ onUnmounted(() => {
 .qr-code {
   width: 200px;
   height: 200px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: white;
+  border: 1px solid var(--td-border-level-1-color);
+  border-radius: var(--td-radius-default);
+  background: var(--td-bg-color-container);
 }
 
 .qr-overlay {
@@ -476,11 +497,11 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.8);
-  border-radius: 12px;
+  border-radius: var(--td-radius-default);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--td-text-color-anti);
 }
 
 .qr-overlay-content {
@@ -490,7 +511,7 @@ onUnmounted(() => {
 .qr-overlay-content .icon {
   width: 32px;
   height: 32px;
-  fill: #fbb6ce;
+  fill: var(--td-error-color);
   margin-bottom: 8px;
 }
 
@@ -510,20 +531,20 @@ onUnmounted(() => {
   gap: 8px;
   margin-bottom: 20px;
   padding: 12px;
-  background: #f7fafc;
-  border-radius: 8px;
+  background: var(--td-bg-color-component);
+  border-radius: var(--td-radius-default);
 }
 
 .qr-timer .icon {
   width: 20px;
   height: 20px;
-  fill: #4a5568;
+  fill: var(--td-text-color-secondary);
 }
 
 .qr-timer span {
   font-size: 14px;
   font-weight: 500;
-  color: #4a5568;
+  color: var(--td-text-color-secondary);
 }
 
 .qr-steps {
@@ -537,20 +558,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: var(--td-radius-default);
   transition: all 0.3s ease;
 }
 
 .step.active {
-  background: #ebf8ff;
+  background: var(--td-brand-color-1);
 }
 
 .step-number {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  background: #e2e8f0;
-  color: #718096;
+  border-radius: var(--td-radius-circle);
+  background: var(--td-bg-color-component);
+  color: var(--td-text-color-placeholder);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -560,13 +581,13 @@ onUnmounted(() => {
 }
 
 .step.active .step-number {
-  background: #3182ce;
-  color: white;
+  background: var(--td-brand-color);
+  color: var(--td-text-color-anti);
 }
 
 .step span {
   font-size: 14px;
-  color: #4a5568;
+  color: var(--td-text-color-secondary);
 }
 
 /* 用户信息 */
@@ -575,17 +596,17 @@ onUnmounted(() => {
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: #f0fff4;
-  border: 2px solid #38a169;
-  border-radius: 12px;
+  background: var(--td-success-color-1);
+  border: 1px solid var(--td-success-color-3);
+  border-radius: var(--td-radius-default);
   margin-bottom: 24px;
 }
 
 .user-avatar {
   width: 48px;
   height: 48px;
-  background: #38a169;
-  border-radius: 50%;
+  background: var(--td-success-color);
+  border-radius: var(--td-radius-circle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -594,7 +615,7 @@ onUnmounted(() => {
 .user-avatar .icon {
   width: 24px;
   height: 24px;
-  fill: white;
+  fill: var(--td-text-color-anti);
 }
 
 .user-details {
@@ -605,16 +626,16 @@ onUnmounted(() => {
   margin: 0 0 4px 0;
   font-size: 18px;
   font-weight: 600;
-  color: #2d3748;
+  color: var(--td-text-color-primary);
 }
 
 .user-details p {
   margin: 0;
   font-size: 14px;
-  color: #38a169;
+  color: var(--td-success-color);
 }
 
-/* 按钮样式 */
+/* 按钮样式 - 使用TDesign按钮组件，减少自定义样式 */
 .login-actions {
   display: flex;
   gap: 12px;
@@ -622,139 +643,53 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn .icon {
-  width: 16px;
-  height: 16px;
-}
-
-.btn-primary {
-  background: #3182ce;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2c5aa0;
-  transform: translateY(-1px);
-}
-
-.btn-secondary {
-  background: #e2e8f0;
-  color: #4a5568;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #cbd5e0;
-  transform: translateY(-1px);
-}
-
-.btn-danger {
-  background: #e53e3e;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: #c53030;
-  transform: translateY(-1px);
-}
-
-.btn-text {
-  background: transparent;
-  color: #3182ce;
-  padding: 8px 16px;
-}
-
-.btn-text:hover:not(:disabled) {
-  background: #ebf8ff;
+.login-actions .t-button {
+  min-width: 120px;
 }
 
 /* 错误信息 */
 .error-details {
-  text-align: left;
-}
-
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: #fed7d7;
-  border: 1px solid #feb2b2;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
-.error-message .icon {
-  width: 20px;
-  height: 20px;
-  fill: #e53e3e;
-  flex-shrink: 0;
-}
-
-.error-message span {
-  font-size: 14px;
-  color: #742a2a;
-}
-
-.error-actions {
-  text-align: center;
-}
-
-/* 动画 */
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  margin-bottom: 16px;
 }
 
 /* 响应式设计 */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .login-page {
+    padding: 16px;
+  }
+  
   .login-container {
-    padding: 24px;
-    margin: 16px;
+    max-width: 100%;
+  }
+  
+  .login-header {
+    padding: 24px 24px 20px;
+  }
+  
+  .login-content {
+    padding: 20px 24px 24px;
   }
   
   .qr-container {
     flex-direction: column;
     align-items: center;
+    gap: 16px;
+  }
+  
+  .qr-code {
+    width: 160px;
+    height: 160px;
   }
   
   .qr-info {
     text-align: center;
   }
-  
-  .login-actions {
-    flex-direction: column;
-  }
-  
-  .btn {
-    width: 100%;
-    justify-content: center;
+}
+
+@media (max-height: 768px) {
+  .qr-code {
+    width: 140px;
+    height: 140px;
   }
 }
 </style>

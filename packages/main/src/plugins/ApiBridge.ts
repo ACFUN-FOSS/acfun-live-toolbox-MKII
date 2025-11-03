@@ -225,12 +225,12 @@ export class ApiBridge implements PluginAPI {
     
     // 根据事件类型进行特定验证
     switch (event.event_type) {
-      case 'comment':
+      case 'danmaku':
         return this.validateCommentEvent(event);
       case 'gift':
         return this.validateGiftEvent(event);
-      case 'user_join':
-      case 'user_leave':
+      case 'enter':
+      case 'follow':
         return this.validateUserEvent(event);
       default:
         return true; // 未知事件类型，允许通过
@@ -257,8 +257,8 @@ export class ApiBridge implements PluginAPI {
   private validateGiftEvent(event: NormalizedEvent): boolean {
     if (!event.user_id || typeof event.user_id !== 'string') return false;
     if (!event.user_name || typeof event.user_name !== 'string') return false;
-    if (!event.gift_name || typeof event.gift_name !== 'string') return false;
-    if (typeof event.gift_count !== 'number' || event.gift_count <= 0) return false;
+    // 礼物事件通常在 content 中包含礼物信息
+    if (!event.content || typeof event.content !== 'string') return false;
     
     return true;
   }
@@ -333,8 +333,16 @@ export class ApiBridge implements PluginAPI {
 
           if (!response.success) {
             // 记录错误状态码以便速率限制管理器处理
-            const statusCode = response.statusCode || (response.error?.includes('429') ? 429 : 
-                              response.error?.includes('503') ? 503 : undefined);
+            // 从错误消息中推断状态码
+            let statusCode: number | undefined;
+            if (response.error) {
+              if (response.error.includes('429')) statusCode = 429;
+              else if (response.error.includes('503')) statusCode = 503;
+              else if (response.error.includes('401')) statusCode = 401;
+              else if (response.error.includes('403')) statusCode = 403;
+              else if (response.error.includes('500')) statusCode = 500;
+            }
+            
             if (statusCode) {
               rateLimitManager.recordError(statusCode);
             }

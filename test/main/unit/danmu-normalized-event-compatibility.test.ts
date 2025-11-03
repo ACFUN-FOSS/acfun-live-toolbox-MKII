@@ -3,7 +3,7 @@ import type { UserInfo } from 'acfunlive-http-api';
 import { setupDanmuTest, getDanmuTestContext } from '../../shared/helpers/danmu-test-setup';
 import { acfunApiTestHelper, type TestLiveRoomData } from '../../shared/helpers/acfun-api-test-helper';
 
-describe('NormalizedEvent 接口兼容�?, () => {
+describe('NormalizedEvent 接口兼容性', () => {
   const testContext = setupDanmuTest();
   let testLiveRoom: TestLiveRoomData;
 
@@ -11,7 +11,7 @@ describe('NormalizedEvent 接口兼容�?, () => {
     testLiveRoom = await acfunApiTestHelper.getHotLiveRoom();
   });
 
-  it('所有标准化事件都应该符�?NormalizedEvent 接口', async () => {
+  it('所有标准化事件都应该符合 NormalizedEvent 接口', async () => {
     const testEvents = [
       { content: '测试弹幕' },
       { 
@@ -102,10 +102,10 @@ describe('NormalizedEvent 接口兼容�?, () => {
       expect(typeof normalizedEvent.source).toBe('string');
       expect(typeof normalizedEvent.event_type).toBe('string');
 
-      // 验证事件类型在允许的范围�?      const allowedTypes = ['danmaku', 'gift', 'follow', 'like', 'enter', 'system'];
+      // 验证事件类型在允许的范围内      const allowedTypes = ['danmaku', 'gift', 'follow', 'like', 'enter', 'system'];
       expect(allowedTypes).toContain(normalizedEvent.event_type);
 
-      // 验证原始数据包含上下文信�?      expect(normalizedEvent.raw._context).toBeDefined();
+      // 验证原始数据包含上下文信息      expect(normalizedEvent.raw._context).toBeDefined();
       expect(normalizedEvent.raw._context.adapterVersion).toBe('2.0.0');
     });
   });

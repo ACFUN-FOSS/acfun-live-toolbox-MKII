@@ -17,8 +17,8 @@ export class WindowManager {
   public createWindow(): void {
     this.mainWindow = new BrowserWindow({
       show: false, // Use 'ready-to-show' event to show the window
-      width: 1200,
-      height: 800,
+      width: 1024,
+      height: 768,
       frame: false,
       webPreferences: {
         nodeIntegration: false,

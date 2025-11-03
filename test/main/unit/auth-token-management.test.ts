@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { AuthManager, ExtendedTokenInfo } from '../services/AuthManager';
+import { AuthManager, ExtendedTokenInfo } from '../../../packages/main/src/services/AuthManager';
 
 // 确保使用真实的fs模块
 vi.unmock('fs');
@@ -79,7 +79,7 @@ describe('AuthManager Token Management', () => {
 
       const result = await authManager.validateToken(expiredToken);
       expect(result.isValid).toBe(false);
-      expect(result.reason).toContain('已过�?);
+      expect(result.reason).toContain('已过期');
     });
 
     it('should invalidate an incomplete token', async () => {
@@ -91,7 +91,7 @@ describe('AuthManager Token Management', () => {
         userID: '12345',
         // Missing required fields
         cookies: []
-      } as ExtendedTokenInfo;
+      } as unknown as ExtendedTokenInfo;
 
       const result = await authManager.validateToken(incompleteToken);
       expect(result.isValid).toBe(false);
@@ -105,7 +105,7 @@ describe('AuthManager Token Management', () => {
 
       const result = await authManager.validateToken(null as any);
       expect(result.isValid).toBe(false);
-      expect(result.reason).toContain('Token不存�?);
+      expect(result.reason).toContain('Token不存在');
     });
   });
 

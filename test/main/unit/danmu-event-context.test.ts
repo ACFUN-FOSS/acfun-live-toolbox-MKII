@@ -3,7 +3,7 @@ import type { UserInfo } from 'acfunlive-http-api';
 import { setupDanmuTest, getDanmuTestContext, TEST_ROOM_ID } from '../../shared/helpers/danmu-test-setup';
 import { acfunApiTestHelper, type TestLiveRoomData } from '../../shared/helpers/acfun-api-test-helper';
 
-describe('事件上下文信息验�?, () => {
+describe('事件上下文信息验证', () => {
   const testContext = setupDanmuTest();
   let testLiveRoom: TestLiveRoomData;
 
@@ -22,21 +22,21 @@ describe('事件上下文信息验�?, () => {
         clubName: `${testLiveRoom.liverName}粉丝团`,
         level: 3
       },
-      managerType: 1 // 管理�?    };
+      managerType: 1 // 管理员    };
 
     const realComment = {
       sendTime: Date.now(),
       danmuInfo: {
         userInfo: realUserInfo
       },
-      content: '测试上下文信�?
+      content: '测试上下文信息'
     };
 
     const normalizedEvent = (getDanmuTestContext().adapter as any).normalizeDanmuEvent(realComment);
 
     expect(normalizedEvent.raw).toHaveProperty('_context');
     expect(normalizedEvent.raw._context).toMatchObject({
-      sessionId: null, // 未连接时�?null
+      sessionId: null, // 未连接时为null
       connectionDuration: expect.any(Number),
       reconnectAttempts: expect.any(Number),
       userAvatar: 'https://example.com/avatar.jpg',
@@ -52,10 +52,10 @@ describe('事件上下文信息验�?, () => {
     });
   });
 
-  it('应该正确处理缺少用户信息的情�?, async () => {
+  it('应该正确处理缺少用户信息的情况', async () => {
     const realUserInfoWithoutMedal: UserInfo = {
       userID: parseInt(acfunApiTestHelper.getTestUserId()),
-      nickname: '无勋章用�?,
+      nickname: '无勋章用户',
       avatar: 'https://example.com/no_medal_avatar.jpg',
       managerType: 0
     };
@@ -65,7 +65,7 @@ describe('事件上下文信息验�?, () => {
       danmuInfo: {
         userInfo: realUserInfoWithoutMedal
       },
-      content: '测试无勋章用�?
+      content: '测试无勋章用户'
     };
 
     const normalizedEvent = (getDanmuTestContext().adapter as any).normalizeDanmuEvent(realComment);

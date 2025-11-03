@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "echarts": "^6.0.0",
     "pinia": "^3.0.3",
     "tdesign-vue-next": "^1.13.2",
     "vue": "^3.5.13",
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/tsconfig": "^0.7.0",
+    "acfunlive-http-api": "github:ACFUN-FOSS/acfundanmu.js",
     "typescript": "~5.8.3",
     "vite": "^7.0.0",
     "vue-tsc": "^2.2.8"

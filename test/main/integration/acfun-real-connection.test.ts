@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { AcfunAdapter } from '../adapter/AcfunAdapter';
-import { AuthManager } from '../services/AuthManager';
+import { AcfunAdapter } from '../../../packages/main/src/adapter/AcfunAdapter';
+import { AuthManager } from '../../../packages/main/src/services/AuthManager';
 import { ConfigManager } from '../config/ConfigManager';
 import { connectionPool } from '../adapter/ConnectionPoolManager';
 import * as fs from 'fs';

@@ -7,78 +7,140 @@ import { TokenInfo, AcFunLiveApi } from 'acfunlive-http-api';
 // 在开发环境中容错加载 acfunlive-http-api：优先尝试 dist，失败则回退到 src TS 文件。
 // 这样可以避免在开发环境中因为未构建的依赖导致应用启动失败。
 
+
+/**
+ * 二维码登录结果接口
+ */
 export interface QrLoginResult {
+  /** 二维码数据URL（base64格式） */
   qrCodeDataUrl: string;
+  /** 二维码过期时间（秒） */
   expiresIn: number;
 }
 
+/**
+ * 登录状态接口
+ */
 export interface LoginStatus {
+  /** 登录是否成功 */
   success: boolean;
+  /** 错误信息（如果失败） */
   error?: string;
+  /** 用户ID（如果成功） */
   userId?: string;
+  /** 令牌过期时间戳（如果成功） */
   expiresAt?: number;
 }
 
-// 扩展TokenInfo接口以添加expiresAt字段
+/**
+ * 扩展的令牌信息接口，添加了过期时间和有效性字段
+ */
 export interface ExtendedTokenInfo extends TokenInfo {
+  /** 令牌过期时间戳 */
   expiresAt?: number;
+  /** 令牌是否有效 */
   isValid?: boolean;
 }
 
+/**
+ * AuthManager 事件接口定义
+ */
 export interface AuthManagerEvents {
+  /** 令牌即将过期事件 */
   'tokenExpiring': (data: { message: string; expiresAt?: number; timeRemaining: number }) => void;
+  /** 令牌已过期事件 */
   'tokenExpired': (data: { message: string }) => void;
+  /** 二维码准备就绪事件 */
   'qrCodeReady': (data: { qrCode: any; message?: string }) => void;
+  /** 登录成功事件 */
   'loginSuccess': (data: { tokenInfo: ExtendedTokenInfo }) => void;
+  /** 登录失败事件 */
   'loginFailed': (data: { error: string }) => void;
+  /** 登出事件 */
   'logout': () => void;
 }
 
+/**
+ * 认证管理器类
+ * 负责处理用户认证、令牌管理、二维码登录等功能
+ * 
+ * 主要功能：
+ * - 二维码登录流程管理
+ * - 令牌自动刷新和过期检查
+ * - 认证状态持久化存储
+ * - 认证事件通知
+ * 
+ * @extends EventEmitter
+ * @emits tokenExpiring - 令牌即将过期时触发
+ * @emits tokenExpired - 令牌已过期时触发
+ * @emits qrCodeReady - 二维码准备就绪时触发
+ * @emits loginSuccess - 登录成功时触发
+ * @emits loginFailed - 登录失败时触发
+ * @emits logout - 登出时触发
+ */
 export class AuthManager extends EventEmitter {
+  /** 密钥文件存储路径 */
   private readonly secretsPath: string;
+  /** AcFun Live API 实例 */
   private api: AcFunLiveApi;
+  /** 令牌刷新定时器 */
   private tokenRefreshTimer?: NodeJS.Timeout;
+  /** 当前令牌信息 */
   private tokenInfo: ExtendedTokenInfo | null = null;
 
+  /**
+   * 构造函数
+   * @param customSecretsPath 自定义密钥文件路径（可选，主要用于测试）
+   */
   constructor(customSecretsPath?: string) {
     super(); // 调用 EventEmitter 构造函数
-    
-    // 初始化 AcFunLiveApi 实例
+
+    // 初始化 AcFunLiveApi 实例，设置30秒超时
     this.api = new AcFunLiveApi({
-      timeout: 30000  });
-    
+      timeout: 30000
+    });
+
+    // 设置密钥文件路径
     if (customSecretsPath) {
       this.secretsPath = customSecretsPath;
     } else {
       try {
+        // 在生产环境中使用 Electron 的用户数据目录
         this.secretsPath = path.join(app.getPath('userData'), 'secrets.json');
       } catch (error) {
         // 在测试环境中可能没有Electron app，使用临时目录
         this.secretsPath = path.join(require('os').tmpdir(), 'secrets.json');
       }
     }
-    
-    // 启动令牌刷新检查
+
+    // 启动令牌刷新检查定时器
     this.startTokenRefreshTimer();
   }
 
   /**
    * 使用二维码登录 - 获取二维码
+   * 
+   * 此方法启动二维码登录流程的第一步：获取二维码
+   * 成功后会触发 'qrCodeReady' 事件，失败则触发 'loginFailed' 事件
+   * 
+   * @returns Promise<{ success: boolean; qrCode?: any; error?: string }> 登录结果
    */
   async loginWithQRCode(): Promise<{ success: boolean; qrCode?: any; error?: string }> {
     try {
+      // 调用 API 获取二维码
       const qrResult = await this.api.auth.qrLogin();
-      
+
       if (!qrResult?.success || !qrResult?.data) {
         const error = qrResult?.error || 'Failed to initiate QR login';
         this.emit('loginFailed', { error });
         return { success: false, error };
       }
-      
+
+      // 构造二维码数据
       const { qrCode, expiresIn } = qrResult.data;
       const qrCodeDataUrl = `data:image/png;base64,${qrCode}`;
       const qrData = { qrCodeDataUrl, expiresIn };
-      
+
       this.emit('qrCodeReady', { qrCode: qrData });
       return { success: true, qrCode: qrData };
     } catch (error) {
@@ -95,7 +157,7 @@ export class AuthManager extends EventEmitter {
   async checkQRLoginStatus(): Promise<{ success: boolean; tokenInfo?: ExtendedTokenInfo; error?: string }> {
     try {
       const status = await this.api.auth.checkQrLoginStatus();
-      
+
       if (status?.success && status?.data) {
         // 构建令牌信息，使用acfunlive-http-api返回的数据结构
         const tokenInfo: ExtendedTokenInfo = {
@@ -112,7 +174,7 @@ export class AuthManager extends EventEmitter {
         await this.saveTokenInfo(tokenInfo);
         this.tokenInfo = tokenInfo;
         this.startTokenRefreshTimer();
-        
+
         this.emit('loginSuccess', { tokenInfo });
         console.log('[AuthManager] Login successful');
         return { success: true, tokenInfo };
@@ -136,7 +198,7 @@ export class AuthManager extends EventEmitter {
     try {
       // 清除内存中的令牌信息
       this.tokenInfo = null;
-      
+
       // 停止令牌刷新定时器
       if (this.tokenRefreshTimer) {
         clearInterval(this.tokenRefreshTimer);
@@ -147,7 +209,7 @@ export class AuthManager extends EventEmitter {
       if (fs.existsSync(this.secretsPath)) {
         const data = JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'));
         const obj = { ...data };
-        
+
         // 清除新格式的TokenInfo字段
         delete obj.userID;
         delete obj.securityKey;
@@ -156,13 +218,13 @@ export class AuthManager extends EventEmitter {
         delete obj.cookies;
         delete obj.expiresAt;
         delete obj.isValid;
-        
+
         // 清除旧格式的字段（兼容性）
         delete obj.userId;
         delete obj.acfun_token;
         delete obj.refresh_token;
         delete obj.token_expires_at;
-        
+
         fs.writeFileSync(this.secretsPath, JSON.stringify(obj, null, 2));
       }
 
@@ -183,7 +245,7 @@ export class AuthManager extends EventEmitter {
       }
 
       const data = JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'));
-      
+
       // 检查是否有新格式的TokenInfo数据
       if (data.userID && data.securityKey && data.serviceToken && data.deviceID) {
         const now = Date.now();
@@ -200,7 +262,7 @@ export class AuthManager extends EventEmitter {
           isValid
         };
       }
-      
+
       // 兼容旧格式的数据（如果存在）
       if (data.acfun_token && data.userId) {
         const now = Date.now();
@@ -242,7 +304,7 @@ export class AuthManager extends EventEmitter {
    */
   async validateToken(tokenInfo?: ExtendedTokenInfo): Promise<{ isValid: boolean; reason?: string }> {
     const token = tokenInfo || await this.getTokenInfo();
-    
+
     if (!token) {
       return { isValid: false, reason: 'Token不存在' };
     }
@@ -266,10 +328,10 @@ export class AuthManager extends EventEmitter {
   isAuthenticated(): boolean {
     // 如果内存中有有效的token信息，直接检查
     if (this.tokenInfo) {
-      return this.tokenInfo.isValid === true && 
-             (this.tokenInfo.expiresAt ? this.tokenInfo.expiresAt > Date.now() : true);
+      return this.tokenInfo.isValid === true &&
+        (this.tokenInfo.expiresAt ? this.tokenInfo.expiresAt > Date.now() : true);
     }
-    
+
     // 如果内存中没有，尝试从文件中快速检查
     try {
       if (!fs.existsSync(this.secretsPath)) {
@@ -277,7 +339,7 @@ export class AuthManager extends EventEmitter {
       }
 
       const data = JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'));
-      
+
       // 检查是否有必要的字段
       if (!data.userID || !data.securityKey || !data.serviceToken || !data.deviceID) {
         return false;
@@ -298,7 +360,7 @@ export class AuthManager extends EventEmitter {
   async getTokenRemainingTime(): Promise<number> {
     const tokenInfo = this.tokenInfo || await this.getTokenInfo();
     if (!tokenInfo || !tokenInfo.expiresAt) return 0;
-    
+
     return Math.max(0, tokenInfo.expiresAt - Date.now());
   }
 
@@ -308,12 +370,11 @@ export class AuthManager extends EventEmitter {
    */
   async refreshToken(): Promise<{ success: boolean; qrCode?: any; message?: string }> {
     console.warn('[AuthManager] acfunlive-http-api AuthService does not support token refreshing. Initiating new QR login process.');
-    
+
     try {
       // 由于无法刷新，启动新的二维码登录流程
-      const { AuthService } = await loadAuthDeps();
-      const authService = new AuthService(null); // HttpClient 将在内部创建
-      
+      const authService = this.api.auth;
+
       const qrResult = await authService.qrLogin();
       if (qrResult.success && qrResult.data) {
         return {
@@ -344,7 +405,7 @@ export class AuthManager extends EventEmitter {
     if (this.tokenRefreshTimer) {
       clearInterval(this.tokenRefreshTimer);
     }
-    
+
     // 每3分钟检查一次令牌状态
     this.tokenRefreshTimer = setInterval(async () => {
       try {
@@ -356,17 +417,17 @@ export class AuthManager extends EventEmitter {
         const isExpiringSoon = await this.isTokenExpiringSoon();
         if (isExpiringSoon) {
           console.log('[AuthManager] Token is expiring soon, notifying user for re-authentication...');
-          
+
           // 更新内存中的token信息
           this.tokenInfo = tokenInfo;
-          
+
           // 发出令牌即将过期的事件通知
           this.emit('tokenExpiring', {
             message: 'Authentication token is expiring soon. Please re-authenticate.',
             expiresAt: tokenInfo.expiresAt,
             timeRemaining: tokenInfo.expiresAt ? tokenInfo.expiresAt - Date.now() : 0
           });
-          
+
           // 尝试获取新的二维码
           const refreshResult = await this.refreshToken();
           if (refreshResult.success && refreshResult.qrCode) {
@@ -406,7 +467,7 @@ export class AuthManager extends EventEmitter {
       const existing = fs.existsSync(this.secretsPath)
         ? JSON.parse(fs.readFileSync(this.secretsPath, 'utf-8'))
         : {};
-      
+
       const next = {
         ...existing,
         // 保存acfunlive-http-api格式的令牌信息
@@ -419,7 +480,7 @@ export class AuthManager extends EventEmitter {
         isValid: tokenInfo.isValid,
         updated_at: Date.now(),
       };
-      
+
       fs.mkdirSync(path.dirname(this.secretsPath), { recursive: true });
       fs.writeFileSync(this.secretsPath, JSON.stringify(next, null, 2));
     } catch (err) {

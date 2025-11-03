@@ -87,7 +87,7 @@ try {
   // 使用连接进行HTTP请求
   const response = await fetch(httpConn.url, {
     method: 'GET',
-    headers: { 'User-Agent': 'AcFun-Live-Toolbox' }
+    headers: { 'User-Agent': 'ACLiveFrame' }
   });
   
   const data = await response.json();

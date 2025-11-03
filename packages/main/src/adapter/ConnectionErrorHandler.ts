@@ -45,12 +45,25 @@ export interface ConnectionErrorHandlerEvents {
   'max-retries-exceeded': (roomId: string, errorType: ConnectionErrorType) => void;
 }
 
+/**
+ * 连接错误处理器
+ * 提供智能的连接错误恢复机制，支持多种恢复策略
+ * 自动分类错误类型并执行相应的恢复操作
+ */
 export class ConnectionErrorHandler extends EventEmitter {
+  /** 恢复配置映射 */
   private recoveryConfigs: Map<ConnectionErrorType, RecoveryConfig> = new Map();
+  /** 重试尝试次数记录 */
   private retryAttempts: Map<string, number> = new Map();
+  /** 错误历史记录 */
   private errorHistory: Map<string, ConnectionError[]> = new Map();
+  /** 恢复定时器映射 */
   private recoveryTimers: Map<string, NodeJS.Timeout> = new Map();
 
+  /**
+   * 构造函数
+   * 初始化错误处理器并设置默认恢复配置
+   */
   constructor() {
     super();
     this.initializeRecoveryConfigs();
@@ -131,6 +144,10 @@ export class ConnectionErrorHandler extends EventEmitter {
 
   /**
    * 处理连接错误并尝试恢复
+   * @param roomId 房间ID
+   * @param error 错误对象
+   * @param context 错误上下文信息
+   * @returns 是否成功启动恢复流程
    */
   async handleConnectionError(
     roomId: string,
@@ -198,6 +215,8 @@ export class ConnectionErrorHandler extends EventEmitter {
 
   /**
    * 标记恢复成功
+   * @param roomId 房间ID
+   * @param errorType 错误类型
    */
   markRecoverySuccess(roomId: string, errorType: ConnectionErrorType): void {
     const retryKey = `${roomId}:${errorType}`;
@@ -218,6 +237,8 @@ export class ConnectionErrorHandler extends EventEmitter {
 
   /**
    * 标记恢复失败
+   * @param roomId 房间ID
+   * @param finalError 最终错误信息
    */
   markRecoveryFailed(roomId: string, finalError: ConnectionError): void {
     const retryKey = `${roomId}:${finalError.type}`;
@@ -236,6 +257,10 @@ export class ConnectionErrorHandler extends EventEmitter {
 
   /**
    * 分类错误类型
+   * 根据错误消息和上下文信息自动识别错误类型
+   * @param error 错误对象
+   * @param context 错误上下文信息
+   * @returns 分类后的错误类型
    */
   private classifyError(error: Error, context?: Record<string, any>): ConnectionErrorType {
     const message = error.message.toLowerCase();

@@ -1,78 +1,169 @@
 import { EventEmitter } from 'events';
 import { AcFunLiveApi } from 'acfunlive-http-api';
 
+/**
+ * 连接池配置接口
+ * 定义连接池的各种配置参数
+ */
 export interface ConnectionPoolConfig {
+  /** 最大连接数 */
   maxConnections: number;
+  /** 每种类型的最大连接数 */
   maxConnectionsPerType: number;
+  /** 连接超时时间（毫秒） */
   connectionTimeout: number;
+  /** 空闲超时时间（毫秒） */
   idleTimeout: number;
+  /** 重试次数 */
   retryAttempts: number;
+  /** 重试延迟（毫秒） */
   retryDelay: number;
+  /** 是否启用健康检查 */
   enableHealthCheck: boolean;
+  /** 健康检查间隔（毫秒） */
   healthCheckInterval: number;
+  /** 是否启用熔断器 */
   enableCircuitBreaker: boolean;
+  /** 熔断器阈值（连续失败次数） */
   circuitBreakerThreshold: number;
+  /** 熔断器重置超时时间（毫秒） */
   circuitBreakerResetTimeout: number;
 }
 
+/**
+ * 池化连接接口
+ * 表示连接池中的一个连接实例
+ */
 export interface PooledConnection {
+  /** 连接唯一标识符 */
   id: string;
+  /** AcFun Live API 实例 */
   api: AcFunLiveApi;
+  /** 连接类型 */
   type: 'danmu' | 'auth' | 'live';
+  /** 房间ID（可选，用于弹幕连接） */
   roomId?: string;
+  /** 创建时间戳 */
   createdAt: number;
+  /** 最后使用时间戳 */
   lastUsed: number;
+  /** 是否处于活跃状态 */
   isActive: boolean;
+  /** 健康检查次数 */
   healthCheckCount: number;
+  /** 是否健康 */
   isHealthy: boolean;
+  /** 重试次数 */
   retryCount: number;
 }
 
+/**
+ * 连接统计信息接口
+ * 提供连接池的运行状态和性能指标
+ */
 export interface ConnectionStats {
+  /** 总连接数 */
   totalConnections: number;
+  /** 活跃连接数 */
   activeConnections: number;
+  /** 空闲连接数 */
   idleConnections: number;
+  /** 按类型分组的连接数 */
   connectionsByType: Record<string, number>;
+  /** 平均连接年龄（毫秒） */
   averageConnectionAge: number;
+  /** 健康检查失败次数 */
   healthCheckFailures: number;
+  /** 熔断器是否开启 */
   circuitBreakerOpen: boolean;
+  /** 总请求数 */
   totalRequests: number;
+  /** 失败请求数 */
   failedRequests: number;
+  /** 平均响应时间（毫秒） */
   averageResponseTime: number;
 }
 
-// 连接错误类型
+/**
+ * 连接错误类型枚举
+ * 定义各种可能的连接错误类型
+ */
 export enum ConnectionErrorType {
+  /** 超时错误 */
   TIMEOUT = 'TIMEOUT',
+  /** 网络错误 */
   NETWORK_ERROR = 'NETWORK_ERROR',
+  /** 认证错误 */
   AUTH_ERROR = 'AUTH_ERROR',
+  /** 速率限制错误 */
   RATE_LIMIT = 'RATE_LIMIT',
+  /** 服务器错误 */
   SERVER_ERROR = 'SERVER_ERROR',
+  /** 未知错误 */
   UNKNOWN = 'UNKNOWN'
 }
 
-// 连接错误接口
+/**
+ * 连接错误接口
+ * 扩展标准 Error 接口，添加连接相关的错误信息
+ */
 export interface ConnectionError extends Error {
+  /** 错误类型 */
   type: ConnectionErrorType;
+  /** 是否可重试 */
   retryable: boolean;
+  /** 连接ID（可选） */
   connectionId?: string;
 }
 
+/**
+ * 连接池管理器类
+ * 负责管理 AcFun Live API 连接的生命周期，提供连接复用、健康检查、熔断器等功能
+ * 
+ * 主要功能：
+ * - 连接池管理：创建、复用、释放连接
+ * - 健康检查：定期检查连接健康状态
+ * - 熔断器：在连续失败时暂停请求
+ * - 性能监控：收集连接和请求统计信息
+ * - 自动清理：清理空闲和不健康的连接
+ * 
+ * @extends EventEmitter
+ * @emits connection-created - 创建新连接时触发
+ * @emits connection-destroyed - 销毁连接时触发
+ * @emits health-check-failed - 健康检查失败时触发
+ * @emits circuit-breaker-opened - 熔断器开启时触发
+ * @emits circuit-breaker-closed - 熔断器关闭时触发
+ */
 export class ConnectionPoolManager extends EventEmitter {
+  /** 连接池配置 */
   private config: ConnectionPoolConfig;
+  /** 连接映射表 */
   private connections: Map<string, PooledConnection> = new Map();
+  /** 按类型分组的连接ID集合 */
   private connectionsByType: Map<string, Set<string>> = new Map();
+  /** 健康检查定时器 */
   private healthCheckTimer: NodeJS.Timeout | null = null;
+  /** 清理定时器 */
   private cleanupTimer: NodeJS.Timeout | null = null;
+  /** 熔断器是否开启 */
   private circuitBreakerOpen: boolean = false;
+  /** 熔断器开启时间 */
   private circuitBreakerOpenTime: Date | null = null;
+  /** 连续失败次数 */
   private consecutiveFailures: number = 0;
+  /** 请求时间记录（用于计算平均响应时间） */
   private requestTimes: number[] = [];
+  /** 连接统计信息 */
   private stats: ConnectionStats;
 
+  /**
+   * 构造函数
+   * @param config 连接池配置（可选，使用默认配置）
+   */
   constructor(config: Partial<ConnectionPoolConfig> = {}) {
     super();
     
+    // 合并默认配置和用户配置
     this.config = {
       maxConnections: 50,
       maxConnectionsPerType: 20,
@@ -88,6 +179,7 @@ export class ConnectionPoolManager extends EventEmitter {
       ...config
     };
 
+    // 初始化统计信息
     this.stats = {
       totalConnections: 0,
       activeConnections: 0,
@@ -101,17 +193,24 @@ export class ConnectionPoolManager extends EventEmitter {
       averageResponseTime: 0
     };
 
+    // 初始化定时器
     this.initializeTimers();
   }
 
+  /**
+   * 初始化定时器
+   * 设置健康检查和清理定时器
+   * @private
+   */
   private initializeTimers(): void {
+    // 启用健康检查定时器
     if (this.config.enableHealthCheck) {
       this.healthCheckTimer = setInterval(() => {
         this.performHealthCheck();
       }, this.config.healthCheckInterval);
     }
 
-    // 定期清理空闲连接
+    // 启用清理定时器，定期清理空闲连接
     this.cleanupTimer = setInterval(() => {
       this.cleanupIdleConnections();
     }, this.config.idleTimeout / 2);
@@ -119,6 +218,17 @@ export class ConnectionPoolManager extends EventEmitter {
 
   /**
    * 获取连接（带熔断器支持）
+   * 
+   * 此方法是连接池的核心功能，负责：
+   * 1. 检查熔断器状态
+   * 2. 验证连接池限制
+   * 3. 尝试复用现有连接
+   * 4. 创建新连接（如果需要）
+   * 
+   * @param type 连接类型
+   * @param options 连接选项
+   * @returns Promise<PooledConnection> 池化连接实例
+   * @throws {ConnectionError} 当连接获取失败时抛出
    */
   async acquire(type: 'danmu' | 'auth' | 'live', options: { roomId?: string } = {}): Promise<PooledConnection> {
     // 检查熔断器状态

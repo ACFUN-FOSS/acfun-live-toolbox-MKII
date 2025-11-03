@@ -1,11 +1,14 @@
 <template>
-  <div id="app">
-    <MainLayout />
+  <div id="app" :class="{ 'theme-light': uiStore.theme === 'light', 'theme-dark': uiStore.theme === 'dark' }">
+    <LayoutShell />
   </div>
 </template>
 
 <script setup lang="ts">
-import MainLayout from './layouts/MainLayout.vue';
+import LayoutShell from './layouts/LayoutShell.vue';
+import { useUiStore } from './stores/ui';
+
+const uiStore = useUiStore();
 </script>
 
 <style>
@@ -48,8 +51,9 @@ html, body {
   background: var(--td-bg-color-component-active);
 }
 
-/* 确保 TDesign 主题变量可用 */
-:root {
+/* 确保 TDesign 主题变量可用 - 浅色主题（默认） */
+:root,
+.theme-light {
   --td-brand-color: #0052d9;
   --td-brand-color-1: #f2f6ff;
   --td-brand-color-3: #b3d1ff;
@@ -72,22 +76,49 @@ html, body {
   --td-bg-color-component-hover: #e6e6e6;
   --td-bg-color-component-active: #d9d9d9;
   --td-border-color: #e6e6e6;
+  --td-border-level-1-color: #e6e6e6;
   --td-shadow-3: 0 6px 30px 5px rgba(0, 0, 0, 0.12);
 }
 
-/* 暗色主题支持 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --td-text-color-primary: #ffffff;
-    --td-text-color-secondary: #cccccc;
-    --td-text-color-placeholder: #888888;
-    --td-bg-color-page: #1a1a1a;
-    --td-bg-color-container: #2d2d2d;
-    --td-bg-color-container-hover: #3a3a3a;
-    --td-bg-color-component: #404040;
-    --td-bg-color-component-hover: #4d4d4d;
-    --td-bg-color-component-active: #5a5a5a;
-    --td-border-color: #404040;
-  }
+/* 暗色主题 */
+.theme-dark {
+  --td-brand-color: #4582e6;
+  --td-brand-color-1: #1a2332;
+  --td-brand-color-3: #2d4a7a;
+  --td-success-color: #00a870;
+  --td-success-color-1: #0d2818;
+  --td-success-color-3: #1f5438;
+  --td-warning-color: #ed7b2f;
+  --td-warning-color-1: #2e1f0d;
+  --td-warning-color-3: #5c3e1f;
+  --td-error-color: #d54941;
+  --td-error-color-1: #2a1616;
+  --td-error-color-3: #542c2c;
+  --td-text-color-primary: #ffffff;
+  --td-text-color-secondary: #cccccc;
+  --td-text-color-placeholder: #888888;
+  --td-bg-color-page: #1a1a1a;
+  --td-bg-color-container: #2d2d2d;
+  --td-bg-color-container-hover: #3a3a3a;
+  --td-bg-color-component: #404040;
+  --td-bg-color-component-hover: #4d4d4d;
+  --td-bg-color-component-active: #5a5a5a;
+  --td-border-color: #404040;
+  --td-border-level-1-color: #404040;
+  --td-shadow-3: 0 6px 30px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* 全局t-card无边框样式 */
+.t-card {
+  border: none !important;
+}
+
+/* 确保t-card的头部和内容区域样式正确 */
+.t-card .t-card__header {
+  border-bottom: 1px solid var(--td-border-color);
+}
+
+.t-card .t-card__body {
+  padding: 16px;
 }
 </style>

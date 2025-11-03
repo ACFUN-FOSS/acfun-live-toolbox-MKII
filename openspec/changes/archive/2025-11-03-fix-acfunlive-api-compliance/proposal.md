@@ -1,8 +1,17 @@
 # Fix AcFunLive HTTP API Integration Compliance
 
-## Summary
+## Why
 
 Fix multiple compliance issues in the current integration with `acfunlive-http-api` to ensure proper usage patterns, authentication flows, and API initialization according to the library's documentation and test examples.
+
+## What Changes
+
+This change updates the integration with `acfunlive-http-api` by:
+- Replacing incorrect `createApi()` calls with proper `new AcFunLiveApi(config)` initialization
+- Implementing complete QR code authentication flow with proper token management
+- Fixing danmu service parameter passing and event handling
+- Removing redundant external retry logic in favor of API's built-in retry mechanism
+- Updating all integration tests to use real API calls without mocking
 
 ## Problem Statement
 

@@ -1,0 +1,894 @@
+{
+    "version": "1.1.0-vue",
+    "document": "渲染进程 UI 界面 / 交互功能详细设计（供 Claude 直接消费，Vue 版）",
+    "metadata": {
+        "created_at": "2025-11-03",
+        "audience": "Claude（根据本 JSON 直接产出前端代码与契约层封装）",
+        "change_log": [
+            "改为 Vue 技术栈（Vue 3 + Vue Router 4 + Pinia + tdesign-vue-next）",
+            "首页用户信息模块：未登录显示登录按钮 → 弹出二维码对话框 → 扫码确认后登录并渲染用户信息",
+            "各页面内容与交互细节显著扩充，涵盖空态/加载态/错误态/边界条件与可观测性"
+        ]
+    },
+    "tech_stack": {
+        "app": "Electron + Vue 3 + Vue Router 4",
+        "ui_lib": "TDesign（tdesign-vue-next）",
+        "state": "Pinia（全局轻量状态），组合式 API 管理局部状态",
+        "charts": "ECharts（首页迷你折线与趋势对比）",
+        "plugin_hosting": "wujie-vue / <iframe> 注入承载插件前端，可开独立 BrowserWindow 弹窗",
+        "db_export": "SQLite events 表 + CSV 导出"
+    },
+    "global_constraints": {
+        "window": {
+            "size": "1024x768（固定窗口）",
+            "drag_region": "Topbar 左侧标题区支持窗口拖拽（-webkit-app-region: drag）",
+            "controls": [
+                "最小化",
+                "关闭"
+            ]
+        },
+        "layout": {
+            "topbar": "含账号信息与房间状态、窗口控制按钮（最小化/关闭）；右侧按钮为 no-drag 区域",
+            "sidebar": "分栏导航（首页/插件/系统/设置/控制台）；基于路由高亮",
+            "content": "无过渡动画，切换即时呈现；>300ms 的异步调用用骨架屏/Loading 表示"
+        },
+        "performance": {
+            "navigation_switch_target_ms": 300,
+            "long_task_feedback": "1s+ 的操作使用非打断式 Message 提示，可后台进行",
+            "list_virtualization": true,
+            "event_batching": "窗口聚合 1–2s 批量合并渲染，降低抖动"
+        },
+        "danmaku_rendering": "主客户端不直显弹幕；由插件弹窗/Overlay 页面承担",
+        "console_security_note": "/console 在局域网无鉴权；渲染端嵌入但在设置中提示风险"
+    },
+    "navigation": {
+        "sidebar_items": [
+            {
+                "path": "/home",
+                "label": "首页"
+            },{
+                "path": "/live",
+                "label": "直播"
+            },{
+                "path": "/live/room",
+                "label": "房间管理"
+            },{
+                "path": "/live/danmu",
+                "label": "弹幕设置"
+            },
+            {
+                "path": "/plugins",
+                "label": "插件"
+            },
+             {
+                "path": "/plugins/management",
+                "label": "插件管理"
+            },
+            {
+                "path": "/plugins/:plugname",
+                "label": "插件名"//在插件管理页面勾选了在侧边栏显示的插件后，就会在侧边栏动态显示该插件的入口
+            },
+            {
+                "path": "/system",
+                "label": "系统"
+            },
+            {
+                "path": "/system/settings",
+                "label": "系统设置"
+            },
+            {
+                "path": "/system/console",
+                "label": "控制台"
+            },
+            {
+                "path": "/system/develop",
+                "label": "开发文档"
+            }
+            //.....其余现有的属于开发、后台的功能都要归到/system下
+        ],
+        "topbar": {
+            "left": [
+                "app_title_drag_region"
+            ],
+            "center": [
+                "account_summary_popup",
+                "room_status_indicator_drawer"
+            ],
+            "right": [
+                "window_minimize",
+                "window_close"
+            ]
+        },
+        "keyboard_shortcuts": [
+            {
+                "combo": "Ctrl/⌘+F",
+                "action": "聚焦当前页搜索"
+            },
+            {
+                "combo": "Alt+1..5",
+                "action": "侧边栏分栏快速切换"
+            },
+            {
+                "combo": "Esc",
+                "action": "关闭弹层或对话框"
+            }
+        ]
+    },
+    "routes_tree": [
+        {
+            "path": "/",
+            "component": "LayoutShell",
+            "meta": {
+                "keepAlive": true,
+                "title": "主布局"
+            },
+            "children": [
+                {
+                    "path": "/home",
+                    "component": "HomePage",
+                    "meta": {
+                        "title": "首页"
+                    }
+                },
+                {
+                    "path": "/plugins",
+                    "component": "PluginsPage",
+                    "meta": {
+                        "title": "插件列表"
+                    }
+                },
+                {
+                    "path": "/plugins/:id/(.*)?",
+                    "component": "PluginFramePage",
+                    "meta": {
+                        "title": "插件详情/壳"
+                    }
+                },
+                {
+                    "path": "/system",
+                    "component": "SystemPage",
+                    "meta": {
+                        "title": "系统功能"
+                    }
+                },
+                {
+                    "path": "/settings",
+                    "component": "SettingsPage",
+                    "meta": {
+                        "title": "设置"
+                    }
+                },
+                {
+                    "path": "/console",
+                    "component": "ConsoleEmbedPage",
+                    "meta": {
+                        "title": "控制台"
+                    }
+                },
+                {
+                    "path": "/error",
+                    "component": "ErrorPage",
+                    "meta": {
+                        "title": "错误"
+                    }
+                },
+                {
+                    "path": "/404",
+                    "component": "NotFoundPage",
+                    "meta": {
+                        "title": "未找到"
+                    }
+                },
+                {
+                    "path": "/:pathMatch(.*)*",
+                    "redirect": "/404"
+                }
+            ]
+        }
+    ],
+    "pages": {
+        "LayoutShell": {
+            "structure": {
+                "header": "Topbar（40px）",
+                "aside": "Sidebar（208px）",
+                "content": "RouterView（无过渡动画）"
+            },
+            "topbar": {
+                "left": [
+                    {
+                        "id": "AppTitle",
+                        "ui": "<t-tooltip>标题</t-tooltip> + drag 区"
+                    }
+                ],
+                "center": [
+                    {
+                        "id": "AccountArea",
+                        "ui": "头像 + 昵称；未登录显示『未登录』标签",
+                        "interaction": "点击打开账户卡片（切换账号/登出/查看UID）"
+                    },
+                    {
+                        "id": "RoomStatus",
+                        "ui": "绿/黄/红点 + 文案（connecting/connected/reconnecting/failed）",
+                        "interaction": "点开 Drawer 显示房间、速率、延迟、重连计数等"
+                    }
+                ],
+                "right": [
+                    {
+                        "id": "WinMinimizeBtn",
+                        "ipc": "window/minimize"
+                    },
+                    {
+                        "id": "WinCloseBtn",
+                        "ipc": "window/close"
+                    }
+                ]
+            }
+        },
+        "HomePage": {
+            "purpose": "欢迎引导 + 账号/房间概览 + 关键指标统计；强调快速首屏与渐进式数据填充",
+            "sections": [
+                {
+                    "id": "WelcomeCard",
+                    "ui": "<t-card> 欢迎语 + 3 步使用指南 </t-card>",
+                    "details": [
+                        "步骤1：登录或连接房间（只读）",
+                        "步骤2：安装/启用所需插件（如弹幕弹窗）",
+                        "步骤3：在系统/控制台中观察指标与日志"
+                    ]
+                },
+                {
+                    "id": "UserInfoCard",
+                    "ui": "<t-card> 用户信息 / 登录入口 </t-card>",
+                    "states": {
+                        "not_logged_in": {
+                            "display": "展示『登录』按钮（<t-button theme='primary'>登录</t-button>）",
+                            "action_on_click": "打开『二维码登录』对话框"
+                        },
+                        "logged_in": {
+                            "display": "头像、昵称、UID、登录方式、最近活跃房间",
+                            "actions": [
+                                "切换账号",
+                                "登出"
+                            ]
+                        }
+                    },
+                    "qr_login_dialog": {
+                        "component": "<t-dialog width='420px'>",
+                        "content": [
+                            "二维码图片（base64）与状态提示（待扫码/已扫码/待确认/已过期/失败）",
+                            "有效期倒计时；过期后显示『刷新二维码』",
+                            "安全提示：仅展示二维码，不暴露 token"
+                        ],
+                        "flow": [
+                            "点击『登录』 → ipc.auth.createQrSession() 返回 {sessionId, qrDataUrl, expireAt}",
+                            "前端每 2s 调用 ipc.auth.pollQrSession({sessionId})",
+                            "状态迁移：pending → scanned → confirmed → success | expired | error",
+                            "success 后：ipc.auth.finalizeLogin({sessionId}) → 返回 profile 快照并刷新 Pinia 状态",
+                            "关闭对话框并在 UserInfoCard 渲染用户信息",
+                            "用户主动关闭或过期：调用 ipc.auth.cancelQrSession({sessionId})"
+                        ],
+                        "edge_cases": [
+                            "网断：展示重试按钮与离线提示",
+                            "多开：新会话创建时自动取消旧会话"
+                        ]
+                    }
+                },
+                {
+                    "id": "KPISection",
+                    "ui": "<t-row> 四项 <t-statistic> + ECharts 迷你折线 </t-row>",
+                    "metrics": [
+                        "直播时长(min)",
+                        "礼物数",
+                        "弹幕数",
+                        "点赞数"
+                    ],
+                    "data_source": "subscribeEvents + /api/events 聚合；10s 增量刷新",
+                    "loading_strategy": "首屏空态骨架；数据到达即填充；切房间仅刷新数据区",
+                    "empty_state": "未连接房间时显示『输入房间ID只读连接』按钮（主进程发起）"
+                }
+            ],
+            "accessibility": "登录按钮与二维码图像提供 aria-label 与 alt 文案",
+            "telemetry": "登录成功/失败、二维码过期等埋点（匿名）"
+        },
+        "PluginsPage": {
+            "purpose": "插件清单、安装、启用/禁用、卸载与入口跳转；强调即时生效与失败可见性",
+            "toolbar": [
+                {
+                    "id": "SearchInput",
+                    "ui": "<t-input placeholder='搜索名称/作者' clearable />",
+                    "behavior": "本地模糊匹配 name/author，不改变排序"
+                },
+                {
+                    "id": "InstallBtn",
+                    "ui": "<t-button>本地安装</t-button>",
+                    "behavior": "选择 zip/tgz → ipc.installPlugin → manifest 校验/解包/注册"
+                }
+            ],
+            "table": {
+                "columns": [
+                    "名称",
+                    "状态Tag（启用/禁用/待更新）",
+                    "版本",
+                    "作者",
+                    "安装日期",
+                    "操作"
+                ],
+                "row_actions": [
+                    "启用/禁用（ipc.enablePlugin；乐观更新 UI，失败回滚并 MessagePlugin.error）",
+                    "打开（跳转 /plugins/:id 或插件自路由）",
+                    "设置（跳转插件注册的 settings 子路由）",
+                    "卸载（Dialog 二次确认；若运行中先停用 → 再清理）"
+                ],
+                "empty_state": "无插件时显示安装引导与示例包说明",
+                "error_state": "列表拉取失败显示重试按钮与『查看日志』入口"
+            }
+        },
+        "PluginFramePage": {
+            "purpose": "承载插件自身前端（wujie-vue/iframe），隔离运行，支持弹窗",
+            "panels": [
+                "Manifest 摘要（名称/版本/作者/权限）",
+                "近期错误/日志摘要与跳转查看",
+                "快捷入口：打开设置 / 运营面板 / 打开弹窗"
+            ],
+            "interactions": [
+                "createPluginWindow({id, route}) 打开 BrowserWindow（弹幕/Overlay/工具）",
+                "postMessage 通道（限制白名单事件），主进程代理高权限动作，不暴露 token"
+            ]
+        },
+        "SystemPage": {
+            "tabs": [
+                {
+                    "key": "logs",
+                    "title": "日志",
+                    "features": [
+                        "级别过滤（错误/警告/信息）、关键词搜索、时间范围筛选",
+                        "自动滚动到最新；点击错误项可一键导出该时间段日志（zip）",
+                        "长列表虚拟化与分页加载；失败提供重试与“复制错误详情”"
+                    ]
+                },
+                {
+                    "key": "config_export",
+                    "title": "配置 & 导出",
+                    "features": [
+                        "配置编辑：仅 config.json（即时生效），secrets.json 不可见",
+                        "导出：选择房间+时间范围 → ipc.exportCsv 返回文件路径；或 GET /api/export 下载流",
+                        "变更回执：MessagePlugin.success('已生效')；失败弹出错误并落日志锚点"
+                    ]
+                },
+                {
+                    "key": "diagnostics",
+                    "title": "诊断",
+                    "features": [
+                        "选择时间范围 → ipc.genDiagnosticZip → 生成 zip（日志、系统信息、插件列表、SQLite schema 片段）",
+                        "导出完成提供『打开所在文件夹』快捷操作"
+                    ]
+                }
+            ]
+        },
+        "SettingsPage": {
+            "principle": "所有设置修改即时生效，无保存按钮",
+            "tabs": [
+                {
+                    "key": "network",
+                    "title": "网络",
+                    "items": [
+                        "本地服务端口（修改触发平滑重启，失败回退原端口并提示）",
+                        "同局域网访问说明与 /console 无鉴权风险提示；复制控制台链接"
+                    ],
+                    "states": {
+                        "applying": "显示 Loading 与『正在应用…』提示",
+                        "failed": "回退旧值并 MessagePlugin.error；引导到系统日志定位原因"
+                    }
+                },
+                {
+                    "key": "export",
+                    "title": "导出",
+                    "items": [
+                        "默认导出目录（变更即时生效）",
+                        "导出字段/格式偏好（后续导出默认采用）"
+                    ]
+                },
+                {
+                    "key": "system",
+                    "title": "系统",
+                    "items": [
+                        "开机自启（默认关闭）",
+                        "日志滚动大小与份数（即时生效）",
+                        "更新检查/调试模式开关（如启用会增加日志明细）"
+                    ]
+                }
+            ],
+            "exclusions": "插件管理与插件设置均不在此页"
+        },
+        "ConsoleEmbedPage": {
+            "purpose": "在渲染进程内嵌 [http://localhost:{port}/console，多](http://localhost:{port}/console，多) Tab 运维观测",
+            "structure": [
+                "顶部 Alert：『/console 无鉴权，仅局域网可访问，请谨慎暴露端口』",
+                "WujieVue 或 <iframe src> 承载控制台；端口变更后自动重载"
+            ],
+            "tabs_reference": [
+                "房间状态：连接数/心跳/延迟/丢包概览；允许暂停/恢复某房间流",
+                "事件流：弹幕/礼物/点赞实时列表；提供过滤与导出片段",
+                "接口请求：对外/对内 API 成功率、耗时分布、失败明细",
+                "插件状态：启用状态、运行实例、近期错误计数与重启操作"
+            ],
+            "error_state": "控制台不可达时展示『重试/打开设置修正端口』"
+        },
+        "ErrorPage": {
+            "purpose": "统一错误呈现与处置，提供恢复路径与证据导出",
+            "ui": [
+                "大图标 + 错误标题 + 错误描述",
+                "操作：查看日志 / 导出该时间段日志 / 重试 / 返回首页"
+            ],
+            "params": "code、from、to、traceId 可用于日志定位"
+        },
+        "NotFoundPage": {
+            "purpose": "未定义路由的友好提示页",
+            "ui": [
+                "提示文案 + 『返回首页』按钮 + 侧边栏导航指引"
+            ]
+        }
+    },
+    "components_map": {
+        "layout": [
+            "t-layout",
+            "t-header",
+            "t-aside",
+            "t-content"
+        ],
+        "navigation": [
+            "t-menu",
+            "t-breadcrumb"
+        ],
+        "data_display": [
+            "t-table",
+            "t-list",
+            "t-card",
+            "t-statistic",
+            "t-tag",
+            "t-badge"
+        ],
+        "forms": [
+            "t-form",
+            "t-input",
+            "t-select",
+            "t-switch",
+            "t-date-range-picker",
+            "t-upload",
+            "t-input-number"
+        ],
+        "feedback": [
+            "t-dialog",
+            "MessagePlugin",
+            "t-notification",
+            "t-drawer",
+            "t-loading"
+        ],
+        "charts": [
+            "ECharts(line/mini)"
+        ],
+        "notes": "统一使用 tdesign-vue-next 以保持风格一致"
+    },
+    "state_management": {
+        "library": "Pinia",
+        "stores": [
+            {
+                "name": "useAccountStore",
+                "state": [
+                    "profile",
+                    "uid",
+                    "login_method",
+                    "loggedIn",
+                    "qrSession"
+                ],
+                "actions": [
+                    "createQrSession() → ipc.auth.createQrSession",
+                    "pollQrSession() 2s 轮询状态",
+                    "finalizeLogin() → 刷新 profile 并置 loggedIn=true",
+                    "cancelQrSession()",
+                    "logout()"
+                ]
+            },
+            {
+                "name": "useRoomStore",
+                "state": [
+                    "roomId",
+                    "connectionStatus",
+                    "statsSnapshot"
+                ],
+                "actions": [
+                    "connectReadonly",
+                    "disconnect",
+                    "updateStats"
+                ]
+            },
+            {
+                "name": "usePluginStore",
+                "state": [
+                    "list",
+                    "loading"
+                ],
+                "actions": [
+                    "refreshPlugins",
+                    "enablePlugin",
+                    "uninstallPlugin",
+                    "installPlugin"
+                ]
+            },
+            {
+                "name": "useUiStore",
+                "state": [
+                    "activeRoute",
+                    "loadingMap"
+                ],
+                "actions": [
+                    "setLoading",
+                    "clearLoading"
+                ]
+            }
+        ],
+        "guidelines": "事件流类数据不长驻；订阅通过 IPC/HTTP 获取"
+    },
+    "data_models": {
+        "Event": "ts:number; room_id:string; event_type:'danmaku'|'gift'|'follow'|'like'|'enter'|'system'; user_id?:string|null; user_name?:string|null; content?:string|null; raw?:any; source:'acfun'",
+        "PluginSummary": "id:string; name:string; version:string; author?:string; installedAt?:string; enabled:boolean; updateState?:'ok'|'need-update'|'unknown'",
+        "LoginProfile": "uid:string; nickname:string; avatar?:string; login_method:'qr'|'token-proxy'; last_active_room?:string",
+        "QrSessionState": "status:'pending'|'scanned'|'confirmed'|'success'|'expired'|'error'; expireAt:number"
+    },
+    "ipc_contracts": [
+        {
+            "name": "subscribeEvents",
+            "req": {
+                "roomId?": "string",
+                "types?": "string[]"
+            },
+            "res": "stream<Event>",
+            "usage": "首页统计/房间状态（不直接渲染弹幕）"
+        },
+        {
+            "name": "exportCsv",
+            "req": {
+                "roomId?": "string",
+                "from": "number",
+                "to": "number"
+            },
+            "res": {
+                "filePath": "string"
+            },
+            "usage": "系统页导出"
+        },
+        {
+            "name": "installPlugin",
+            "req": {
+                "filePath": "string"
+            },
+            "res": {
+                "ok": "boolean",
+                "pluginId?": "string"
+            },
+            "usage": "插件安装（manifest→解包→注册）"
+        },
+        {
+            "name": "enablePlugin",
+            "req": {
+                "id": "string",
+                "enable": "boolean"
+            },
+            "res": {
+                "ok": "boolean"
+            },
+            "usage": "立即生效；失败 MessagePlugin.error 并引导查看日志"
+        },
+        {
+            "name": "uninstallPlugin",
+            "req": {
+                "id": "string"
+            },
+            "res": {
+                "ok": "boolean"
+            },
+            "usage": "二次确认；运行中先停用再清理"
+        },
+        {
+            "name": "getPlugins",
+            "req": {},
+            "res": "PluginSummary[]",
+            "usage": "插件列表渲染"
+        },
+        {
+            "name": "getSystemLog",
+            "req": {
+                "level?": "string",
+                "keyword?": "string",
+                "from?": "number",
+                "to?": "number"
+            },
+            "res": "LogLine[]",
+            "usage": "系统-日志页"
+        },
+        {
+            "name": "getConfig",
+            "req": {},
+            "res": "Record<string, any>",
+            "usage": "系统/设置页读取配置"
+        },
+        {
+            "name": "updateConfig",
+            "req": {
+                "patch": "Partial<Config>"
+            },
+            "res": {
+                "ok": "boolean"
+            },
+            "usage": "配置即时生效（仅 config.json）"
+        },
+        {
+            "name": "genDiagnosticZip",
+            "req": {
+                "from": "number",
+                "to": "number"
+            },
+            "res": {
+                "filePath": "string"
+            },
+            "usage": "诊断包导出"
+        },
+        {
+            "name": "windowControl",
+            "req": {
+                "action": "'minimize'|'close'"
+            },
+            "res": {
+                "ok": "boolean"
+            },
+            "usage": "Topbar 窗口控制"
+        },
+        {
+            "name": "createPluginWindow",
+            "req": {
+                "id": "string",
+                "route?": "string"
+            },
+            "res": {
+                "ok": "boolean"
+            },
+            "usage": "插件弹窗（弹幕/运营面板）"
+        },
+        {
+            "name": "auth.createQrSession",
+            "req": {},
+            "res": {
+                "sessionId": "string",
+                "qrDataUrl": "string(base64 PNG)",
+                "expireAt": "number(unix ms)"
+            },
+            "usage": "生成登录二维码，会话仅返回可展示数据，不含敏感 token"
+        },
+        {
+            "name": "auth.pollQrSession",
+            "req": {
+                "sessionId": "string"
+            },
+            "res": {
+                "status": "QrSessionState.status",
+                "expireAt": "number"
+            },
+            "usage": "2s 轮询，直到 success/expired/error"
+        },
+        {
+            "name": "auth.finalizeLogin",
+            "req": {
+                "sessionId": "string"
+            },
+            "res": {
+                "profile": "LoginProfile"
+            },
+            "usage": "完成登录并回传 profile 快照；真实 token 仅存主进程"
+        },
+        {
+            "name": "auth.cancelQrSession",
+            "req": {
+                "sessionId": "string"
+            },
+            "res": {
+                "ok": "boolean"
+            },
+            "usage": "关闭对话框或刷新二维码时调用"
+        }
+    ],
+    "http_contracts": [
+        {
+            "method": "GET",
+            "path": "/api/events?roomId&limit",
+            "res": "Event[] 或聚合指标",
+            "usage": "首页统计补齐/增量刷新"
+        },
+        {
+            "method": "GET",
+            "path": "/api/export?roomId&from&to",
+            "res": "CSV 下载流/文件路径",
+            "usage": "导出可通过浏览器下载流"
+        }
+    ],
+    "plugin_integration": {
+        "routing": "/plugins/:id/*（强制前缀）",
+        "settings_entry": "插件注册自身 settings 子路由，非全局 /settings 托管",
+        "popup_window": "BrowserWindow（弹幕/Overlay/运营面板）",
+        "enable_fuse": "主进程插件熔断保护；异常隔离",
+        "messaging": "postMessage + IPC 代理高权限动作；渲染端与插件不可读 token"
+    },
+    "overlay": {
+        "link_pattern": "/overlay/:overlayId?room=:roomId&token=:token（token 不过期）",
+        "copy_action": "插件详情/操作处可复制链接"
+    },
+    "security_boundary": {
+        "token_access": "所有高权限动作经主进程代理；渲染端与插件不可读 token",
+        "console_warning": "/console 无鉴权，仅同局域网可见（设置页提示风险）"
+    },
+    "error_handling": {
+        "global_interceptor": "统一拦截 IPC/HTTP 失败→MessagePlugin.error +『查看日志』入口（跳转 /system?tab=logs&anchor=ts）",
+        "error_page": "错误描述 + 导出该时间段日志 + 返回/重试",
+        "not_found": "404 友好页 + 返回首页"
+    },
+    "performance_strategy": {
+        "routing_transition": "无动画切换；首屏优先渲染骨架",
+        "event_aggregation": "窗口聚合（1–2s 批量）避免频繁重渲",
+        "virtualization": "长列表/日志按需增量加载"
+    },
+    "observability": {
+        "logs": "系统日志按级别/时间/关键词筛查；错误项带『导出此时段』",
+        "diagnostics": "诊断包包含日志、系统信息、插件列表、SQLite schema 片段"
+    },
+    "a11y": {
+        "aria": "主要按钮具 aria-label；二维码 img 提供 alt 描述",
+        "keyboard": "Tab/Enter 快速操作；Esc 关闭对话框（危险操作除外需明确确认）"
+    },
+    "acceptance_criteria": {
+        "home": [
+            "未登录：显示『登录』按钮；点击弹出二维码对话框",
+            "扫码→确认→success：3s 内渲染用户信息并关闭对话框",
+            "二维码过期：显示刷新按钮，刷新后可继续登录",
+            "首帧 3s 内完成，KPI 10s 内首次补齐；切房间无动画，仅刷新数据"
+        ],
+        "plugins": [
+            "搜索命中 ≤300ms",
+            "启用/禁用即时更新 Tag；失败回滚并可查看日志",
+            "卸载强制二次确认；运行中卸载需先停用"
+        ],
+        "system": [
+            "日志按类型/关键词/时间过滤；导出错误时间段日志可用",
+            "配置修改无需保存按钮即生效（config.json）",
+            "诊断包可按时间导出并能打开所在文件夹"
+        ],
+        "settings": [
+            "修改端口后进程平滑重启并提示；失败回退原端口",
+            "导出目录/字段偏好即时生效",
+            "系统项（开机自启/日志滚动/调试模式）即时生效"
+        ],
+        "console": [
+            "嵌入式呈现 /console 多 Tab 内容；切换 <300ms；无鉴权风险提示可见",
+            "控制台不可达时给出重试与『打开设置修正端口』"
+        ],
+        "error_404": [
+            "错误页具『查看日志/导出日志/返回/重试』操作",
+            "404 友好提示并可返回首页"
+        ]
+    },
+    "ui_texts": {
+        "warnings": {
+            "console": "提示：控制台 /console 在局域网内无鉴权，请谨慎暴露端口。",
+            "dangerous_action": "此操作不可恢复，请确认是否继续？"
+        },
+        "buttons": {
+            "login": "登录",
+            "refresh_qr": "刷新二维码",
+            "export_csv": "导出 CSV",
+            "gen_diag": "导出诊断包",
+            "view_logs": "查看日志",
+            "retry": "重试",
+            "back_home": "返回首页"
+        },
+        "qr_status": {
+            "pending": "请使用手机扫码登录",
+            "scanned": "已扫码，请在手机确认",
+            "confirmed": "已确认，正在登录…",
+            "success": "登录成功",
+            "expired": "二维码已过期，请刷新",
+            "error": "登录失败，请重试"
+        }
+    },
+    "tdesign_mapping": {
+        "LayoutShell": [
+            "t-layout",
+            "t-header",
+            "t-aside",
+            "t-content"
+        ],
+        "HomePage": [
+            "t-card",
+            "t-button",
+            "t-dialog",
+            "t-statistic",
+            "t-row",
+            "t-col",
+            "t-space",
+            "MessagePlugin",
+            "ECharts"
+        ],
+        "PluginsPage": [
+            "t-input",
+            "t-table",
+            "t-tag",
+            "t-button",
+            "t-dialog",
+            "MessagePlugin"
+        ],
+        "SystemPage": [
+            "t-tabs",
+            "t-tab-panel",
+            "t-select",
+            "t-input",
+            "t-date-range-picker",
+            "t-list",
+            "t-table",
+            "t-form",
+            "t-button",
+            "MessagePlugin"
+        ],
+        "SettingsPage": [
+            "t-tabs",
+            "t-form",
+            "t-switch",
+            "t-input-number",
+            "t-input",
+            "MessagePlugin",
+            "t-alert",
+            "t-link"
+        ],
+        "ConsoleEmbedPage": [
+            "t-alert",
+            "t-card",
+            "iframe | WujieVue"
+        ],
+        "Global": [
+            "t-drawer",
+            "t-popup",
+            "MessagePlugin",
+            "t-notification",
+            "t-loading"
+        ]
+    },
+    "codegen_hints": {
+        "routing": {
+            "library": "vue-router@4",
+            "pattern": "嵌套路由；首屏 /home 预加载；其余路由按需懒加载（确保切换 <300ms）"
+        },
+        "pinia": {
+            "pattern": "每个领域一个 store；异步 action 返回 Promise；错误集中交给全局拦截器"
+        },
+        "services": {
+            "error_handling": "Promise 统一拦截，失败即 MessagePlugin.error 并可跳 /system?tab=logs",
+            "ipc_wrapper": "封装 ipcInvoke(name, payload) → Promise；在 composables/useIpc 中暴露"
+        },
+        "ui_feedback": "慢操作显示 t-loading 或顶部轻量进度；禁止过场动画",
+        "plugin_frame": "/plugins/:id/* 以 WujieVue/iframe 承载；同源策略限制；不暴露 token",
+        "qr_login_impl": "对话框内维护 sessionId 与状态；setInterval 轮询 poll；onUnmount 清理定时器；过期允许刷新"
+    },
+    "risks_and_mitigations": [
+        {
+            "risk": "/console 暴露风险（无鉴权）",
+            "mitigation": "设置页醒目提示；默认仅本机与局域网访问；端口修改即时生效"
+        },
+        {
+            "risk": "插件异常导致渲染卡顿",
+            "mitigation": "主进程熔断；渲染层使用 iframe 隔离；提供卸载与停用快速入口"
+        },
+        {
+            "risk": "二维码登录超时或轮询阻塞",
+            "mitigation": "倒计时与重试机制；过期刷新；轮询采用可取消定时器；错误兜底提示"
+        }
+    ],
+    "sources": [
+        "本 JSON 基于你提供的整合说明与基线（SRS/DDD/调研/最新 UI 取舍）整理，并按要求加入二维码登录、Vue 技术栈与更细致页面交互设计。"
+    ]
+}

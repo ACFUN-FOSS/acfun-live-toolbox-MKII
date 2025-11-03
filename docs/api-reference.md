@@ -16,8 +16,165 @@
   config: ConfigAPI,      // 配置管理
   ui: UIAPI,             // 用户界面
   http: HttpAPI,         // HTTP 请求
-  utils: UtilsAPI        // 工具函数
+  utils: UtilsAPI,       // 工具函数
+  auth: AuthAPI,         // 认证管理 (新增)
+  connection: ConnectionAPI // 连接管理 (新增)
 }
+```
+
+## AuthAPI - 认证管理
+
+### 方法
+
+#### `isAuthenticated()`
+
+检查当前是否已认证。
+
+**返回值:**
+- `boolean`: 是否已认证
+
+**示例:**
+```javascript
+if (this.api.auth.isAuthenticated()) {
+  // 执行需要认证的操作
+}
+```
+
+#### `getTokenInfo()`
+
+获取当前令牌信息。
+
+**返回值:**
+- `TokenInfo | null`: 令牌信息对象或 null
+
+**示例:**
+```javascript
+const tokenInfo = this.api.auth.getTokenInfo();
+if (tokenInfo) {
+  console.log('令牌过期时间:', tokenInfo.expiresAt);
+}
+```
+
+#### `refreshToken()`
+
+刷新认证令牌。
+
+**返回值:**
+- `Promise<AuthResult>`: 刷新结果
+
+**示例:**
+```javascript
+try {
+  const result = await this.api.auth.refreshToken();
+  if (result.success) {
+    console.log('令牌刷新成功');
+  }
+} catch (error) {
+  console.error('令牌刷新失败:', error);
+}
+```
+
+### 事件
+
+#### `tokenExpiring`
+
+令牌即将过期时触发。
+
+```javascript
+this.api.auth.on('tokenExpiring', () => {
+  console.log('令牌即将过期');
+});
+```
+
+#### `authenticationFailed`
+
+认证失败时触发。
+
+```javascript
+this.api.auth.on('authenticationFailed', (error) => {
+  console.error('认证失败:', error);
+});
+```
+
+## ConnectionAPI - 连接管理
+
+### 方法
+
+#### `getConnectionStats()`
+
+获取连接池统计信息。
+
+**返回值:**
+- `ConnectionStats`: 连接统计信息
+
+**示例:**
+```javascript
+const stats = this.api.connection.getConnectionStats();
+console.log('活跃连接数:', stats.activeConnections);
+console.log('总连接数:', stats.totalConnections);
+```
+
+#### `isConnected(roomId)`
+
+检查指定房间是否已连接。
+
+**参数:**
+- `roomId` (string): 房间ID
+
+**返回值:**
+- `boolean`: 是否已连接
+
+**示例:**
+```javascript
+if (this.api.connection.isConnected('12345')) {
+  console.log('房间已连接');
+}
+```
+
+#### `getConnectionHealth()`
+
+获取连接健康状态。
+
+**返回值:**
+- `HealthStatus`: 健康状态信息
+
+**示例:**
+```javascript
+const health = this.api.connection.getConnectionHealth();
+console.log('健康连接数:', health.healthyConnections);
+console.log('不健康连接数:', health.unhealthyConnections);
+```
+
+### 事件
+
+#### `connectionEstablished`
+
+连接建立时触发。
+
+```javascript
+this.api.connection.on('connectionEstablished', (roomId) => {
+  console.log('连接已建立:', roomId);
+});
+```
+
+#### `connectionLost`
+
+连接丢失时触发。
+
+```javascript
+this.api.connection.on('connectionLost', (roomId, error) => {
+  console.error('连接丢失:', roomId, error);
+});
+```
+
+#### `connectionRecovered`
+
+连接恢复时触发。
+
+```javascript
+this.api.connection.on('connectionRecovered', (roomId) => {
+  console.log('连接已恢复:', roomId);
+});
 ```
 
 ## LoggerAPI - 日志记录

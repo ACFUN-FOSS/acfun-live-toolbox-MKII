@@ -4,30 +4,69 @@ import { EventWriter } from '../persistence/EventWriter';
 import { RoomStatus, NormalizedEvent } from '../types';
 import { ensureNormalized } from '../events/normalize';
 
+/** 最大房间数量限制 */
 const MAX_ROOMS = 3;
 
+/**
+ * 房间信息接口
+ * 包含房间的基本信息和运行状态
+ */
 export interface RoomInfo {
+  /** 房间ID */
   roomId: string;
+  /** 适配器实例 */
   adapter: AcfunAdapter;
+  /** 房间状态 */
   status: RoomStatus;
+  /** 连接时间戳 */
   connectedAt?: number;
+  /** 最后事件时间戳 */
   lastEventAt?: number;
+  /** 事件计数 */
   eventCount: number;
+  /** 重连尝试次数 */
   reconnectAttempts: number;
+  /** 房间优先级 */
   priority?: number;
+  /** 房间标签 */
   label?: string;
 }
 
+/**
+ * 房间管理器类
+ * 负责管理多个直播房间的连接和事件处理
+ * 
+ * 主要功能：
+ * - 房间连接管理：添加、移除、重连房间
+ * - 事件处理：监听和转发房间事件
+ * - 状态监控：跟踪房间连接状态和统计信息
+ * - 自动重连：处理连接失败和自动重连逻辑
+ * - 优先级管理：支持房间优先级设置
+ * 
+ * @extends EventEmitter
+ * @emits roomStatusChange - 房间状态变化时触发
+ * @emits event - 收到房间事件时触发
+ * @emits roomError - 房间发生错误时触发
+ */
 export class RoomManager extends EventEmitter {
   private rooms: Map<string, RoomInfo> = new Map();
   private eventWriter: EventWriter;
   private reconnectTimers: Map<string, NodeJS.Timeout> = new Map();
 
+  /**
+   * 构造函数
+   * @param eventWriter 事件写入器实例
+   */
   constructor(eventWriter: EventWriter) {
     super();
     this.eventWriter = eventWriter;
   }
 
+  /**
+   * 添加房间到管理器
+   * @param roomId 房间ID
+   * @returns 是否成功添加
+   */
   public async addRoom(roomId: string): Promise<boolean> {
     if (this.rooms.size >= MAX_ROOMS) {
       console.warn(`[RoomManager] Maximum number of rooms (${MAX_ROOMS}) reached.`);
@@ -41,7 +80,7 @@ export class RoomManager extends EventEmitter {
     }
 
     try {
-      const adapter = new AcfunAdapter(roomId);
+      const adapter = new AcfunAdapter({ roomId });
       const roomInfo: RoomInfo = {
         roomId,
         adapter,
@@ -68,6 +107,11 @@ export class RoomManager extends EventEmitter {
     }
   }
 
+  /**
+   * 从管理器中移除房间
+   * @param roomId 房间ID
+   * @returns 是否成功移除
+   */
   public async removeRoom(roomId: string): Promise<boolean> {
     const roomInfo = this.rooms.get(roomId);
     if (!roomInfo) {
@@ -103,22 +147,44 @@ export class RoomManager extends EventEmitter {
     }
   }
 
+  /**
+   * 获取房间信息
+   * @param roomId 房间ID
+   * @returns 房间信息对象，如果不存在则返回 undefined
+   */
   public getRoomInfo(roomId: string): RoomInfo | undefined {
     return this.rooms.get(roomId);
   }
 
+  /**
+   * 获取所有房间信息
+   * @returns 所有房间信息数组
+   */
   public getAllRooms(): RoomInfo[] {
     return Array.from(this.rooms.values());
   }
 
+  /**
+   * 获取房间总数
+   * @returns 房间总数
+   */
   public getRoomCount(): number {
     return this.rooms.size;
   }
 
+  /**
+   * 获取已连接房间数量
+   * @returns 已连接房间数量
+   */
   public getConnectedRoomCount(): number {
     return Array.from(this.rooms.values()).filter(room => room.status === 'open').length;
   }
 
+  /**
+   * 手动重连指定房间
+   * @param roomId 房间ID
+   * @returns 是否成功重连
+   */
   public async reconnectRoom(roomId: string): Promise<boolean> {
     const roomInfo = this.rooms.get(roomId);
     if (!roomInfo) {
@@ -136,6 +202,12 @@ export class RoomManager extends EventEmitter {
     }
   }
 
+  /**
+   * 设置房间优先级
+   * @param roomId 房间ID
+   * @param priority 优先级数值
+   * @returns 是否成功设置
+   */
   public setRoomPriority(roomId: string, priority: number): boolean {
     const roomInfo = this.rooms.get(roomId);
     if (!roomInfo) return false;
@@ -144,6 +216,12 @@ export class RoomManager extends EventEmitter {
     return true;
   }
 
+  /**
+   * 设置房间标签
+   * @param roomId 房间ID
+   * @param label 房间标签
+   * @returns 是否成功设置
+   */
   public setRoomLabel(roomId: string, label: string): boolean {
     const roomInfo = this.rooms.get(roomId);
     if (!roomInfo) return false;
@@ -152,6 +230,9 @@ export class RoomManager extends EventEmitter {
     return true;
   }
 
+  /**
+   * 断开所有房间连接
+   */
   public async disconnectAllRooms(): Promise<void> {
     const disconnectPromises = Array.from(this.rooms.keys()).map(roomId => 
       this.removeRoom(roomId)
@@ -186,7 +267,8 @@ export class RoomManager extends EventEmitter {
       const enriched: NormalizedEvent = ensureNormalized({
         ...event,
         room_id: roomId,
-        ts: event.ts || Date.now()
+        ts: event.ts || Date.now(),
+        received_at: event.received_at || Date.now()
       });
 
       this.eventWriter.enqueue(enriched);

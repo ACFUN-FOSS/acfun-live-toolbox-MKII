@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { ApiRetryManager, ApiErrorType, RetryStrategy, ApiRetryOptions } from '../services/ApiRetryManager';
+import { ApiRetryManager, ApiErrorType, RetryStrategy, ApiRetryOptions } from '../../../packages/main/src/services/ApiRetryManager';
 import fetch from 'node-fetch';
 
 describe('ApiRetryManager - 真实网络测试', () => {
@@ -37,7 +37,7 @@ describe('ApiRetryManager - 真实网络测试', () => {
 
     it('应该在超时时重试', async () => {
       const operation = async () => {
-        // 使用一个会超时的请�?        const controller = new AbortController();
+        // 使用一个会超时的请�?        const controller = new AbortController();
         setTimeout(() => controller.abort(), 50); // 50ms超时
         
         const response = await fetch('https://httpbin.org/delay/1', {
@@ -57,9 +57,9 @@ describe('ApiRetryManager - 真实网络测试', () => {
       expect(stats.totalAttempts).toBeGreaterThan(1);
     });
 
-    it('应该在服务器错误时重�?, async () => {
+    it('应该在服务器错误时重�?, async () => {
       const operation = async () => {
-        // 使用httpbin�?00错误端点
+        // 使用httpbin�?00错误端点
         const response = await fetch('https://httpbin.org/status/500');
         if (!response.ok) {
           throw new Error(`${response.status} ${response.statusText}`);
@@ -80,7 +80,7 @@ describe('ApiRetryManager - 真实网络测试', () => {
 
     it('应该在客户端错误时不重试', async () => {
       const operation = async () => {
-        // 使用httpbin�?04错误端点
+        // 使用httpbin�?04错误端点
         const response = await fetch('https://httpbin.org/status/404');
         if (!response.ok) {
           throw new Error(`${response.status} ${response.statusText}`);
@@ -96,12 +96,12 @@ describe('ApiRetryManager - 真实网络测试', () => {
       ).rejects.toThrow();
 
       const stats = retryManager.getRetryStats('client-error-test');
-      expect(stats.totalAttempts).toBe(1); // 不应该重�?      expect(stats.totalRetries).toBe(0);
+      expect(stats.totalAttempts).toBe(1); // 不应该重�?      expect(stats.totalRetries).toBe(0);
     });
   });
 
   describe('重试策略', () => {
-    it('应该使用指数退避策�?, async () => {
+    it('应该使用指数退避策�?, async () => {
       const startTime = Date.now();
       
       const operation = async () => {
@@ -120,11 +120,11 @@ describe('ApiRetryManager - 真实网络测试', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
       
-      // 指数退�? 100ms + 200ms + 400ms = 700ms (最�?
+      // 指数退�? 100ms + 200ms + 400ms = 700ms (最�?
       expect(duration).toBeGreaterThan(500); // 降低阈值以适应系统性能差异
     });
 
-    it('应该使用线性退避策�?, async () => {
+    it('应该使用线性退避策�?, async () => {
       const startTime = Date.now();
       
       const operation = async () => {
@@ -143,7 +143,7 @@ describe('ApiRetryManager - 真实网络测试', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
       
-      // 线性退�? 100ms + 200ms + 300ms = 600ms (最�?
+      // 线性退�? 100ms + 200ms + 300ms = 600ms (最�?
       expect(duration).toBeGreaterThan(500);
     });
 
@@ -166,13 +166,13 @@ describe('ApiRetryManager - 真实网络测试', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
       
-      // 固定延迟: 100ms + 100ms + 100ms = 300ms (最�?
+      // 固定延迟: 100ms + 100ms + 100ms = 300ms (最�?
       expect(duration).toBeGreaterThan(200); // 降低阈值以适应系统性能差异
-      expect(duration).toBeLessThan(500); // 不应该太�?    });
+      expect(duration).toBeLessThan(500); // 不应该太�?    });
   });
 
-  describe('自定义重试条�?, () => {
-    it('应该支持自定义重试条�?, async () => {
+  describe('自定义重试条�?, () => {
+    it('应该支持自定义重试条�?, async () => {
       const operation = async () => {
         const response = await fetch('https://httpbin.org/status/400');
         if (!response.ok) {
@@ -181,7 +181,7 @@ describe('ApiRetryManager - 真实网络测试', () => {
         return response.json();
       };
 
-      // 自定义条件：�?00错误也进行重�?      const customRetryCondition = (error: Error) => {
+      // 自定义条件：�?00错误也进行重�?      const customRetryCondition = (error: Error) => {
         return error.message.includes('400');
       };
 
@@ -194,7 +194,7 @@ describe('ApiRetryManager - 真实网络测试', () => {
       ).rejects.toThrow();
 
       const stats = retryManager.getRetryStats('custom-retry-test');
-      expect(stats.totalAttempts).toBeGreaterThan(1); // 应该重试�?    });
+      expect(stats.totalAttempts).toBeGreaterThan(1); // 应该重试�?    });
   });
 
   describe('事件发射', () => {
@@ -251,9 +251,9 @@ describe('ApiRetryManager - 真实网络测试', () => {
   });
 
   describe('成功场景', () => {
-    it('应该在成功时不重�?, async () => {
+    it('应该在成功时不重�?, async () => {
       const operation = async () => {
-        // 使用httpbin的成功端�?        const response = await fetch('https://httpbin.org/json');
+        // 使用httpbin的成功端�?        const response = await fetch('https://httpbin.org/json');
         return response.json();
       };
 
@@ -278,7 +278,7 @@ describe('ApiRetryManager - 真实网络测试', () => {
         if (attemptCount < 3) {
           throw new Error('503 Service Unavailable');
         }
-        // 第三次尝试成�?        const response = await fetch('https://httpbin.org/json');
+        // 第三次尝试成�?        const response = await fetch('https://httpbin.org/json');
         return response.json();
       };
 
@@ -298,7 +298,7 @@ describe('ApiRetryManager - 真实网络测试', () => {
 
   describe('配置管理', () => {
     it('应该支持更新重试配置', async () => {
-      // 更新网络错误的重试配�?      retryManager.updateRetryConfig(ApiErrorType.NETWORK_ERROR, {
+      // 更新网络错误的重试配�?      retryManager.updateRetryConfig(ApiErrorType.NETWORK_ERROR, {
         maxRetries: 5,
         baseDelay: 200,
         strategy: RetryStrategy.LINEAR_BACKOFF
@@ -318,7 +318,7 @@ describe('ApiRetryManager - 真实网络测试', () => {
   });
 
   describe('性能测试', () => {
-    it('应该在高负载下正常工�?, async () => {
+    it('应该在高负载下正常工�?, async () => {
       const startTime = Date.now();
       
       const operations = Array.from({ length: 10 }, (_, i) => 

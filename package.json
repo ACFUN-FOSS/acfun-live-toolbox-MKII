@@ -1,6 +1,6 @@
 {
   "name": "ACLiveFrame",
-  "description": "Secure boilerplate for Electron app based on Vite",
+  "description": "适用于ACFUN的开放式直播框架工具",
   "version": "3.1.0",
   "private": true,
   "type": "module",
@@ -30,15 +30,20 @@
   "devDependencies": {
     "@npmcli/map-workspaces": "4.0.2",
     "@playwright/test": "1.52.0",
+    "@types/adm-zip": "^0.5.7",
     "@types/archiver": "^6.0.3",
     "@types/express": "^5.0.3",
     "@types/node": "22.15.30",
+    "@types/tar": "^6.1.13",
     "@types/unzipper": "^0.10.11",
     "electron": "^39.0.0",
     "electron-builder": "26.0.12",
     "electron-rebuild": "^3.2.9",
     "glob": "11.0.2",
+    "globals": "^16.5.0",
+    "main": "^1000.0.1",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
     "vite": "^7.1.12",
     "vite-plugin-electron-renderer": "^0.14.6"
   },
@@ -46,8 +51,11 @@
     "archiver": "^7.0.1",
     "electron-data": "^2.1.2",
     "electron-store": "^10.1.0",
+    "eslint": "^9.39.0",
     "express": "^5.1.0",
-    "unzipper": "^0.12.3"
+    "root": "^3.2.0",
+    "unzipper": "^0.12.3",
+    "vitest": "^4.0.6"
   },
   "optionalDependencies": {
     "@app/electron-versions": "workspace:*",

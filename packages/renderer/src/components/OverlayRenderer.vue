@@ -222,7 +222,7 @@ const setupAutoClose = () => {
   if (props.overlay.autoClose && props.overlay.autoClose > 0) {
     autoCloseTimer.value = setTimeout(() => {
       handleClose()
-    }, props.overlay.autoClose)
+    }, props.overlay.autoClose) as any
   }
 }
 

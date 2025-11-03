@@ -11,7 +11,7 @@ describe('未知事件类型处理', () => {
     testLiveRoom = await acfunApiTestHelper.getHotLiveRoom();
   });
 
-  it('应该正确处理未知类型的事�?, async () => {
+  it('应该正确处理未知类型的事件', async () => {
     const realUnknownEvent = {
       sendTime: Date.now(),
       danmuInfo: {

@@ -89,7 +89,10 @@ async function main() {
   
   await apiServer.start();
 
-  initializeIpcHandlers(roomManager, authManager, pluginManager, overlayManager, consoleManager);
+  // For now, we just create a window manager
+  const windowManager = new WindowManager(); // This will need refactoring
+
+  initializeIpcHandlers(roomManager, authManager, pluginManager, overlayManager, consoleManager, windowManager);
 
   // Wire RoomManager -> WsHub broadcasting
   const wsHub = apiServer.getWsHub();
@@ -124,9 +127,6 @@ async function main() {
       console.error('[Main] Failed to broadcast room removed via WsHub:', err);
     }
   });
-
-  // For now, we just create a window manager
-  const windowManager = new WindowManager(); // This will need refactoring
 
   // --- 3. Application Ready ---
   await app.whenReady();

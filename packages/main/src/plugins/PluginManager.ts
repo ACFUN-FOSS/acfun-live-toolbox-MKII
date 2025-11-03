@@ -875,8 +875,6 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
   }
 
   private async extractPlugin(filePath: string, targetDir: string): Promise<void> {
-    const fs = await import('fs');
-    const path = await import('path');
 
     // 确保目标目录存在
     await fs.promises.mkdir(targetDir, { recursive: true });

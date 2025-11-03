@@ -40,7 +40,7 @@ your-plugin/
   "license": "MIT",
   "keywords": ["acfun", "live", "plugin"],
   "engines": {
-    "acfun-live-toolbox": ">=2.0.0"
+    "ACLiveFrame": ">=2.0.0"
   }
 }
 ```
@@ -731,7 +731,7 @@ zip -r your-plugin-v1.0.0.zip your-plugin/
 - [API 参考文档](./api-reference.md)
 - [插件示例集合](./examples/)
 - [常见问题解答](./faq.md)
-- [社区论坛](https://github.com/your-org/acfun-live-toolbox/discussions)
+- [社区论坛](https://github.com/your-org/ACLiveFrame/discussions)
 
 ---
 

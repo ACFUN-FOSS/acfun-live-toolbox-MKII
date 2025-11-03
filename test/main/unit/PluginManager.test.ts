@@ -27,18 +27,18 @@ describe('PluginManager', () => {
   });
 
   afterEach(async () => {
-    // 卸载所有已安装的插�?    const installedPlugins = pluginManager.getInstalledPlugins();
+    // 卸载所有已安装的插件    const installedPlugins = pluginManager.getInstalledPlugins();
     for (const plugin of installedPlugins) {
       try {
         await pluginManager.uninstallPlugin(plugin.id);
       } catch (error) {
-        // 忽略卸载错误，确保测试环境清�?      }
+        // 忽略卸载错误，确保测试环境清理      }
     }
     
     cleanupTempDir(tempDir);
   });
 
-  describe('初始�?, () => {
+  describe('初始化', () => {
     it('应该正确初始化插件管理器', () => {
       expect(pluginManager).toBeDefined();
       expect(pluginManager.getInstalledPlugins()).toEqual([]);
@@ -68,7 +68,7 @@ describe('PluginManager', () => {
       expect(installedPlugins[0].id).toBe('test-plugin-1');
     });
 
-    it('应该能够从压缩包安装插件并启�?, async () => {
+    it('应该能够从压缩包安装插件并启用', async () => {
       const manifest = TestHelpers.createMockPluginManifest({
         id: 'test-plugin-2',
         name: '测试插件2'
@@ -86,9 +86,9 @@ describe('PluginManager', () => {
       expect(result.enabled).toBe(true);
     });
 
-    it('应该拒绝安装无效的插�?, async () => {
+    it('应该拒绝安装无效的插件', async () => {
       const invalidManifest = {
-        // 缺少必需字段 id �?version
+        // 缺少必需字段 id 和 version
         name: '无效插件',
         main: 'index.js'
       } as any;
@@ -99,7 +99,7 @@ describe('PluginManager', () => {
         .rejects.toThrow();
     });
 
-    it('应该拒绝安装重复的插�?, async () => {
+    it('应该拒绝安装重复的插件', async () => {
       const manifest = TestHelpers.createMockPluginManifest({
         id: 'duplicate-plugin'
       });
@@ -107,13 +107,13 @@ describe('PluginManager', () => {
       const archivePath1 = await TestHelpers.createMockPluginArchive(tempDir, manifest);
       const archivePath2 = await TestHelpers.createMockPluginArchive(tempDir, manifest);
       
-      // 第一次安装应该成�?      const result1 = await pluginManager.installPlugin({ filePath: archivePath1 });
+      // 第一次安装应该成�?      const result1 = await pluginManager.installPlugin({ filePath: archivePath1 });
       expect(result1).toBeDefined();
       expect(result1.id).toBe('duplicate-plugin');
       
       // 第二次安装应该失败（插件已存在）
       await expect(pluginManager.installPlugin({ filePath: archivePath2 }))
-        .rejects.toThrow('插件 duplicate-plugin 已存�?);
+        .rejects.toThrow('插件 duplicate-plugin 已存在');
     });
   });
 
@@ -133,7 +133,7 @@ describe('PluginManager', () => {
 
     it('应该拒绝卸载不存在的插件', async () => {
       await expect(pluginManager.uninstallPlugin('non-existent'))
-        .rejects.toThrow('插件 non-existent 不存�?);
+        .rejects.toThrow('插件 non-existent 不存�?);
     });
 
     it('应该在卸载前停止运行中的插件', async () => {
@@ -151,7 +151,7 @@ describe('PluginManager', () => {
     });
   });
 
-  describe('插件启用和禁�?, () => {
+  describe('插件启用和禁用', () => {
     beforeEach(async () => {
       const manifest = TestHelpers.createMockPluginManifest({
         id: 'toggle-test'
@@ -181,7 +181,7 @@ describe('PluginManager', () => {
 
     it('应该拒绝启用不存在的插件', async () => {
       await expect(pluginManager.enablePlugin('non-existent'))
-        .rejects.toThrow('插件 non-existent 不存�?);
+        .rejects.toThrow('插件 non-existent 不存�?);
     });
   });
 
@@ -204,7 +204,7 @@ describe('PluginManager', () => {
       await pluginManager.installPlugin({ filePath: archive2, enable: true });
     });
 
-    it('应该返回所有已安装的插�?, () => {
+    it('应该返回所有已安装的插�?, () => {
       const plugins = pluginManager.getInstalledPlugins();
       
       expect(plugins).toHaveLength(2);
@@ -212,7 +212,7 @@ describe('PluginManager', () => {
       expect(plugins.map(p => p.id)).toContain('plugin-2');
     });
 
-    it('应该返回特定插件的信�?, () => {
+    it('应该返回特定插件的信息', () => {
       const plugin = pluginManager.getPlugin('plugin-1');
       
       expect(plugin).toBeDefined();
@@ -220,19 +220,19 @@ describe('PluginManager', () => {
       expect(plugin?.name).toBe('插件1');
     });
 
-    it('应该返回启用的插件列�?, async () => {
+    it('应该返回启用的插件列�?, async () => {
       await pluginManager.enablePlugin('plugin-1');
       
       const enabledPlugins = pluginManager.getInstalledPlugins().filter(p => p.enabled);
       
-      expect(enabledPlugins).toHaveLength(2); // plugin-1 �?plugin-2 都启用了
+      expect(enabledPlugins).toHaveLength(2); // plugin-1 和 plugin-2 都启用了
       expect(enabledPlugins.map(p => p.id)).toContain('plugin-1');
       expect(enabledPlugins.map(p => p.id)).toContain('plugin-2');
     });
   });
 
   describe('插件验证', () => {
-    it('应该验证有效的插件文�?, async () => {
+    it('应该验证有效的插件文�?, async () => {
       const validManifest = TestHelpers.createMockPluginManifest();
       const archivePath = await TestHelpers.createMockPluginArchive(tempDir, validManifest);
       
@@ -255,7 +255,7 @@ describe('PluginManager', () => {
         .rejects.toThrow();
     });
 
-    it('应该检查版本兼容�?, async () => {
+    it('应该检查版本兼容性', async () => {
       const incompatibleManifest = TestHelpers.createMockPluginManifest({
         engines: {
           node: '999.0.0'
@@ -266,7 +266,7 @@ describe('PluginManager', () => {
       
       // 这个测试可能需要根据实际的版本检查逻辑调整
       await expect(pluginManager.validatePluginFile(archivePath))
-        .resolves.toBeDefined(); // 或�?.rejects.toThrow() 如果有版本检�?    });
+        .resolves.toBeDefined(); // 或者 .rejects.toThrow() 如果有版本检查    });
   });
 
   describe('错误处理', () => {
@@ -285,7 +285,7 @@ describe('PluginManager', () => {
         .rejects.toThrow();
     });
 
-    it('应该处理插件运行时错�?, async () => {
+    it('应该处理插件运行时错�?, async () => {
       const manifest = TestHelpers.createMockPluginManifest({
         id: 'runtime-error-plugin'
       });
@@ -330,7 +330,7 @@ module.exports = {
 
   describe('插件配置', () => {
     beforeEach(async () => {
-      // 安装一个测试插�?      const manifest = TestHelpers.createMockPluginManifest({
+      // 安装一个测试插�?      const manifest = TestHelpers.createMockPluginManifest({
         id: 'config-test-plugin'
       });
       
@@ -338,11 +338,11 @@ module.exports = {
       await pluginManager.installPlugin({ filePath: archivePath });
     });
 
-    it('应该保存和加载插件配�?, async () => {
+    it('应该保存和加载插件配置', async () => {
       const pluginId = 'config-test-plugin';
       const testConfig = { setting1: 'value1', setting2: 42 };
       
-      // 获取插件 API 并设置配�?      const api = pluginManager.getApi(pluginId);
+      // 获取插件 API 并设置配�?      const api = pluginManager.getApi(pluginId);
       await api.config.set('testConfig', testConfig);
       
       // 读取配置
@@ -351,7 +351,7 @@ module.exports = {
       expect(savedConfig).toEqual(testConfig);
     });
 
-    it('应该支持配置的默认�?, async () => {
+    it('应该支持配置的默认值', async () => {
       const pluginId = 'config-test-plugin';
       const defaultValue = { default: true };
       

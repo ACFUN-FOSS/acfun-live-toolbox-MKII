@@ -9,7 +9,7 @@ describe('RateLimitManager', () => {
       maxRequestsPerHour: 100,
       maxRequestsPerDay: 1000,
       burstLimit: 5,
-      cooldownPeriod: 5000 // 5秒用于测�?    });
+      cooldownPeriod: 5000 // 5秒用于测�?    });
   });
 
   afterEach(() => {
@@ -46,13 +46,13 @@ describe('RateLimitManager', () => {
 
   describe('速率限制测试', () => {
     it('应该在达到分钟限制时拒绝请求', async () => {
-      // 发�?0个请求（达到分钟限制�?      for (let i = 0; i < 10; i++) {
+      // 发�?0个请求（达到分钟限制�?      for (let i = 0; i < 10; i++) {
         const result = await rateLimitManager.canMakeRequest();
         expect(result.allowed).toBe(true);
         rateLimitManager.recordRequest();
       }
 
-      // �?1个请求应该被拒绝
+      // 第11个请求应该被拒绝
       const result = await rateLimitManager.canMakeRequest();
       expect(result.allowed).toBe(false);
       expect(result.reason).toBe('Minute rate limit exceeded');
@@ -60,13 +60,13 @@ describe('RateLimitManager', () => {
     });
 
     it('应该在达到突发限制时拒绝请求', async () => {
-      // 发�?个请求（达到突发限制�?      for (let i = 0; i < 5; i++) {
+      // 发�?个请求（达到突发限制�?      for (let i = 0; i < 5; i++) {
         const result = await rateLimitManager.canMakeRequest();
         expect(result.allowed).toBe(true);
         rateLimitManager.recordRequest();
       }
 
-      // �?个请求应该被拒绝
+      // �?个请求应该被拒绝
       const result = await rateLimitManager.canMakeRequest();
       expect(result.allowed).toBe(false);
       expect(result.reason).toBe('Burst limit exceeded');
@@ -83,20 +83,20 @@ describe('RateLimitManager', () => {
         cooldownPeriod: 5000
       });
 
-      // 发�?个请�?      for (let i = 0; i < 2; i++) {
+      // 发�?个请�?      for (let i = 0; i < 2; i++) {
         const result = await manager.canMakeRequest();
         expect(result.allowed).toBe(true);
         manager.recordRequest();
       }
 
-      // �?个请求应该被拒绝
+      // �?个请求应该被拒绝
       const result = await manager.canMakeRequest();
       expect(result.allowed).toBe(false);
       expect(result.reason).toBe('Hour rate limit exceeded');
     });
 
-    it('应该在日限制达到时拒绝请�?, async () => {
-      // 模拟达到日限�?      const manager = new RateLimitManager({
+    it('应该在日限制达到时拒绝请�?, async () => {
+      // 模拟达到日限�?      const manager = new RateLimitManager({
         maxRequestsPerMinute: 200,
         maxRequestsPerHour: 200,
         maxRequestsPerDay: 2,
@@ -104,21 +104,21 @@ describe('RateLimitManager', () => {
         cooldownPeriod: 5000
       });
 
-      // 发�?个请�?      for (let i = 0; i < 2; i++) {
+      // 发�?个请�?      for (let i = 0; i < 2; i++) {
         const result = await manager.canMakeRequest();
         expect(result.allowed).toBe(true);
         manager.recordRequest();
       }
 
-      // �?个请求应该被拒绝
+      // �?个请求应该被拒绝
       const result = await manager.canMakeRequest();
       expect(result.allowed).toBe(false);
       expect(result.reason).toBe('Daily rate limit exceeded');
     });
   });
 
-  describe('冷却期测�?, () => {
-    it('应该�?29错误后进入冷却期', async () => {
+  describe('冷却期测�?, () => {
+    it('应该�?29错误后进入冷却期', async () => {
       rateLimitManager.recordError(429);
       
       const result = await rateLimitManager.canMakeRequest();
@@ -127,7 +127,7 @@ describe('RateLimitManager', () => {
       expect(result.waitTime).toBeGreaterThan(0);
     });
 
-    it('应该�?03错误后进入冷却期', async () => {
+    it('应该�?03错误后进入冷却期', async () => {
       rateLimitManager.recordError(503);
       
       const result = await rateLimitManager.canMakeRequest();
@@ -136,7 +136,7 @@ describe('RateLimitManager', () => {
       expect(result.waitTime).toBeGreaterThan(0);
     });
 
-    it('应该在冷却期结束后恢复正�?, async () => {
+    it('应该在冷却期结束后恢复正�?, async () => {
       // 使用短冷却期进行测试
       const manager = new RateLimitManager({
         maxRequestsPerMinute: 10,
@@ -152,14 +152,14 @@ describe('RateLimitManager', () => {
       let result = await manager.canMakeRequest();
       expect(result.allowed).toBe(false);
 
-      // 等待冷却期结�?      await new Promise(resolve => setTimeout(resolve, 150));
+      // 等待冷却期结�?      await new Promise(resolve => setTimeout(resolve, 150));
 
       // 现在应该允许请求
       result = await manager.canMakeRequest();
       expect(result.allowed).toBe(true);
     });
 
-    it('不应该在其他错误码时进入冷却�?, async () => {
+    it('不应该在其他错误码时进入冷却�?, async () => {
       rateLimitManager.recordError(404);
       
       const result = await rateLimitManager.canMakeRequest();
@@ -168,7 +168,7 @@ describe('RateLimitManager', () => {
   });
 
   describe('事件发射测试', () => {
-    it('应该在达到速率限制时发射事�?, async () => {
+    it('应该在达到速率限制时发射事�?, async () => {
       const events: any[] = [];
       
       rateLimitManager.on('rateLimitExceeded', (data) => {
@@ -194,7 +194,7 @@ describe('RateLimitManager', () => {
         warnings.push(data);
       });
 
-      // 发�?个请求（80%的分钟限制）
+      // 发�?个请求（80%的分钟限制）
       for (let i = 0; i < 8; i++) {
         rateLimitManager.recordRequest();
       }
@@ -227,11 +227,11 @@ describe('RateLimitManager', () => {
     });
 
     it('应该能够重置所有计数器', () => {
-      // 记录一些请�?      for (let i = 0; i < 5; i++) {
+      // 记录一些请�?      for (let i = 0; i < 5; i++) {
         rateLimitManager.recordRequest();
       }
       
-      rateLimitManager.recordError(429); // 进入冷却�?      
+      rateLimitManager.recordError(429); // 进入冷却�?      
       let status = rateLimitManager.getStatus();
       expect(status.requestsInLastMinute).toBe(5);
       expect(status.isLimited).toBe(true);
@@ -248,9 +248,9 @@ describe('RateLimitManager', () => {
     });
   });
 
-  describe('状态报告测�?, () => {
-    it('应该正确报告限制状�?, () => {
-      // 初始状�?      let status = rateLimitManager.getStatus();
+  describe('状态报告测�?, () => {
+    it('应该正确报告限制状�?, () => {
+      // 初始状�?      let status = rateLimitManager.getStatus();
       expect(status.isLimited).toBe(false);
       
       // 达到突发限制
@@ -272,7 +272,7 @@ describe('RateLimitManager', () => {
   });
 
   describe('并发测试', () => {
-    it('应该能够处理并发请求检�?, async () => {
+    it('应该能够处理并发请求检�?, async () => {
       const promises = [];
       
       for (let i = 0; i < 10; i++) {
@@ -315,12 +315,12 @@ describe('RateLimitManager', () => {
       expect(status.quotaResetTime.minute).toBeGreaterThan(now);
     });
 
-    it('应该正确清理过期的请求记�?, () => {
-      // 这个测试需要模拟时间流逝，在实际环境中会由定时器处�?      rateLimitManager.recordRequest();
+    it('应该正确清理过期的请求记�?, () => {
+      // 这个测试需要模拟时间流逝，在实际环境中会由定时器处�?      rateLimitManager.recordRequest();
       
       const status = rateLimitManager.getStatus();
       expect(status.requestsInLastMinute).toBe(1);
       
-      // 在实际应用中，过期记录会被定时清�?    });
+      // 在实际应用中，过期记录会被定时清�?    });
   });
 });

@@ -113,9 +113,9 @@ const emit = defineEmits<{
 
 // 系统页面组件映射
 const systemComponents = {
-  rooms: defineAsyncComponent(() => import('../pages/Rooms.vue')),
+  rooms: defineAsyncComponent(() => import('../pages/LiveRoomPage.vue')),
   settings: defineAsyncComponent(() => import('../pages/Settings.vue')),
-  events: defineAsyncComponent(() => import('../pages/Events.vue')),
+  events: defineAsyncComponent(() => import('../pages/EventsHistory.vue')),
   stats: defineAsyncComponent(() => import('../pages/Stats.vue')),
   'api-docs': defineAsyncComponent(() => import('../pages/ApiDocs.vue')),
   console: defineAsyncComponent(() => import('../pages/Console.vue')),

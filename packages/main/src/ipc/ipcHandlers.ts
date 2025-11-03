@@ -4,6 +4,7 @@ import { AuthManager } from '../services/AuthManager';
 import { PluginManager } from '../plugins/PluginManager';
 import { OverlayManager } from '../plugins/OverlayManager';
 import { ConsoleManager } from '../console/ConsoleManager';
+import { WindowManager } from '../bootstrap/WindowManager';
 import * as fs from 'fs';
 
 /**
@@ -15,7 +16,8 @@ export function initializeIpcHandlers(
   authManager: AuthManager, 
   pluginManager: PluginManager, 
   overlayManager: OverlayManager,
-  consoleManager: ConsoleManager
+  consoleManager: ConsoleManager,
+  windowManager: WindowManager
 ) {
   console.log('[IPC] Initializing IPC handlers...');
 
@@ -32,7 +34,7 @@ export function initializeIpcHandlers(
   // Login: QR start -> returns base64 data URL
   ipcMain.handle('login.qrStart', async () => {
     try {
-      return await authManager.startQrLogin();
+      return await authManager.loginWithQRCode();
     } catch (err: any) {
       return { error: err?.message || String(err) };
     }
@@ -41,7 +43,7 @@ export function initializeIpcHandlers(
   // Login: poll status
   ipcMain.handle('login.qrCheck', async () => {
     try {
-      return await authManager.checkQrLoginStatus();
+      return await authManager.checkQRLoginStatus();
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
@@ -687,6 +689,39 @@ export function initializeIpcHandlers(
       return true;
     } catch (err: any) {
       throw new Error(`Failed to write file: ${err?.message || String(err)}`);
+    }
+  });
+
+  // 窗口控制处理程序
+  ipcMain.handle('window.minimize', async () => {
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+  });
+
+  ipcMain.handle('window.close', async () => {
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow) {
+      mainWindow.close();
+    }
+  });
+
+  ipcMain.handle('window.maximize', async () => {
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.restore();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+
+  ipcMain.handle('window.restore', async () => {
+    const mainWindow = windowManager.getMainWindow();
+    if (mainWindow) {
+      mainWindow.restore();
     }
   });
 

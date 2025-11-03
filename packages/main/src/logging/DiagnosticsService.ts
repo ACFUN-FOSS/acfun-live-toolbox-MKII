@@ -39,10 +39,22 @@ export interface DiagnosticPackage {
   packageInfo: any;
 }
 
+/**
+ * 诊断服务类
+ * 提供系统诊断信息收集、日志管理和诊断包生成功能
+ * 用于故障排查和技术支持
+ */
 export class DiagnosticsService {
+  /** 日志管理器实例 */
   private readonly logManager = getLogManager();
+  /** 诊断包输出目录 */
   private readonly outputDir: string;
 
+  /**
+   * 构造函数
+   * @param databaseManager 数据库管理器实例
+   * @param configManager 配置管理器实例
+   */
   constructor(
     private readonly databaseManager: DatabaseManager,
     private readonly configManager: ConfigManager
@@ -189,6 +201,9 @@ export class DiagnosticsService {
 
   /**
    * 获取最近的日志条目
+   * @param limit 返回的日志条目数量限制，默认100条
+   * @param level 日志级别过滤，可选
+   * @returns 日志条目数组
    */
   public getRecentLogs(limit: number = 100, level?: 'info' | 'error' | 'warn' | 'debug'): any[] {
     const logs = this.logManager.getRecentLogs(limit);
@@ -197,6 +212,8 @@ export class DiagnosticsService {
 
   /**
    * 生成诊断包
+   * 收集系统信息、插件状态、日志和配置信息，打包成ZIP文件
+   * @returns 诊断包文件路径
    */
   async generateDiagnosticPackage(): Promise<string> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
