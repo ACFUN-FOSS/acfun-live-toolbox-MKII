@@ -43,22 +43,12 @@ The system SHALL process AcFun danmu events using API-compliant event handling p
 - **AND** external retry wrappers do not conflict with API retry behavior
 - **AND** connection recovery follows API's recommended patterns
 
-## REMOVED Requirements
 
-### Requirement: External Retry Logic Implementation
-~~The system SHALL implement external retry mechanisms for API calls.~~
 
-#### Scenario: ~~Custom retry wrapper implementation~~
-- ~~**WHEN** API calls fail due to network or server errors~~
-- ~~**THEN** external retry manager implements exponential backoff~~
-- ~~**AND** retry attempts are tracked independently of API~~
-- ~~**AND** custom timeout logic overrides API configuration~~
-
-**Rationale**: Removed because acfunlive-http-api provides built-in retry configuration that should be used instead of external wrappers to avoid conflicts and redundancy.
-
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: API Configuration Compliance
+
 The system SHALL configure acfunlive-http-api instances according to library specifications.
 
 #### Scenario: Proper API configuration

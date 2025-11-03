@@ -1,0 +1,362 @@
+chunk-TWFIPBJ3.js?v=589ed37f:2149 [Vue warn]: Invalid prop: custom validator check failed for prop "trigger". 
+  at <TPopup modelValue=false onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+chunk-TWFIPBJ3.js?v=589ed37f:2149 [Vue warn]: Invalid prop: type check failed for prop "attach". Expected String | Function, got HTMLDivElement  
+  at <TPopup modelValue=false onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+chunk-TWFIPBJ3.js?v=589ed37f:2149 [Vue warn]: Invalid prop: custom validator check failed for prop "trigger". 
+  at <TPopup modelValue=false onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+chunk-TWFIPBJ3.js?v=589ed37f:2149 [Vue warn]: Invalid prop: type check failed for prop "attach". Expected String | Function, got HTMLDivElement  
+  at <TPopupContainer ref=fn<ref2> forwardRef=fn<forwardRef> onContentMounted=fn<onContentMounted>  ... > 
+  at <TPopup modelValue=false onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+chunk-TWFIPBJ3.js?v=589ed37f:2149 [Vue warn]: Invalid prop: type check failed for prop "attach". Expected String | Function, got HTMLDivElement  
+  at <TPopupContainer ref=fn<ref2> forwardRef=fn<forwardRef> onContentMounted=fn<onContentMounted>  ... > 
+  at <TPopup modelValue=false onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+VM118 renderer_init:2 Electron Security Warning (Insecure Content-Security-Policy) This renderer process has either no Content Security
+  Policy set or a policy with "unsafe-eval" enabled. This exposes users of
+  this app to unnecessary security risks.
+
+For more information and help, consult
+https://electronjs.org/docs/tutorial/security.
+This warning will not show up
+once the app is packaged.
+warnAboutInsecureCSP @ VM118 renderer_init:2
+HomePage.vue:545 获取KPI数据失败: SyntaxError: Unexpected token '<', "<!doctype "... is not valid JSON
+updateKpiData @ HomePage.vue:545
+HomePage.vue:358 生成二维码失败: Error: 获取登录二维码失败
+    at generateQrCode (HomePage.vue:343:13)
+    at async showQrLogin (HomePage.vue:317:3)
+generateQrCode @ HomePage.vue:358
+await in generateQrCode
+showQrLogin @ HomePage.vue:317
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+invoker @ chunk-TWFIPBJ3.js?v=589ed37f:11335
+HomePage.vue:358 生成二维码失败: Error: 获取登录二维码失败
+    at generateQrCode (HomePage.vue:343:13)
+generateQrCode @ HomePage.vue:358
+await in generateQrCode
+refreshQrCode @ HomePage.vue:446
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+invoker @ chunk-TWFIPBJ3.js?v=589ed37f:11335
+HomePage.vue:358 生成二维码失败: Error: 获取登录二维码失败
+    at generateQrCode (HomePage.vue:343:13)
+generateQrCode @ HomePage.vue:358
+await in generateQrCode
+refreshQrCode @ HomePage.vue:446
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+invoker @ chunk-TWFIPBJ3.js?v=589ed37f:11335
+Topbar.vue:204 [Vue warn]: Invalid prop: type check failed for prop "attach". Expected String | Function, got HTMLDivElement  
+  at <TPopup modelValue=true onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+validateProp @ chunk-TWFIPBJ3.js?v=589ed37f:6573
+validateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6545
+updateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6342
+updateComponentPreRender @ chunk-TWFIPBJ3.js?v=589ed37f:7652
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7574
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+patchBlockChildren @ chunk-TWFIPBJ3.js?v=589ed37f:7241
+patchElement @ chunk-TWFIPBJ3.js?v=589ed37f:7159
+processElement @ chunk-TWFIPBJ3.js?v=589ed37f:7018
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6873
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+runIfDirty @ chunk-TWFIPBJ3.js?v=589ed37f:543
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+flushJobs @ chunk-TWFIPBJ3.js?v=589ed37f:2504
+Promise.then
+queueFlush @ chunk-TWFIPBJ3.js?v=589ed37f:2418
+queueJob @ chunk-TWFIPBJ3.js?v=589ed37f:2413
+effect2.scheduler @ chunk-TWFIPBJ3.js?v=589ed37f:7639
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:533
+endBatch @ chunk-TWFIPBJ3.js?v=589ed37f:591
+notify @ chunk-TWFIPBJ3.js?v=589ed37f:853
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:827
+set value @ chunk-TWFIPBJ3.js?v=589ed37f:1706
+toggleAccountCard @ Topbar.vue:204
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+invoker @ chunk-TWFIPBJ3.js?v=589ed37f:11335
+Topbar.vue:204 [Vue warn]: Invalid prop: custom validator check failed for prop "trigger". 
+  at <TPopup modelValue=true onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+validateProp @ chunk-TWFIPBJ3.js?v=589ed37f:6578
+validateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6545
+updateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6342
+updateComponentPreRender @ chunk-TWFIPBJ3.js?v=589ed37f:7652
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7574
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+patchBlockChildren @ chunk-TWFIPBJ3.js?v=589ed37f:7241
+patchElement @ chunk-TWFIPBJ3.js?v=589ed37f:7159
+processElement @ chunk-TWFIPBJ3.js?v=589ed37f:7018
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6873
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+runIfDirty @ chunk-TWFIPBJ3.js?v=589ed37f:543
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+flushJobs @ chunk-TWFIPBJ3.js?v=589ed37f:2504
+Promise.then
+queueFlush @ chunk-TWFIPBJ3.js?v=589ed37f:2418
+queueJob @ chunk-TWFIPBJ3.js?v=589ed37f:2413
+effect2.scheduler @ chunk-TWFIPBJ3.js?v=589ed37f:7639
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:533
+endBatch @ chunk-TWFIPBJ3.js?v=589ed37f:591
+notify @ chunk-TWFIPBJ3.js?v=589ed37f:853
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:827
+set value @ chunk-TWFIPBJ3.js?v=589ed37f:1706
+toggleAccountCard @ Topbar.vue:204
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+invoker @ chunk-TWFIPBJ3.js?v=589ed37f:11335
+Topbar.vue:204 [Vue warn]: Invalid prop: type check failed for prop "attach". Expected String | Function, got HTMLDivElement  
+  at <TPopupContainer ref=fn<ref2> forwardRef=fn<forwardRef> onContentMounted=fn<onContentMounted>  ... > 
+  at <TPopup modelValue=true onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+validateProp @ chunk-TWFIPBJ3.js?v=589ed37f:6573
+validateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6545
+updateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6342
+updateComponentPreRender @ chunk-TWFIPBJ3.js?v=589ed37f:7652
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7574
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+patchBlockChildren @ chunk-TWFIPBJ3.js?v=589ed37f:7241
+patchElement @ chunk-TWFIPBJ3.js?v=589ed37f:7159
+processElement @ chunk-TWFIPBJ3.js?v=589ed37f:7018
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6873
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+runIfDirty @ chunk-TWFIPBJ3.js?v=589ed37f:543
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+flushJobs @ chunk-TWFIPBJ3.js?v=589ed37f:2504
+Promise.then
+queueFlush @ chunk-TWFIPBJ3.js?v=589ed37f:2418
+queueJob @ chunk-TWFIPBJ3.js?v=589ed37f:2413
+effect2.scheduler @ chunk-TWFIPBJ3.js?v=589ed37f:7639
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:533
+endBatch @ chunk-TWFIPBJ3.js?v=589ed37f:591
+notify @ chunk-TWFIPBJ3.js?v=589ed37f:853
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:827
+set value @ chunk-TWFIPBJ3.js?v=589ed37f:1706
+toggleAccountCard @ Topbar.vue:204
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+invoker @ chunk-TWFIPBJ3.js?v=589ed37f:11335
+Topbar.vue:204 [Vue warn]: Invalid prop: type check failed for prop "attach". Expected String | Function, got HTMLDivElement  
+  at <TPopupContainer ref=fn<ref2> forwardRef=fn<forwardRef> onContentMounted=fn<onContentMounted>  ... > 
+  at <TPopup modelValue=true onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+validateProp @ chunk-TWFIPBJ3.js?v=589ed37f:6573
+validateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6545
+updateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6342
+updateComponentPreRender @ chunk-TWFIPBJ3.js?v=589ed37f:7652
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7574
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+runIfDirty @ chunk-TWFIPBJ3.js?v=589ed37f:543
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+flushJobs @ chunk-TWFIPBJ3.js?v=589ed37f:2504
+flushJobs @ chunk-TWFIPBJ3.js?v=589ed37f:2526
+Promise.then
+queueFlush @ chunk-TWFIPBJ3.js?v=589ed37f:2418
+queueJob @ chunk-TWFIPBJ3.js?v=589ed37f:2413
+effect2.scheduler @ chunk-TWFIPBJ3.js?v=589ed37f:7639
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:533
+endBatch @ chunk-TWFIPBJ3.js?v=589ed37f:591
+notify @ chunk-TWFIPBJ3.js?v=589ed37f:853
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:827
+set value @ chunk-TWFIPBJ3.js?v=589ed37f:1706
+toggleAccountCard @ Topbar.vue:204
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+invoker @ chunk-TWFIPBJ3.js?v=589ed37f:11335
+Topbar.vue:21 [Vue warn]: Invalid prop: type check failed for prop "attach". Expected String | Function, got HTMLDivElement  
+  at <TPopup modelValue=false onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+validateProp @ chunk-TWFIPBJ3.js?v=589ed37f:6573
+validateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6545
+updateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6342
+updateComponentPreRender @ chunk-TWFIPBJ3.js?v=589ed37f:7652
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7574
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+patchBlockChildren @ chunk-TWFIPBJ3.js?v=589ed37f:7241
+patchElement @ chunk-TWFIPBJ3.js?v=589ed37f:7159
+processElement @ chunk-TWFIPBJ3.js?v=589ed37f:7018
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6873
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+runIfDirty @ chunk-TWFIPBJ3.js?v=589ed37f:543
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+flushJobs @ chunk-TWFIPBJ3.js?v=589ed37f:2504
+Promise.then
+queueFlush @ chunk-TWFIPBJ3.js?v=589ed37f:2418
+queueJob @ chunk-TWFIPBJ3.js?v=589ed37f:2413
+effect2.scheduler @ chunk-TWFIPBJ3.js?v=589ed37f:7639
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:533
+endBatch @ chunk-TWFIPBJ3.js?v=589ed37f:591
+notify @ chunk-TWFIPBJ3.js?v=589ed37f:853
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:827
+set value @ chunk-TWFIPBJ3.js?v=589ed37f:1706
+set @ chunk-TWFIPBJ3.js?v=589ed37f:1744
+_createVNode.onUpdate:modelValue._cache.<computed>._cache.<computed> @ Topbar.vue:21
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+emit @ chunk-TWFIPBJ3.js?v=589ed37f:8589
+internalValue.value @ tdesign-vue-next.js?v=589ed37f:10496
+(anonymous) @ tdesign-vue-next.js?v=589ed37f:294168
+setTimeout
+hide2 @ tdesign-vue-next.js?v=589ed37f:294167
+onDocumentMouseDown @ tdesign-vue-next.js?v=589ed37f:294215
+Topbar.vue:21 [Vue warn]: Invalid prop: custom validator check failed for prop "trigger". 
+  at <TPopup modelValue=false onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+validateProp @ chunk-TWFIPBJ3.js?v=589ed37f:6578
+validateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6545
+updateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6342
+updateComponentPreRender @ chunk-TWFIPBJ3.js?v=589ed37f:7652
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7574
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+patchBlockChildren @ chunk-TWFIPBJ3.js?v=589ed37f:7241
+patchElement @ chunk-TWFIPBJ3.js?v=589ed37f:7159
+processElement @ chunk-TWFIPBJ3.js?v=589ed37f:7018
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6873
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+runIfDirty @ chunk-TWFIPBJ3.js?v=589ed37f:543
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+flushJobs @ chunk-TWFIPBJ3.js?v=589ed37f:2504
+Promise.then
+queueFlush @ chunk-TWFIPBJ3.js?v=589ed37f:2418
+queueJob @ chunk-TWFIPBJ3.js?v=589ed37f:2413
+effect2.scheduler @ chunk-TWFIPBJ3.js?v=589ed37f:7639
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:533
+endBatch @ chunk-TWFIPBJ3.js?v=589ed37f:591
+notify @ chunk-TWFIPBJ3.js?v=589ed37f:853
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:827
+set value @ chunk-TWFIPBJ3.js?v=589ed37f:1706
+set @ chunk-TWFIPBJ3.js?v=589ed37f:1744
+_createVNode.onUpdate:modelValue._cache.<computed>._cache.<computed> @ Topbar.vue:21
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+emit @ chunk-TWFIPBJ3.js?v=589ed37f:8589
+internalValue.value @ tdesign-vue-next.js?v=589ed37f:10496
+(anonymous) @ tdesign-vue-next.js?v=589ed37f:294168
+setTimeout
+hide2 @ tdesign-vue-next.js?v=589ed37f:294167
+onDocumentMouseDown @ tdesign-vue-next.js?v=589ed37f:294215
+Topbar.vue:21 [Vue warn]: Invalid prop: type check failed for prop "attach". Expected String | Function, got HTMLDivElement  
+  at <TPopupContainer ref=fn<ref2> forwardRef=fn<forwardRef> onContentMounted=fn<onContentMounted>  ... > 
+  at <TPopup modelValue=false onUpdate:modelValue=fn placement="bottom-left"  ... > 
+  at <Topbar class="layout-topbar" > 
+  at <LayoutShell> 
+  at <App>
+warn$1 @ chunk-TWFIPBJ3.js?v=589ed37f:2149
+validateProp @ chunk-TWFIPBJ3.js?v=589ed37f:6573
+validateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6545
+updateProps @ chunk-TWFIPBJ3.js?v=589ed37f:6342
+updateComponentPreRender @ chunk-TWFIPBJ3.js?v=589ed37f:7652
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7574
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+updateComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7448
+processComponent @ chunk-TWFIPBJ3.js?v=589ed37f:7382
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6885
+patchBlockChildren @ chunk-TWFIPBJ3.js?v=589ed37f:7241
+patchElement @ chunk-TWFIPBJ3.js?v=589ed37f:7159
+processElement @ chunk-TWFIPBJ3.js?v=589ed37f:7018
+patch @ chunk-TWFIPBJ3.js?v=589ed37f:6873
+componentUpdateFn @ chunk-TWFIPBJ3.js?v=589ed37f:7597
+run @ chunk-TWFIPBJ3.js?v=589ed37f:505
+runIfDirty @ chunk-TWFIPBJ3.js?v=589ed37f:543
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+flushJobs @ chunk-TWFIPBJ3.js?v=589ed37f:2504
+Promise.then
+queueFlush @ chunk-TWFIPBJ3.js?v=589ed37f:2418
+queueJob @ chunk-TWFIPBJ3.js?v=589ed37f:2413
+effect2.scheduler @ chunk-TWFIPBJ3.js?v=589ed37f:7639
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:533
+endBatch @ chunk-TWFIPBJ3.js?v=589ed37f:591
+notify @ chunk-TWFIPBJ3.js?v=589ed37f:853
+trigger @ chunk-TWFIPBJ3.js?v=589ed37f:827
+set value @ chunk-TWFIPBJ3.js?v=589ed37f:1706
+set @ chunk-TWFIPBJ3.js?v=589ed37f:1744
+_createVNode.onUpdate:modelValue._cache.<computed>._cache.<computed> @ Topbar.vue:21
+callWithErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2296
+callWithAsyncErrorHandling @ chunk-TWFIPBJ3.js?v=589ed37f:2303
+emit @ chunk-TWFIPBJ3.js?v=589ed37f:8589
+internalValue.value @ tdesign-vue-next.js?v=589ed37f:10496
+(anonymous) @ tdesign-vue-next.js?v=589ed37f:294168
+setTimeout
+hide2 @ tdesign-vue-next.js?v=589ed37f:294167
+onDocumentMouseDown @ tdesign-vue-next.js?v=589ed37f:294215
+Sidebar.vue:250 Menu changed: live-room
+Sidebar.vue:250 Menu changed: live-danmu
+Sidebar.vue:250 Menu changed: plugin-management
+Sidebar.vue:250 Menu changed: system-settings
+Sidebar.vue:250 Menu changed: system-console
+Sidebar.vue:250 Menu changed: system-develop
+Sidebar.vue:250 Menu changed: system-settings

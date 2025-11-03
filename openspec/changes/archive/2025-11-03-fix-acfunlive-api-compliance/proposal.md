@@ -1,92 +1,97 @@
-# Fix AcFunLive HTTP API Integration Compliance
+# Fix AcFunLive API Compliance
 
 ## Why
 
-Fix multiple compliance issues in the current integration with `acfunlive-http-api` to ensure proper usage patterns, authentication flows, and API initialization according to the library's documentation and test examples.
+修复弹幕显示系统与 `acfunlive-http-api` 库的合规性问题，确保系统正确使用该库的 API 接口和配置选项。
 
 ## What Changes
 
-This change updates the integration with `acfunlive-http-api` by:
-- Replacing incorrect `createApi()` calls with proper `new AcFunLiveApi(config)` initialization
-- Implementing complete QR code authentication flow with proper token management
-- Fixing danmu service parameter passing and event handling
-- Removing redundant external retry logic in favor of API's built-in retry mechanism
-- Updating all integration tests to use real API calls without mocking
+- 规范化 API 实例的创建和配置过程
+- 改进 QR 码登录流程和 token 管理机制
+- 标准化弹幕服务连接建立和维护流程
+- 确保事件处理符合 `acfunlive-http-api` 的标准
+- 统一错误处理机制与库的标准
+- 移除自定义重试实现，使用 `acfunlive-http-api` 内置的重试配置
+- 确保所有配置项符合库的要求
+- 添加配置有效性检查机制
 
-## Problem Statement
+## 变更概述
 
-After analyzing the `acfunlive-http-api` documentation, test cases, and current integration code, several non-compliant usage patterns were identified:
+本变更旨在修复弹幕显示系统与 `acfunlive-http-api` 库的合规性问题，确保系统正确使用该库的 API 接口和配置选项。
 
-1. **Incorrect API Instance Creation**: Using `createApi()` without configuration instead of `new AcFunLiveApi(config)`
-2. **Incomplete Authentication Flow**: Missing proper QR code login implementation and token management
-3. **Wrong Danmu Service Parameters**: Incorrect parameter passing to `startDanmu` method
-4. **Redundant Retry Logic**: Implementing external retry mechanisms when API has built-in retry configuration
+## 变更原因
 
-## Proposed Solution
+### 问题背景
 
-### 1. Fix API Instance Creation
-- Replace `createApi()` calls with `new AcFunLiveApi(config)` 
-- Add proper configuration with timeout, retryCount, and baseUrl
-- Update ConnectionPoolManager and ApiBridge implementations
+1. **API 使用不规范**：当前弹幕显示系统在使用 `acfunlive-http-api` 时存在配置和调用方式不符合库规范的问题
+2. **重复实现**：系统中存在重复实现 `acfunlive-http-api` 已有功能的代码，如重试逻辑
+3. **配置管理缺失**：缺乏对 API 配置的正确验证和管理机制
+4. **错误处理不一致**：错误处理方式与 `acfunlive-http-api` 的标准不一致
 
-### 2. Implement Proper Authentication Flow
-- Add complete QR code login flow: `qrLogin()` → poll `checkQrLoginStatus()`
-- Fix token management and refresh logic in AuthManager
-- Ensure proper token setting with `setAuthToken()`
+### 影响范围
 
-### 3. Correct Danmu Service Usage
-- Fix `startDanmu` parameter passing (liverUID as string, proper callback)
-- Align event handling with API's expected event types
-- Update AcfunAdapter to match API specifications
+- 弹幕显示系统的连接管理
+- AcFun 认证集成
+- 弹幕事件处理
+- API 配置管理
 
-### 4. Remove Redundant Retry Logic
-- Configure retry behavior in API initialization instead of external wrappers
-- Simplify ApiRetryManager to work with API's built-in retry mechanism
-- Remove duplicate error handling layers
+## 变更内容
 
-## Impact Assessment
+### 1. AcFun Live Stream Connection Management 优化
 
-### Benefits
-- **Reliability**: Proper API usage reduces connection failures and authentication issues
-- **Performance**: Eliminates redundant retry layers and improves response times
-- **Maintainability**: Code aligns with library documentation, easier to debug and update
-- **Compatibility**: Ensures compatibility with future API updates
+- **API 实例初始化**：规范化 API 实例的创建和配置过程
+- **认证集成**：
+  - 改进 QR 码登录流程
+  - 优化 token 管理机制
+- **弹幕服务连接**：标准化连接建立和维护流程
 
-### Risks
-- **Breaking Changes**: Some method signatures may change
-- **Testing Required**: All integration points need verification
-- **Migration**: Existing connections may need to be reset
+### 2. Real AcFun Danmu Event Processing 改进
 
-## Implementation Plan
+- **事件回调实现**：确保事件处理符合 `acfunlive-http-api` 的标准
+- **错误处理对齐**：统一错误处理机制与库的标准
 
-1. **Update API Initialization** - Fix createApi usage across all modules
-2. **Refactor Authentication** - Implement proper QR login flow
-3. **Fix Danmu Integration** - Correct parameter passing and event handling
-4. **Simplify Retry Logic** - Remove external retry wrappers
-5. **Update Tests** - Ensure all integration tests pass with real API calls
-6. **Documentation** - Update internal docs to reflect proper usage patterns
+### 3. 移除冗余功能
 
-## Acceptance Criteria
+- **外部重试逻辑**：移除自定义重试实现，使用 `acfunlive-http-api` 内置的重试配置
 
-- [ ] All API instances created with proper configuration
-- [ ] QR code authentication flow works end-to-end
-- [ ] Danmu service connects and receives events correctly
-- [ ] No redundant retry logic in external wrappers
-- [ ] All integration tests pass with real API calls
-- [ ] Performance metrics show improved connection reliability
+### 4. API Configuration Compliance 新增
 
-## Dependencies
+- **正确的 API 配置**：确保所有配置项符合库的要求
+- **配置验证**：添加配置有效性检查机制
 
-- Requires `acfunlive-http-api` package (already installed)
-- May need to update TypeScript types for proper API usage
-- Integration tests must use real API calls (no mocking allowed per user rules)
+## 预期影响
 
-## Timeline
+### 正面影响
 
-- **Phase 1**: API initialization fixes (1-2 hours)
-- **Phase 2**: Authentication flow implementation (2-3 hours) 
-- **Phase 3**: Danmu service corrections (1-2 hours)
-- **Phase 4**: Retry logic simplification (1 hour)
-- **Phase 5**: Testing and validation (2-3 hours)
+1. **提高稳定性**：通过使用标准 API，减少因不规范使用导致的问题
+2. **简化维护**：移除重复代码，降低维护成本
+3. **增强兼容性**：确保与 `acfunlive-http-api` 未来版本的兼容性
+4. **改善错误处理**：统一的错误处理机制提供更好的用户体验
 
-**Total Estimated Time**: 7-11 hours
+### 潜在风险
+
+1. **行为变更**：部分功能的行为可能会发生细微变化
+2. **配置迁移**：现有配置可能需要调整以符合新的规范
+3. **测试覆盖**：需要全面测试以确保变更不会引入新问题
+
+## 实施策略
+
+1. **渐进式修改**：分步骤实施变更，确保每个阶段都经过充分测试
+2. **向后兼容**：尽可能保持向后兼容性，减少对现有用户的影响
+3. **文档更新**：同步更新相关文档和示例代码
+4. **测试验证**：建立全面的测试用例验证变更的正确性
+
+## 成功标准
+
+- [ ] 所有 API 调用符合 `acfunlive-http-api` 规范
+- [ ] 配置管理机制完善且有效
+- [ ] 错误处理与库标准一致
+- [ ] 移除所有冗余的重试逻辑
+- [ ] 通过所有相关测试用例
+- [ ] 文档更新完成
+
+## 相关文档
+
+- `openspec/specs/danmu-display/spec.md` - 弹幕显示系统规范
+- `packages/main/node_modules/acfunlive-http-api/dist/index.d.ts` - API 类型定义
+- 相关测试用例和示例代码

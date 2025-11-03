@@ -82,38 +82,45 @@ The system SHALL provide interactive features for danmu messages to enhance user
 - **AND** message type filtering (regular danmu, gifts, follows) is configurable
 
 ### Requirement: AcFun Live Stream Connection Management
-The system SHALL establish and maintain reliable connections to AcFun live streams using the acfundanmu.js backend integration.
+The system SHALL establish and maintain reliable connections to AcFun live streams using proper acfunlive-http-api integration patterns.
 
-#### Scenario: Live stream connection establishment
-- **WHEN** user requests connection to an AcFun live room
-- **THEN** the system establishes WebSocket connection using acfunlive-http-api
-- **AND** authentication is performed using valid AcFun credentials
-- **AND** connection status is reported within 5 seconds
-- **AND** room metadata (title, streamer info, viewer count) is retrieved
+#### Scenario: API instance initialization
+- **WHEN** system initializes AcFun API connections
+- **THEN** API instances are created using `new AcFunLiveApi(config)` with proper configuration
+- **AND** configuration includes timeout, retryCount, and baseUrl parameters
+- **AND** connection pooling uses properly configured API instances
+- **AND** API configuration handles retry behavior internally
 
-#### Scenario: Connection failure and recovery
-- **WHEN** live stream connection fails or is interrupted
-- **THEN** the system attempts automatic reconnection with exponential backoff
-- **AND** connection status is updated to reflect current state
-- **AND** user is notified of connection issues without blocking UI
-- **AND** manual reconnection option is available
+#### Scenario: Authentication integration
+- **WHEN** user authentication is required for AcFun services
+- **THEN** system implements complete QR code login flow using `api.auth.qrLogin()`
+- **AND** system polls `api.auth.checkQrLoginStatus()` until authentication completes
+- **AND** authentication tokens are set using `api.setAuthToken()` method
+- **AND** token management includes proper validation and refresh logic
+
+#### Scenario: Danmu service connection
+- **WHEN** establishing danmu stream connection
+- **THEN** system calls `api.danmu.startDanmu(liverUID, callback)` with correct parameters
+- **AND** liverUID is passed as string type according to API specification
+- **AND** callback function handles events according to API event structure
+- **AND** session management uses API-provided session identifiers
 
 ### Requirement: Real AcFun Danmu Event Processing
-The system SHALL process authentic AcFun danmu events and enrich them with contextual metadata for display and analysis.
+The system SHALL process AcFun danmu events using API-compliant event handling patterns.
 
-#### Scenario: Danmu event reception and enrichment
-- **WHEN** danmu events are received from AcFun live stream
-- **THEN** events are parsed according to AcFun protocol specifications
-- **AND** each event is enriched with roomId, source platform, and timestamp
-- **AND** event types (comment, gift, like, follow, enter) are properly categorized
-- **AND** user information (username, level, badges) is extracted and preserved
+#### Scenario: Event callback implementation
+- **WHEN** danmu events are received from AcFun API
+- **THEN** event callbacks match the API's expected function signature
+- **AND** event types are processed according to API documentation (Comment, Gift, Like, etc.)
+- **AND** event data extraction follows API's event structure patterns
+- **AND** user information is accessed through API's standardized event properties
 
-#### Scenario: High-volume danmu stream handling
-- **WHEN** live stream generates high-frequency danmu events (>50/second)
-- **THEN** the system applies rate limiting and buffering strategies
-- **AND** critical events (gifts, follows) are prioritized over regular comments
-- **AND** system performance remains stable without memory leaks
-- **AND** event processing latency stays below 100ms average
+#### Scenario: Error handling alignment
+- **WHEN** API errors occur during danmu processing
+- **THEN** error handling uses API's error response format
+- **AND** retry logic relies on API's built-in retry mechanism
+- **AND** external retry wrappers do not conflict with API retry behavior
+- **AND** connection recovery follows API's recommended patterns
 
 ### Requirement: AcFun Authentication Integration
 The system SHALL integrate with AcFun authentication services to enable authorized access to live stream data and user-specific features.
@@ -131,4 +138,22 @@ The system SHALL integrate with AcFun authentication services to enable authoriz
 - **AND** existing connections are gracefully maintained where possible
 - **AND** error messages provide clear guidance for resolution
 - **AND** fallback to anonymous access is available where supported
+
+### Requirement: API Configuration Compliance
+
+The system SHALL configure acfunlive-http-api instances according to library specifications.
+
+#### Scenario: Proper API configuration
+- **WHEN** creating AcFunLiveApi instances
+- **THEN** configuration object includes all required parameters
+- **AND** timeout values are set appropriately for the application context
+- **AND** retry count is configured based on reliability requirements
+- **AND** base URL is set to match API documentation recommendations
+
+#### Scenario: Configuration validation
+- **WHEN** API configuration is applied
+- **THEN** system validates configuration parameters against API requirements
+- **AND** invalid configurations are rejected with clear error messages
+- **AND** default values align with API documentation standards
+- **AND** configuration changes are applied consistently across all API instances
 

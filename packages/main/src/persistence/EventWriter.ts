@@ -1,46 +1,20 @@
 import { DatabaseManager } from './DatabaseManager';
 import { NormalizedEvent, EventBatch } from '../types';
 
-/**
- * 事件写入器类
- * 负责将标准化事件批量写入数据库，提供队列管理和性能优化
- * 
- * 主要功能：
- * - 事件队列管理：缓存事件并批量处理
- * - 自动刷新：定时将队列中的事件写入数据库
- * - 内存保护：防止队列过大导致内存问题
- * - 性能优化：批量写入提高数据库操作效率
- * - 错误处理：处理写入失败和重试逻辑
- */
 export class EventWriter {
-  /** 事件队列 */
   private queue: NormalizedEvent[] = [];
-  /** 数据库管理器实例 */
   private databaseManager: DatabaseManager;
-  /** 是否正在写入 */
   private isWriting = false;
-  /** 批处理大小 */
   private batchSize = 100;
-  /** 刷新间隔（毫秒） */
   private flushInterval = 1000; // 1 second
-  /** 最大队列大小 */
   private maxQueueSize = 10000;
-  /** 刷新定时器 */
   private flushTimer: NodeJS.Timeout | null = null;
 
-  /**
-   * 构造函数
-   * @param databaseManager 数据库管理器实例
-   */
   constructor(databaseManager: DatabaseManager) {
     this.databaseManager = databaseManager;
     this.startFlushTimer();
   }
 
-  /**
-   * 启动刷新定时器
-   * @private
-   */
   private startFlushTimer(): void {
     this.flushTimer = setInterval(() => {
       this.flushQueue().catch((err: any) => {
@@ -49,10 +23,6 @@ export class EventWriter {
     }, this.flushInterval);
   }
 
-  /**
-   * 将事件加入队列
-   * @param event 标准化事件对象
-   */
   public enqueue(event: NormalizedEvent): void {
     // 防止队列过大导致内存问题
     if (this.queue.length >= this.maxQueueSize) {
@@ -73,9 +43,6 @@ export class EventWriter {
     }
   }
 
-  /**
-   * 刷新队列，将事件批量写入数据库
-   */
   public async flushQueue(): Promise<void> {
     if (this.isWriting || this.queue.length === 0) {
       return;

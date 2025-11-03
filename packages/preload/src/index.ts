@@ -18,12 +18,6 @@ const api = {
     readFile: (path: string) => ipcRenderer.invoke('fs.readFile', path),
     writeFile: (path: string, data: string) => ipcRenderer.invoke('fs.writeFile', path, data)
   },
-  window: {
-    minimizeWindow: () => ipcRenderer.invoke('window.minimize'),
-    closeWindow: () => ipcRenderer.invoke('window.close'),
-    maximizeWindow: () => ipcRenderer.invoke('window.maximize'),
-    restoreWindow: () => ipcRenderer.invoke('window.restore')
-  },
   login: {
     qrStart: () => ipcRenderer.invoke('login.qrStart'),
     qrCheck: () => ipcRenderer.invoke('login.qrCheck'),

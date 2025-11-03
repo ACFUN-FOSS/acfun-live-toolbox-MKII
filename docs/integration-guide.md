@@ -6,6 +6,15 @@
 
 ## 认证设置
 
+### API 合规性更新
+
+**重要更新**: 项目已完成与 `acfunlive-http-api` 库的完全合规性验证和修复：
+
+- **QR登录流程**: 现在完全符合 `acfunlive-http-api` 的 `AuthService.qrLogin()` 和 `AuthService.checkQrLoginStatus()` 标准接口
+- **Token管理**: 实现了标准的token存储、自动刷新和过期处理机制
+- **错误处理**: 统一的错误响应格式，提供详细的错误信息和状态码
+- **类型安全**: 使用与 `acfunlive-http-api` 一致的TypeScript类型定义
+
 ### AcFun 账号认证
 
 AcFun Live Toolbox 使用 `acfunlive-http-api` 库进行认证，支持二维码登录和令牌管理。

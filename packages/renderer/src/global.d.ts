@@ -1,9 +1,6 @@
 export {};
 
-// 添加Long类型定义以兼容外部依赖
 declare global {
-  type Long = number;
-  
   interface Window {
     electronApi: {
       dialog: {
@@ -14,12 +11,6 @@ declare global {
         exists: (path: string) => Promise<boolean>;
         readFile: (path: string) => Promise<string>;
         writeFile: (path: string, data: string) => Promise<boolean>;
-      };
-      window: {
-        minimizeWindow: () => Promise<void>;
-        closeWindow: () => Promise<void>;
-        maximizeWindow: () => Promise<void>;
-        restoreWindow: () => Promise<void>;
       };
       login: {
         qrStart: () => Promise<{ qrCodeDataUrl: string; expiresIn: number } | { error: string }>;
@@ -84,10 +75,6 @@ declare global {
         getCommands: () => Promise<{ success: boolean; data?: any; error?: string }>;
         getSession: (options: any) => Promise<{ success: boolean; data?: any; error?: string }>;
         getActiveSessions: () => Promise<{ success: boolean; data?: any; error?: string }>;
-      };
-      window: {
-        minimizeWindow: () => void;
-        closeWindow: () => void;
       };
       on: (channel: string, listener: (...args: any[]) => void) => void;
       off: (channel: string, listener: (...args: any[]) => void) => void;
