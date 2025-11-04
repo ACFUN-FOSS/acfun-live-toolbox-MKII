@@ -59,6 +59,14 @@ declare global {
         maximizeWindow: () => Promise<void>;
         restoreWindow: () => Promise<void>;
       };
+      system: {
+        getConfig: () => Promise<Record<string, any>>;
+        updateConfig: (newConfig: any) => Promise<{ success: boolean; error?: string }>;
+        getSystemLog: (count?: number) => Promise<any>;
+        genDiagnosticZip: () => Promise<any>;
+        showItemInFolder: (path: string) => Promise<{ success: boolean; error?: string }>;
+        openExternal: (url: string) => Promise<{ success: boolean; error?: string }>;
+      };
       room: {
         connect: (roomId: string) => Promise<{ success: boolean; code?: string; error?: string }>;
         disconnect: (roomId: string) => Promise<{ success: boolean; code?: string; error?: string }>;

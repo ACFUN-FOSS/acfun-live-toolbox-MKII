@@ -41,7 +41,8 @@ const api = {
     updateConfig: (newConfig: any) => ipcRenderer.invoke('system.updateConfig', newConfig),
     getSystemLog: (count?: number) => ipcRenderer.invoke('system.getSystemLog', count),
     genDiagnosticZip: () => ipcRenderer.invoke('system.genDiagnosticZip'),
-    showItemInFolder: (targetPath: string) => ipcRenderer.invoke('system.showItemInFolder', targetPath)
+    showItemInFolder: (targetPath: string) => ipcRenderer.invoke('system.showItemInFolder', targetPath),
+    openExternal: (url: string) => ipcRenderer.invoke('system.openExternal', url)
   },
   // Overlay API bridging
   overlay: {

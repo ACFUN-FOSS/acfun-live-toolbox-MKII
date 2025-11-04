@@ -96,6 +96,13 @@ export const usePluginStore = defineStore('plugin', () => {
     try {
       isLoading.value = true;
       error.value = null;
+      // 开发环境保护：在纯 Vite 预览中，window.electronApi 可能不存在
+      if (!window.electronApi?.plugin) {
+        console.warn('[plugin] electronApi.plugin 未初始化，跳过插件加载（开发预览环境）');
+        plugins.value = [];
+        isLoading.value = false;
+        return;
+      }
       
       // 使用真实的preload API获取插件列表
       const result = await window.electronApi.plugin.list();
@@ -137,6 +144,10 @@ export const usePluginStore = defineStore('plugin', () => {
 
   async function refreshPluginStatus() {
     try {
+      if (!window.electronApi?.plugin) {
+        console.warn('[plugin] electronApi.plugin 未初始化，跳过插件状态刷新（开发预览环境）');
+        return;
+      }
       // 使用真实的preload API获取插件统计信息
       const statsResult = await window.electronApi.plugin.stats();
       

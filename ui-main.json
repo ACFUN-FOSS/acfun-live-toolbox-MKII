@@ -1,0 +1,563 @@
+{
+  "framework": "tdesign-vue-next",
+  "page_id": "home-right-pane",
+  "reference_image": "/mnt/data/首页.jpg",
+  "goal": "Refactor ONLY the right-side content of the reference image into a 2×2 card grid (A,B,C,D) with no vertical scroll at 792×704. Keep left navigation as-is. Remove any persistent top quick-action bar.",
+  "style_constraints": {
+    "no_fixed_pixels": true,
+    "layout_units": "fractional",
+    "grid": "12-col",
+    "cards_per_row": 2,
+    "rows": 2,
+    "card_span": 6,
+    "card_internal_structure": {
+      "header_fraction": 0.2,
+      "body_fraction": 0.8
+    },
+    "truncate": {
+      "single_line": true,
+      "signature_lines": 2
+    }
+  },
+  "routes": [
+    { "path": "/rooms", "name": "RoomListPage" },
+    { "path": "/docs", "name": "DocsCenter" },
+    { "path": "/debugger", "name": "DebugConsole" },
+    { "path": "/login", "name": "LoginPage" },
+    { "path": "/stream/start", "name": "StreamStart" }
+  ],
+  "global_state": {
+    "auth": {
+      "isLoggedIn": false,
+      "user": {
+        "username": "",
+        "uid": "",
+        "signature": "",
+        "followers": 0,
+        "avatarUrl": ""
+      }
+    },
+    "role": {
+      "current": "anchor",
+      "options": ["anchor", "moderator", "developer"],
+      "persist_strategy": "server_first_local_fallback"
+    },
+    "statsScope": "7d",
+    "ui": {
+      "firstLoginRoleDialogVisible": false,
+      "loading": { "A": false, "B": false, "C": false, "D": false },
+      "error": { "A": null, "B": null, "C": null, "D": null }
+    }
+  },
+  "data_models": {
+    "anchor": {
+      "lastSession": { "dateISO": "", "durationHMS": "" },
+      "period": { "sessions": 0, "avgDurationHMS": "", "giftCount": 0 }
+    },
+    "moderator": {
+      "rooms": [
+        { "roomId": "", "name": "", "coverUrl": "", "isLive": false }
+      ]
+    },
+    "developer": {
+      "metrics": { "errors": 0, "messages": 0, "uniqueErrorTypes": 0 }
+    },
+    "docs": {
+      "items": [
+        { "title": "", "desc": "", "href": "" }
+      ]
+    }
+  },
+  "delta_from_reference": {
+    "remove": [
+      "any persistent top quick-action bar on the right pane",
+      "sprawling onboarding block that occupies the first screen on the right"
+    ],
+    "replace_with": [
+      "2×2 grid cards (A,B,C,D) with role-driven C-card and a streamlined D-card"
+    ],
+    "keep": [
+      "left nav, header shell; add avatar dropdown entry for role switching"
+    ]
+  },
+  "component_map": {
+    "layout": ["t-row", "t-col", "t-space"],
+    "cards": ["t-card"],
+    "media": ["t-image", "t-avatar", "t-badge"],
+    "inputs": ["t-button", "t-link", "t-radio-group", "t-radio-button", "t-input", "t-tooltip"],
+    "feedback": ["t-dialog", "t-dropdown", "t-menu", "t-message", "t-skeleton", "t-empty", "t-loading"]
+  },
+  "component_tree": {
+    "header": {
+      "rightArea": {
+        "avatar": {
+          "component": "t-avatar",
+          "menu": {
+            "component": "t-dropdown",
+            "items": [
+              { "key": "profile", "label": "Profile" },
+              {
+                "key": "switch-role",
+                "label": "切换角色",
+                "children": [
+                  { "key": "anchor", "label": "主播（当前时打勾）" },
+                  { "key": "moderator", "label": "房管（当前时打勾）" },
+                  { "key": "developer", "label": "开发（当前时打勾）" }
+                ]
+              },
+              { "key": "logout", "label": "Logout", "visibleIf": "auth.isLoggedIn" }
+            ]
+          },
+          "onCommand": {
+            "switch-role": "set role.current = clickedKey; re-render A/B/C/D",
+            "logout": "dispatch logout; route:/login"
+          }
+        }
+      }
+    },
+    "rightPane": {
+      "grid": {
+        "component": "t-row",
+        "props": { "align": "stretch", "justify": "space-between" },
+        "children": [
+          { "component": "t-col", "props": { "span": 6 }, "slot": "CardA" },
+          { "component": "t-col", "props": { "span": 6 }, "slot": "CardB" },
+          { "component": "t-col", "props": { "span": 6 }, "slot": "CardC" },
+          { "component": "t-col", "props": { "span": 6 }, "slot": "CardD" }
+        ]
+      }
+    }
+  },
+  "cards": {
+    "A": {
+      "id": "welcome-primary-action",
+      "position": "row1-col1",
+      "component": "t-card",
+      "header": {
+        "title": "欢迎使用 ACLiveFrame",
+        "rightSlot": { "type": "roleBadge", "content": "只读当前角色：主播/房管/开发" }
+      },
+      "body": [
+        { "type": "text", "key": "welcomeText", "content": {
+          "firstVisit": "你好，{displayName|访客}，请选择需要完成的操作。",
+          "returnVisit": "欢迎回来，{displayName}。"
+        }},
+        { "type": "button", "key": "primaryCTA", "variant": "primary", "size": "large", "labelByRole": {
+          "anchor": "开始直播", "moderator": "房间管理", "developer": "插件调试"
+        }, "onClickByRole": {
+          "anchor": "route:/stream/start", "moderator": "route:/rooms", "developer": "route:/debugger"
+        }}
+      ],
+      "loading_bind": "ui.loading.A",
+      "error_bind": "ui.error.A",
+      "immutable": true
+    },
+    "B": {
+      "id": "account",
+      "position": "row1-col2",
+      "component": "t-card",
+      "header": { "title": "账户" },
+      "body": {
+        "whenNotLoggedIn": [
+          { "type": "button", "label": "登录", "variant": "primary", "onClick": "route:/login" }
+        ],
+        "whenLoggedIn": [
+          { "type": "row", "items": [{ "type": "text", "label": "用户名", "value": "auth.user.username", "truncate": 1 }]},
+          { "type": "row", "items": [{ "type": "text", "label": "UID", "value": "auth.user.uid", "copyable": true, "onCopy": "t-message.success('UID 已复制')" }]},
+          { "type": "row", "items": [{ "type": "text", "label": "签名", "value": "auth.user.signature", "truncate": 2, "emptyText": "暂无签名" }]},
+          { "type": "row", "items": [{ "type": "stat", "label": "粉丝数", "value": "formatCompact(auth.user.followers)" }]},
+          { "type": "row", "items": [{ "type": "button", "label": "退出登录", "variant": "outline", "onClick": "dispatch logout" }]}
+        ]
+      },
+      "loading_bind": "ui.loading.B",
+      "error_bind": "ui.error.B"
+    },
+    "C": {
+      "id": "role-main",
+      "position": "row2-col1",
+      "component": "t-card",
+      "header": {
+        "titleByRole": { "anchor": "直播概览", "moderator": "房间", "developer": "控制台统计" },
+        "rightSlot": {
+          "type": "t-radio-group",
+          "variant": "primary-filled",
+          "options": [{ "label": "近7天", "value": "7d" }, { "label": "近30天", "value": "30d" }],
+          "valueBind": "statsScope",
+          "onChange": "reload C-card historical data"
+        }
+      },
+      "bodyByRole": {
+        "anchor": [
+          { "type": "kv", "title": "最近一次直播", "kvs": [
+            { "k": "日期", "v": "anchor.lastSession.dateISO" },
+            { "k": "直播时长", "v": "anchor.lastSession.durationHMS" }
+          ]},
+          { "type": "kv", "title": "近区间概览（{statsScope}）", "kvs": [
+            { "k": "开播场次", "v": "anchor.period.sessions" },
+            { "k": "平均直播时长", "v": "anchor.period.avgDurationHMS" }
+          ]},
+          { "type": "kv", "title": "贡献概览（{statsScope}）", "kvs": [
+            { "k": "礼物数量", "v": "anchor.period.giftCount" }
+          ]},
+          { "type": "empty", "visibleIf": "!hasAnchorData", "description": "暂无历史数据", "action": { "label": "去开始直播", "to": "/stream/start" } }
+        ],
+        "moderator": [
+          { "type": "grid", "cols": 2, "maxItems": 2, "itemsBind": "moderator.rooms", "itemTemplate": {
+            "type": "roomCard",
+            "cover": "item.coverUrl",
+            "title": "item.name",
+            "statusDot": { "colorIf": "item.isLive ? 'success' : 'default'", "textIf": "item.isLive ? '直播中' : '未直播'" }
+          }},
+          { "type": "link", "align": "right", "label": "查看更多", "to": "/rooms", "visibleIf": "moderator.rooms.length > 2" },
+          { "type": "empty", "visibleIf": "moderator.rooms.length === 0", "description": "暂无房间", "action": { "label": "去创建/绑定房间", "to": "/rooms" } }
+        ],
+        "developer": [
+          { "type": "statsRow", "items": [
+            { "label": "Errors", "value": "developer.metrics.errors" },
+            { "label": "Messages", "value": "developer.metrics.messages" },
+            { "label": "Unique error types", "value": "developer.metrics.uniqueErrorTypes" }
+          ]},
+          { "type": "empty", "visibleIf": "!hasDevMetrics", "description": "暂无数据", "action": { "label": "去调试", "to": "/debugger" } }
+        ]
+      },
+      "loading_bind": "ui.loading.C",
+      "error_bind": "ui.error.C",
+      "notes": "All numbers are computed from stored historical data; no realtime polling."
+    },
+    "D": {
+      "id": "docs-quicklinks",
+      "position": "row2-col2",
+      "component": "t-card",
+      "header": { "title": "使用说明" },
+      "body": [
+        { "type": "list", "itemsBind": "docs.items.slice(0,3)", "itemTemplate": {
+          "title": "item.title",
+          "desc": "item.desc",
+          "action": { "type": "t-link", "href": "item.href", "target": "_blank", "label": "打开" }
+        }},
+        { "type": "link", "align": "right", "label": "查看更多", "to": "/docs", "target": "_blank" }
+      ],
+      "loading_bind": "ui.loading.D",
+      "error_bind": "ui.error.D"
+    }
+  },
+  "dialogs": {
+    "firstLoginRoleDialog": {
+      "visibleBind": "ui.firstLoginRoleDialogVisible",
+      "component": "t-dialog",
+      "props": {
+        "header": "选择你的角色",
+        "placement": "center",
+        "closeOnEscKeydown": false,
+        "closeOnOverlayClick": false
+      },
+      "body": {
+        "type": "roleOptionsRow",
+        "options": [
+          { "value": "anchor", "title": "主播", "desc": "开播与回放统计", "icon": "user" },
+          { "value": "moderator", "title": "房管", "desc": "房间管理与秩序", "icon": "shield" },
+          { "value": "developer", "title": "开发", "desc": "插件与调试", "icon": "code" }
+        ],
+        "valueBind": "role.current"
+      },
+      "footer": {
+        "primaryButton": {
+          "label": "继续",
+          "onClick": "persist role.current; ui.firstLoginRoleDialogVisible=false; re-render cards"
+        }
+      },
+      "whenToShow": "on first login (no persisted role found)"
+    }
+  },
+  "behaviors": {
+    "role_switching": [
+      "On first login: open role dialog; after confirm, save role (server>local).",
+      "From avatar dropdown: switching role updates role.current and triggers grid re-render."
+    ],
+    "card_loading": [
+      "A/B/C/D show skeleton while awaiting data.",
+      "On statsScope change: reload C only."
+    ],
+    "empty_error_states": [
+      "Use t-empty with single CTA on each card.",
+      "On fetch error: show card-level banner and Retry."
+    ],
+    "navigation": [
+      "A primary CTA routes by role.",
+      "C(moderator) '查看更多' -> /rooms.",
+      "D '查看更多' -> /docs (new tab)."
+    ]
+  },
+
+  "api": {
+    "transport_selector": {
+      "mode": "auto",
+      "order": ["ipc", "http", "mock"],
+      "notes": "Try Electron main-process IPC first; if not present, fall back to HTTP; otherwise use mocks."
+    },
+    "ipc": {
+      "enabled": true,
+      "channels": {
+        "request": "main.api.request",
+        "auth": "main.auth",
+        "role": "main.role",
+        "docs": "main.docs"
+      },
+      "notes": "Set to the REAL main-process channel names if they already exist; otherwise leave disabled for each endpoint via implemented='mock'."
+    },
+    "http": {
+      "enabled": true,
+      "baseURL": "http://localhost:5173",
+      "timeout_ms": 8000,
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    },
+
+    "endpoints": {
+      "GET_USER": {
+        "purpose": "Get current user profile for Card B",
+        "binding": "B",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.auth",
+          "action": "getUser"
+        },
+        "http": {
+          "method": "GET",
+          "path": "/api/user/me",
+          "query": {}
+        },
+        "request_transform": {},
+        "response_transform": {
+          "username": "data.username",
+          "uid": "data.uid",
+          "signature": "data.signature",
+          "followers": "data.followers",
+          "avatarUrl": "data.avatarUrl"
+        },
+        "mock_response": {
+          "data": {
+            "username": "Alice",
+            "uid": "U123456",
+            "signature": "Live. Laugh. Stream.",
+            "followers": 12800,
+            "avatarUrl": ""
+          }
+        },
+        "mock_latency_ms": 300,
+        "notes": "If the real main-process API uses different field names (e.g., userId, fans), adjust response_transform accordingly."
+      },
+
+      "LOGIN": {
+        "purpose": "Trigger login flow (Card B, not auto-called)",
+        "binding": "B",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.auth",
+          "action": "login"
+        },
+        "http": {
+          "method": "POST",
+          "path": "/api/auth/login",
+          "body": { "provider": "string" }
+        },
+        "mock_response": { "data": { "ok": true } },
+        "notes": "Wire to real login if present; otherwise route to /login page."
+      },
+
+      "LOGOUT": {
+        "purpose": "Logout (Card B)",
+        "binding": "B",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.auth",
+          "action": "logout"
+        },
+        "http": {
+          "method": "POST",
+          "path": "/api/auth/logout",
+          "body": {}
+        },
+        "mock_response": { "data": { "ok": true } }
+      },
+
+      "GET_ROLE": {
+        "purpose": "Get persisted role for first-login logic and avatar menu checkmark",
+        "binding": "A/B/C/D",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.role",
+          "action": "getRole"
+        },
+        "http": {
+          "method": "GET",
+          "path": "/api/role",
+          "query": {}
+        },
+        "mock_response": { "data": { "role": null } },
+        "notes": "If null, show role dialog."
+      },
+
+      "SET_ROLE": {
+        "purpose": "Persist chosen role",
+        "binding": "dialogs.firstLoginRoleDialog",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.role",
+          "action": "setRole"
+        },
+        "http": {
+          "method": "POST",
+          "path": "/api/role",
+          "body": { "role": "anchor|moderator|developer" }
+        },
+        "mock_response": { "data": { "ok": true } }
+      },
+
+      "GET_ANCHOR_STATS": {
+        "purpose": "Anchor: last session + period stats for Card C",
+        "binding": "C.anchor",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.api.request",
+          "action": "anchor.stats"
+        },
+        "http": {
+          "method": "GET",
+          "path": "/api/stats/anchor",
+          "query": { "scope": "7d|30d" }
+        },
+        "request_transform": {
+          "scope": "statsScope"
+        },
+        "response_transform": {
+          "lastSession.dateISO": "data.lastSession.dateISO",
+          "lastSession.durationHMS": "data.lastSession.durationHMS",
+          "period.sessions": "data.period.sessions",
+          "period.avgDurationHMS": "data.period.avgDurationHMS",
+          "period.giftCount": "data.period.giftCount"
+        },
+        "mock_response": {
+          "data": {
+            "lastSession": { "dateISO": "2025-10-28", "durationHMS": "02:36:14" },
+            "period": { "sessions": 6, "avgDurationHMS": "01:54:20", "giftCount": 342 }
+          }
+        },
+        "notes": "Historical only; no realtime polling."
+      },
+
+      "GET_MOD_ROOMS": {
+        "purpose": "Moderator: list rooms (max 2 on card) for Card C",
+        "binding": "C.moderator",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.api.request",
+          "action": "moderator.rooms"
+        },
+        "http": {
+          "method": "GET",
+          "path": "/api/moderator/rooms",
+          "query": { "limit": "number" }
+        },
+        "request_transform": { "limit": 2 },
+        "response_transform": {
+          "rooms": "data"
+        },
+        "mock_response": {
+          "data": [
+            { "roomId": "R001", "name": "主会场", "coverUrl": "", "isLive": true },
+            { "roomId": "R002", "name": "分会场A", "coverUrl": "", "isLive": false },
+            { "roomId": "R003", "name": "分会场B", "coverUrl": "", "isLive": false }
+          ]
+        },
+        "notes": "Card shows first 2 only; link '查看更多' navigates to /rooms."
+      },
+
+      "GET_DEV_METRICS": {
+        "purpose": "Developer: Errors / Messages / Unique error types (historical) for Card C",
+        "binding": "C.developer",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.api.request",
+          "action": "developer.metrics"
+        },
+        "http": {
+          "method": "GET",
+          "path": "/api/dev/metrics",
+          "query": { "scope": "7d|30d" }
+        },
+        "request_transform": { "scope": "statsScope" },
+        "response_transform": {
+          "metrics.errors": "data.errors",
+          "metrics.messages": "data.messages",
+          "metrics.uniqueErrorTypes": "data.uniqueErrorTypes"
+        },
+        "mock_response": { "data": { "errors": 17, "messages": 15842, "uniqueErrorTypes": 3 } },
+        "notes": "If real API returns different keys (e.g., failCount, msgTotal), change response_transform."
+      },
+
+      "GET_DOCS": {
+        "purpose": "Docs quicklinks for Card D",
+        "binding": "D",
+        "implemented": "mock",
+        "ipc": {
+          "channel": "main.docs",
+          "action": "list"
+        },
+        "http": {
+          "method": "GET",
+          "path": "/api/docs/list",
+          "query": {}
+        },
+        "response_transform": {
+          "items": "data"
+        },
+        "mock_response": {
+          "data": [
+            { "title": "认证指南", "desc": "如何获取并刷新令牌", "href": "https://docs.example/auth" },
+            { "title": "事件回调", "desc": "订阅与回调签名校验", "href": "https://docs.example/webhooks" },
+            { "title": "直播数据", "desc": "统计口径与字段定义", "href": "https://docs.example/metrics" },
+            { "title": "更多文档", "desc": "全部目录", "href": "https://docs.example" }
+          ]
+        },
+        "notes": "Render the first 3 items in Card D; '查看更多' opens /docs or external hub."
+      }
+    },
+
+    "boot_sequence": [
+      "GET_ROLE -> if role is null => ui.firstLoginRoleDialogVisible=true",
+      "GET_USER -> set auth.isLoggedIn and auth.user (if 401: show logged-out state)",
+      "Parallel: GET_ANCHOR_STATS or GET_MOD_ROOMS or GET_DEV_METRICS based on role",
+      "GET_DOCS"
+    ],
+
+    "error_handling": {
+      "strategy": "per-card banner + retry",
+      "mapping": {
+        "401": "For B: show Login button; For others: show empty with CTA.",
+        "5xx_or_network": "Show retry on the same card; do not block other cards."
+      }
+    }
+  },
+
+  "mock_server": {
+    "enabled": true,
+    "latency_ms_range": [150, 450],
+    "error_rate": 0.02,
+    "seed": 42,
+    "notes": "Set endpoints[].implemented='real_ipc' or 'real_http' when the main-process API exists. Until then, this mock block is used."
+  },
+
+  "acceptance_criteria": [
+    " no vertical scroll on the right pane.",
+    "2×2 cards fill the pane: A(left-top), B(right-top), C(left-bottom), D(right-bottom).",
+    "Card A contains welcome text and ONE role-based primary button.",
+    "Card B shows Login when logged out; otherwise shows username, UID(with copy), signature(two lines), followers(compact), Logout.",
+    "Card C is role-driven with a 7d/30d scope toggle; Anchor shows last session + sessions + avg duration + gift count; Moderator shows up to 2 rooms with cover/name/status and a '查看更多' link; Developer shows Errors/Messages/Unique error types.",
+    "Card D lists the first 3 items from the docs list with '查看更多'.",
+    "First login MUST show role dialog when no persisted role; avatar dropdown MUST allow role switching thereafter.",
+    "No persistent top quick-action bar is present.",
+    "All figures are historical snapshots; no realtime polling."
+  ]
+}

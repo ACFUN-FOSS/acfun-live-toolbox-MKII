@@ -72,6 +72,13 @@ export const useRoomStore = defineStore('room', () => {
     try {
       isLoading.value = true;
       error.value = null;
+      // 开发环境保护：在纯 Vite 预览中，window.electronApi 可能不存在
+      if (!window.electronApi?.room) {
+        console.warn('[room] electronApi.room 未初始化，跳过房间加载（开发预览环境）');
+        rooms.value = [];
+        isLoading.value = false;
+        return;
+      }
       
       // 使用真实的preload API获取房间列表
       const result = await window.electronApi.room.list();
@@ -164,6 +171,11 @@ export const useRoomStore = defineStore('room', () => {
 
   async function refreshRoomStatus() {
     if (rooms.value.length === 0) return;
+    // 开发环境保护：在纯 Vite 预览中，window.electronApi 可能不存在
+    if (!window.electronApi?.room) {
+      console.warn('[room] electronApi.room 未初始化，跳过状态刷新（开发预览环境）');
+      return;
+    }
     
     try {
       // 并行刷新房间的连接状态和详情信息

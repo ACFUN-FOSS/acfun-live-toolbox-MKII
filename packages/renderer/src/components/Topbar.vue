@@ -13,74 +13,7 @@
         <span class="title-text">ACLiveFrame</span>
       </div>
     </div>
-    
-    <!-- 中央：账户区域和房间状态 -->
-    <div class="topbar-center">
-      <!-- 账户弹出卡片 -->
-      <t-popup
-        v-model="showAccountCard"
-        placement="bottom-left"
-        :attach="getAttachElement"
-        trigger="click"
-      >
-        <!-- 触发元素 -->
-        <div
-          ref="accountArea"
-          class="account-area"
-          @click="toggleAccountCard"
-        >
-          <t-avatar
-            :image="userInfo?.avatar"
-            size="small"
-          />
-          <span class="username">{{ userInfo?.nickname || '游客' }}</span>
-          <t-icon
-            name="chevron-down"
-            class="dropdown-icon"
-          />
-        </div>
-        
-        <!-- 弹出内容使用 #content 插槽 -->
-        <template #content>
-          <div class="account-card">
-            <div class="account-info">
-              <t-avatar
-                :image="userInfo?.avatar"
-                size="medium"
-              />
-              <div class="user-details">
-                <div class="user-name">
-                  {{ userInfo?.nickname || '游客' }}
-                </div>
-                <div class="user-id">
-                  ID: {{ userInfo?.userID || 'N/A' }}
-                </div>
-              </div>
-            </div>
-            <t-divider />
-            <div class="account-actions">
-              <t-button
-                v-if="!userInfo?.userID"
-                variant="outline"
-                size="small"
-                @click="login"
-              >
-                扫码登录
-              </t-button>
-              <t-button
-                v-else
-                variant="outline"
-                size="small"
-                @click="logout"
-              >
-                退出登录
-              </t-button>
-            </div>
-          </div>
-        </template>
-      </t-popup>
-      
-      <!-- 房间状态指示器 -->
+     <!-- 房间状态指示器 -->
       <div
         class="room-status"
         @click="toggleRoomDrawer"
@@ -98,6 +31,80 @@
         </t-badge>
         <span class="room-text">{{ roomStatusText }}</span>
       </div>
+    <!-- 账户区域和房间状态 -->
+    <div class="topbar-center">
+      <!-- 账户弹出卡片 + 头像下拉菜单（右键触发角色/登出） -->
+      <t-dropdown
+        :options="roleMenuItems"
+        placement="bottom-left"
+        trigger="context-menu"
+        @click="handleRoleMenu"
+      >
+        <t-popup
+          v-model="showAccountCard"
+          placement="bottom-left"
+          :attach="getAttachElement"
+          trigger="click"
+        >
+          <!-- 触发元素 -->
+          <div
+            ref="accountArea"
+            class="account-area"
+            @click="toggleAccountCard"
+          >
+            <t-avatar
+              :image="userInfo?.avatar"
+              size="small"
+            />
+            <span class="username">{{ userInfo?.nickname || '游客' }}</span>
+            <t-icon
+              name="chevron-down"
+              class="dropdown-icon"
+            />
+          </div>
+          
+          <!-- 弹出内容使用 #content 插槽 -->
+          <template #content>
+            <div class="account-card">
+              <div class="account-info">
+                <t-avatar
+                  :image="userInfo?.avatar"
+                  size="medium"
+                />
+                <div class="user-details">
+                  <div class="user-name">
+                    {{ userInfo?.nickname || '游客' }}
+                  </div>
+                  <div class="user-id">
+                    ID: {{ userInfo?.userID || 'N/A' }}
+                  </div>
+                </div>
+              </div>
+              <t-divider />
+              <div class="account-actions">
+                <t-button
+                  v-if="!userInfo?.userID"
+                  variant="outline"
+                  size="small"
+                  @click="login"
+                >
+                  扫码登录
+                </t-button>
+                <t-button
+                  v-else
+                  variant="outline"
+                  size="small"
+                  @click="logout"
+                >
+                  退出登录
+                </t-button>
+              </div>
+            </div>
+          </template>
+        </t-popup>
+      </t-dropdown>
+      
+     
     </div>
     
     <!-- 右侧：窗口控制按钮 -->
@@ -183,9 +190,11 @@ import { ref, computed, onMounted } from 'vue';
 import { useAccountStore } from '../stores/account';
 import { useRoomStore } from '../stores/room';
 import type { Room } from '../stores/room';
+import { useRoleStore } from '../stores/role';
 
 const accountStore = useAccountStore();
 const roomStore = useRoomStore();
+const roleStore = useRoleStore();
 
 const showAccountCard = ref(false);
 const showRoomDrawer = ref(false);
@@ -246,6 +255,31 @@ function openRoom(room: Room) {
 
 function getAttachElement(): HTMLElement | null {
   return accountArea.value || null;
+}
+
+const roleMenuItems = computed(() => [
+  { value: 'profile', content: 'Profile' },
+  {
+    value: 'switch-role',
+    content: '切换角色',
+    children: [
+      { value: 'anchor', content: roleStore.current === 'anchor' ? '主播（当前）' : '主播' },
+      { value: 'moderator', content: roleStore.current === 'moderator' ? '房管（当前）' : '房管' },
+      { value: 'developer', content: roleStore.current === 'developer' ? '开发（当前）' : '开发' },
+    ],
+  },
+  ...(accountStore.isLoggedIn ? [{ value: 'logout', content: 'Logout' }] : []),
+]);
+
+function handleRoleMenu(item: any) {
+  const key = item?.value;
+  if (key === 'logout') {
+    logout();
+    return;
+  }
+  if (key === 'anchor' || key === 'moderator' || key === 'developer') {
+    roleStore.setRole(key);
+  }
 }
 
 onMounted(() => {

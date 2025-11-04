@@ -121,6 +121,19 @@ export function initializeIpcHandlers(
     }
   });
 
+  // System: 使用外部浏览器打开链接
+  ipcMain.handle('system.openExternal', async (_event, targetUrl: string) => {
+    try {
+      if (!targetUrl || typeof targetUrl !== 'string') {
+        throw new Error('Invalid url');
+      }
+      await shell.openExternal(targetUrl);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || String(error) };
+    }
+  });
+
   // Account: get current user info via main process, requires valid token
   ipcMain.handle('account.getUserInfo', async () => {
     try {

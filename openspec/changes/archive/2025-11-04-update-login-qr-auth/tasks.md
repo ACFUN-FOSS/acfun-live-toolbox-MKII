@@ -7,7 +7,7 @@
 - [x] 1.6 类型与契约：补充类型定义（global.d.ts / interface.ts），对齐 IPC 合约
 - [x] 1.7 观测与日志：在主/渲染进程完善日志（创建/轮询/终止/错误），方便诊断
 - [x] 1.8 静态检查：`pnpm -r run typecheck`（不编写/运行测试；仅静态走查与类型检查）
-- [ ] 1.9 UI 预览：启动渲染进程 dev server 并打开预览，核对登录对话框交互与倒计时
+- [x] 1.9 UI 预览：启动渲染进程 dev server 并打开预览，核对登录对话框交互与倒计时（本次预览地址 `http://localhost:5174/`）
 - [x] 1.10 文档与状态：更新 `ui2.json` 的 `implementation_status` 与task.md
 
 ## 2. Rollback Plan
