@@ -43,6 +43,8 @@ export interface QrLoginResult {
   qrCodeDataUrl: string;
   /** 二维码过期时间（秒） */
   expiresIn: number;
+  /** 会话ID（部分接口需要） */
+  sessionId?: string;
 }
 
 /**
@@ -82,9 +84,17 @@ export class TokenManager extends EventEmitter {
   
   /** 是否正在刷新令牌 */
   private isRefreshing: boolean = false;
-  
+
   /** 是否已初始化 */
   private initialized: boolean = false;
+
+  /** 当前二维码登录会话状态 */
+  private qrSession: { active: boolean; cancelled: boolean; expireAt?: number; sessionId?: string } = {
+    active: false,
+    cancelled: false,
+    expireAt: undefined,
+    sessionId: undefined
+  };
 
   /**
    * 私有构造函数（单例模式）
@@ -150,9 +160,13 @@ export class TokenManager extends EventEmitter {
       this.startTokenRefreshTimer();
       
       this.initialized = true;
-      this.logManager.info('[TokenManager] Initialized successfully');
+      this.logManager.addLog('TokenManager', 'Initialized successfully', 'info');
     } catch (error) {
-      this.logManager.error('[TokenManager] Initialization failed:', error);
+      this.logManager.addLog(
+        'TokenManager',
+        `Initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      );
       throw error;
     }
   }
@@ -208,15 +222,48 @@ export class TokenManager extends EventEmitter {
         return { success: false, error };
       }
 
-      const { qrCode, expiresIn } = qrResult.data;
-      const qrCodeDataUrl = `data:image/png;base64,${qrCode}`;
-      const qrData = { qrCodeDataUrl, expiresIn };
+      const data = qrResult.data as any;
+      const qrRaw = data?.qrCode ?? data?.qrImage ?? data?.image ?? data?.qr;
+      const expiresIn = data?.expiresIn ?? data?.expireIn ?? data?.expire;
+      const sessionId = data?.sessionId;
+
+      let qrCodeDataUrl: string;
+      if (typeof qrRaw === 'string') {
+        // 如果已是 data URL，直接使用；否则按 base64 PNG 组装
+        if (/^data:image\/(png|jpeg);base64,/i.test(qrRaw)) {
+          qrCodeDataUrl = qrRaw;
+        } else {
+          qrCodeDataUrl = `data:image/png;base64,${qrRaw}`;
+        }
+      } else if (qrRaw && Buffer.isBuffer(qrRaw)) {
+        qrCodeDataUrl = `data:image/png;base64,${qrRaw.toString('base64')}`;
+      } else if (typeof data?.qrCodeUrl === 'string' && data.qrCodeUrl.length > 0) {
+        // 某些实现可能直接返回一个可访问的图片URL
+        qrCodeDataUrl = data.qrCodeUrl;
+      } else {
+        const error = 'Invalid QR code payload';
+        this.emit('loginFailed', { error });
+        return { success: false, error };
+      }
+      // expiresIn 有些接口可能返回毫秒，做稳健归一化到“秒”
+      const normalizedExpiresIn = typeof expiresIn === 'number' && expiresIn > 0
+        ? (expiresIn > 10000 ? Math.floor(expiresIn / 1000) : expiresIn)
+        : 300; // 兜底5分钟
+      const qrData: QrLoginResult = { qrCodeDataUrl, expiresIn: normalizedExpiresIn, sessionId };
+
+      // 记录会话状态与过期时间（如果提供）
+      this.qrSession = {
+        active: true,
+        cancelled: false,
+        expireAt: typeof normalizedExpiresIn === 'number' ? Date.now() + normalizedExpiresIn * 1000 : undefined,
+        sessionId
+      };
 
       this.emit('qrCodeReady', { qrCode: qrData });
       return { success: true, qrCode: qrData };
     } catch (error) {
       const errorMsg = `QR login failed: ${error instanceof Error ? error.message : String(error)}`;
-      this.logManager.error('[TokenManager]', errorMsg);
+      this.logManager.addLog('TokenManager', errorMsg, 'error');
       this.emit('loginFailed', { error: errorMsg });
       return { success: false, error: errorMsg };
     }
@@ -228,22 +275,42 @@ export class TokenManager extends EventEmitter {
    */
   public async checkQRLoginStatus(): Promise<{ success: boolean; tokenInfo?: ExtendedTokenInfo; error?: string }> {
     try {
-      const status = await this.api.auth.checkQrLoginStatus();
+      // 取消与过期检查优先处理
+      if (this.qrSession.cancelled) {
+        this.logManager.addLog('TokenManager', 'QR login cancelled by user', 'info');
+        this.qrSession.active = false;
+        return { success: false, error: 'cancelled' };
+      }
+
+      if (this.qrSession.expireAt && Date.now() >= this.qrSession.expireAt) {
+        this.logManager.addLog('TokenManager', 'QR login session expired', 'info');
+        this.qrSession.active = false;
+        return { success: false, error: 'expired' };
+      }
+
+      // 兼容需要 sessionId 的实现
+      const status = await ((this.api.auth as any).checkQrLoginStatus?.(this.qrSession.sessionId) ?? this.api.auth.checkQrLoginStatus());
 
       if (status?.success && status?.data) {
+        const d: any = status.data;
+        const mappedServiceToken = d.serviceToken || d.token || d.accessToken || '';
+        const mappedSecurityKey = d.securityKey || d.securityToken || '';
+        const mappedDeviceId = d.deviceId || d.deviceID || '';
+
         const tokenInfo: ExtendedTokenInfo = {
-          userID: status.data.userId || '',
-          securityKey: status.data.securityKey || '',
-          serviceToken: status.data.serviceToken || status.data.token || '',
-          deviceID: status.data.deviceId || '',
-          cookies: (status.data as any).cookies || [],
-          expiresAt: status.data.expiresAt || (Date.now() + 24 * 60 * 60 * 1000),
+          userID: d.userId || '',
+          securityKey: mappedSecurityKey,
+          serviceToken: mappedServiceToken,
+          deviceID: mappedDeviceId,
+          cookies: d.cookies || [],
+          expiresAt: d.expiresAt || (Date.now() + 24 * 60 * 60 * 1000),
           isValid: true
         };
 
         await this.setTokenInfo(tokenInfo);
         this.emit('loginSuccess', { tokenInfo });
-        this.logManager.info('[TokenManager] Login successful');
+        this.logManager.addLog('TokenManager', 'Login successful', 'info');
+        this.qrSession.active = false;
         return { success: true, tokenInfo };
       }
 
@@ -251,9 +318,36 @@ export class TokenManager extends EventEmitter {
       return { success: false, error: errorMessage };
     } catch (error) {
       const errorMsg = `Check QR login status failed: ${error instanceof Error ? error.message : String(error)}`;
-      this.logManager.error('[TokenManager]', errorMsg);
+      this.logManager.addLog('TokenManager', errorMsg, 'error');
       return { success: false, error: errorMsg };
     }
+  }
+
+  /**
+   * 完成二维码登录流程，返回当前令牌信息
+   */
+  public async finalizeQrLogin(): Promise<{ success: boolean; tokenInfo?: ExtendedTokenInfo; error?: string }> {
+    try {
+      const info = await this.getTokenInfo();
+      if (info && info.userID) {
+        return { success: true, tokenInfo: info };
+      }
+      return { success: false, error: 'not_authenticated' };
+    } catch (error) {
+      const errorMsg = `Finalize QR login failed: ${error instanceof Error ? error.message : String(error)}`;
+      this.logManager.addLog('TokenManager', errorMsg, 'error');
+      return { success: false, error: errorMsg };
+    }
+  }
+
+  /**
+   * 取消当前二维码登录会话
+   */
+  public cancelQrLogin(): { success: boolean } {
+    this.qrSession.cancelled = true;
+    this.qrSession.active = false;
+    this.emit('loginFailed', { error: 'cancelled' });
+    return { success: true };
   }
 
   /**
@@ -278,19 +372,30 @@ export class TokenManager extends EventEmitter {
         };
       }
 
-      // 尝试刷新令牌
-      const refreshResult = await this.api.auth.refreshToken();
-      
+      // 尝试刷新令牌（如果 API 支持）
+      const refreshFn = (this.api.auth as any).refreshToken;
+      if (typeof refreshFn !== 'function') {
+        // 不支持刷新接口，提示重新登录
+        const qrResult = await this.loginWithQRCode();
+        return {
+          success: false,
+          qrCode: qrResult.qrCode,
+          message: 'Token refresh unsupported, please login again'
+        };
+      }
+
+      const refreshResult = await refreshFn.call(this.api.auth);
+
       if (refreshResult?.success && refreshResult?.data) {
         const newTokenInfo: ExtendedTokenInfo = {
           ...this.tokenInfo,
-          serviceToken: refreshResult.data.serviceToken || refreshResult.data.token || this.tokenInfo.serviceToken,
+          serviceToken: refreshResult.data.serviceToken || this.tokenInfo.serviceToken,
           expiresAt: refreshResult.data.expiresAt || (Date.now() + 24 * 60 * 60 * 1000),
           isValid: true
         };
 
         await this.setTokenInfo(newTokenInfo);
-        this.logManager.info('[TokenManager] Token refreshed successfully');
+        this.logManager.addLog('TokenManager', 'Token refreshed successfully', 'info');
         return { success: true, message: 'Token refreshed successfully' };
       } else {
         // 刷新失败，需要重新登录
@@ -302,7 +407,11 @@ export class TokenManager extends EventEmitter {
         };
       }
     } catch (error) {
-      this.logManager.error('[TokenManager] Token refresh error:', error);
+      this.logManager.addLog(
+        'TokenManager',
+        `Token refresh error: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      );
       // 刷新出错，需要重新登录
       const qrResult = await this.loginWithQRCode();
       return {
@@ -330,9 +439,13 @@ export class TokenManager extends EventEmitter {
       }
 
       this.emit('logout');
-      this.logManager.info('[TokenManager] Logged out successfully');
+      this.logManager.addLog('TokenManager', 'Logged out successfully', 'info');
     } catch (error) {
-      this.logManager.error('[TokenManager] Logout error:', error);
+      this.logManager.addLog(
+        'TokenManager',
+        `Logout error: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      );
       throw error;
     }
   }
@@ -348,6 +461,17 @@ export class TokenManager extends EventEmitter {
     // 保存到文件
     await this.saveTokenInfo(tokenInfo);
     
+    // 同步令牌到统一 API 实例
+    try {
+      this.api.setAuthToken(tokenInfo.serviceToken);
+    } catch (e) {
+      this.logManager.addLog(
+        'TokenManager',
+        `Failed to apply token to API instance: ${e instanceof Error ? e.message : String(e)}`,
+        'error'
+      );
+    }
+
     // 重启刷新定时器
     this.startTokenRefreshTimer();
     
@@ -372,11 +496,28 @@ export class TokenManager extends EventEmitter {
             ...parsed,
             isValid: true
           };
-          this.logManager.info('[TokenManager] Token info loaded from file');
+          this.logManager.addLog('TokenManager', 'Token info loaded from file', 'info');
+
+          // 同步令牌到统一 API 实例
+          try {
+            if (this.tokenInfo && this.tokenInfo.serviceToken) {
+              this.api.setAuthToken(this.tokenInfo.serviceToken);
+            }
+          } catch (e) {
+            this.logManager.addLog(
+              'TokenManager',
+              `Failed to apply loaded token to API instance: ${e instanceof Error ? e.message : String(e)}`,
+              'error'
+            );
+          }
         }
       }
     } catch (error) {
-      this.logManager.error('[TokenManager] Failed to load token info:', error);
+      this.logManager.addLog(
+        'TokenManager',
+        `Failed to load token info: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      );
     }
   }
 
@@ -392,9 +533,13 @@ export class TokenManager extends EventEmitter {
       }
 
       fs.writeFileSync(this.secretsPath, JSON.stringify(tokenInfo, null, 2), 'utf8');
-      this.logManager.info('[TokenManager] Token info saved to file');
+      this.logManager.addLog('TokenManager', 'Token info saved to file', 'info');
     } catch (error) {
-      this.logManager.error('[TokenManager] Failed to save token info:', error);
+      this.logManager.addLog(
+        'TokenManager',
+        `Failed to save token info: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      );
       throw error;
     }
   }
@@ -402,22 +547,102 @@ export class TokenManager extends EventEmitter {
   /**
    * 清除令牌信息
    */
-  private async clearTokenInfo(): Promise<void> {
-    const wasAuthenticated = this.isAuthenticated();
-    this.tokenInfo = null;
-    
+  private async clearStoredTokenInfo(): Promise<void> {
     try {
       if (fs.existsSync(this.secretsPath)) {
         fs.unlinkSync(this.secretsPath);
       }
     } catch (error) {
-      this.logManager.error('[TokenManager] Failed to clear token info file:', error);
+      this.logManager.addLog(
+        'TokenManager',
+        `Failed to clear token info file: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      );
+    }
+  }
+
+  /**
+   * 公开：清除令牌信息，并同步清理 API 认证
+   */
+  public async clearTokenInfo(): Promise<void> {
+    const wasAuthenticated = this.isAuthenticated();
+
+    // 清理内存令牌
+    this.tokenInfo = null;
+
+    // 清理持久化令牌
+    await this.clearStoredTokenInfo();
+
+    // 同步清除 API 认证令牌
+    try {
+      this.api.clearAuthToken();
+    } catch (e) {
+      this.logManager.addLog(
+        'TokenManager',
+        `Failed to clear token from API instance: ${e instanceof Error ? e.message : String(e)}`,
+        'error'
+      );
     }
 
     // 触发状态变化事件
     if (wasAuthenticated) {
       this.emit('tokenStateChanged', { isAuthenticated: false });
     }
+  }
+
+  /**
+   * 公开：更新令牌信息（用于外部代理或插件写入）
+   */
+  public async updateTokenInfo(tokenInfo: any): Promise<void> {
+    try {
+      const normalized: ExtendedTokenInfo = typeof tokenInfo === 'string' 
+        ? JSON.parse(tokenInfo) 
+        : tokenInfo;
+
+      if (!normalized || typeof normalized !== 'object') {
+        throw new Error('Invalid token info');
+      }
+
+      // 补全必要字段的默认值
+      const completed: ExtendedTokenInfo = {
+        userID: normalized.userID || '',
+        securityKey: normalized.securityKey || '',
+        serviceToken: normalized.serviceToken || '',
+        deviceID: normalized.deviceID || '',
+        cookies: normalized.cookies || [],
+        expiresAt: normalized.expiresAt || (Date.now() + 24 * 60 * 60 * 1000),
+        isValid: normalized.isValid !== false,
+      };
+
+      await this.setTokenInfo(completed);
+    } catch (error) {
+      this.logManager.addLog(
+        'TokenManager',
+        `Failed to update token info: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 公开：验证令牌有效性（包含基础字段与过期时间）
+   */
+  public async validateToken(tokenInfo?: ExtendedTokenInfo): Promise<{ isValid: boolean; reason?: string }> {
+    const info = tokenInfo || this.tokenInfo;
+    if (!info) {
+      return { isValid: false, reason: 'No token' };
+    }
+
+    if (!info.serviceToken || typeof info.serviceToken !== 'string') {
+      return { isValid: false, reason: 'Missing serviceToken' };
+    }
+
+    if (info.expiresAt && info.expiresAt <= Date.now()) {
+      return { isValid: false, reason: 'Token expired' };
+    }
+
+    return { isValid: info.isValid !== false };
   }
 
   /**

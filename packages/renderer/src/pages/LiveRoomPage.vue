@@ -342,7 +342,11 @@ const consoleStore = useConsoleStore();
 const searchKeyword = ref('');
 const showAddDialog = ref(false);
 const showDetailsDialog = ref(false);
-const selectedRoom = ref<Room | null>(null);
+const selectedRoomId = ref<string | null>(null);
+const selectedRoom = computed<Room | null>(() => {
+  if (!selectedRoomId.value) return null;
+  return roomStore.getRoomById(selectedRoomId.value) || null;
+});
 
 // 添加房间表单
 const addForm = ref({
@@ -379,9 +383,10 @@ const refreshRooms = async () => {
 
 const getStatusText = (status: string) => {
   switch (status) {
-    case 'live': return '直播中';
-    case 'offline': return '离线';
-    case 'preparing': return '准备中';
+    case 'connected': return '直播中';
+    case 'disconnected': return '离线';
+    case 'connecting': return '连接中';
+    case 'error': return '错误';
     default: return '未知';
   }
 };
@@ -426,6 +431,11 @@ const resetAddForm = () => {
 
 const toggleConnection = async (room: Room) => {
   try {
+    // 确保存在控制台会话
+    if (!consoleStore.currentSession || !consoleStore.isConnected) {
+      await consoleStore.createSession();
+    }
+
     if (room.status === 'connected') {
       // 断开连接
       await consoleStore.disconnectRoom(room.liveId);
@@ -440,7 +450,7 @@ const toggleConnection = async (room: Room) => {
 };
 
 const viewRoomDetails = (room: Room) => {
-  selectedRoom.value = room as any;
+  selectedRoomId.value = room.liveId;
   showDetailsDialog.value = true;
 };
 
@@ -645,12 +655,16 @@ onMounted(() => {
   background-color: var(--td-error-color);
 }
 
-.status-indicator.live {
+.status-indicator.connected {
   background-color: var(--td-success-color);
 }
 
-.status-indicator.preparing {
+.status-indicator.connecting {
   background-color: var(--td-warning-color);
+}
+
+.status-indicator.error {
+  background-color: var(--td-error-color);
 }
 
 .room-info {
@@ -700,19 +714,24 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.status-text.live {
+.status-text.connected {
   background-color: var(--td-success-color-1);
   color: var(--td-success-color);
 }
 
-.status-text.offline {
+.status-text.disconnected {
   background-color: var(--td-error-color-1);
   color: var(--td-error-color);
 }
 
-.status-text.preparing {
+.status-text.connecting {
   background-color: var(--td-warning-color-1);
   color: var(--td-warning-color);
+}
+
+.status-text.error {
+  background-color: var(--td-error-color-1);
+  color: var(--td-error-color);
 }
 
 .room-actions {

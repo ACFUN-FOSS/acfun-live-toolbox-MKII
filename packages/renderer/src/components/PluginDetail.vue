@@ -424,10 +424,10 @@ async function loadPlugin() {
   loading.value = true;
   try {
     const result = await window.electronApi.plugin.get(props.pluginId);
-    if ('plugin' in result) {
-      plugin.value = result.plugin;
+    if (result && result.success) {
+      plugin.value = result.data;
     } else {
-      console.error('Failed to load plugin:', result.error);
+      console.error('Failed to load plugin:', result && (result as any).error);
       plugin.value = null;
     }
   } catch (error) {
@@ -486,11 +486,11 @@ async function loadLogs() {
   logsLoading.value = true;
   try {
     const result = await window.electronApi.plugin.logs(props.pluginId, 100);
-    if ('logs' in result) {
-      logs.value = result.logs || [];
+    if (result && result.success) {
+      logs.value = (result.data as any[]) || [];
       filterLogs();
     } else {
-      console.error('Failed to load logs:', result.error);
+      console.error('Failed to load logs:', result && (result as any).error);
     }
   } catch (error) {
     console.error('Error loading logs:', error);
@@ -528,10 +528,10 @@ async function loadErrorHistory() {
   errorsLoading.value = true;
   try {
     const result = await window.electronApi.plugin.errorHistory(props.pluginId);
-    if ('errors' in result) {
-      errorHistory.value = result.errors || [];
+    if (result && result.success) {
+      errorHistory.value = (result.data as any[]) || [];
     } else {
-      console.error('Failed to load error history:', result.error);
+      console.error('Failed to load error history:', result && (result as any).error);
     }
   } catch (error) {
     console.error('Error loading error history:', error);

@@ -13,9 +13,51 @@ declare global {
         writeFile: (path: string, data: string) => Promise<boolean>;
       };
       login: {
-        qrStart: () => Promise<{ qrCodeDataUrl: string; expiresIn: number } | { error: string }>;
-        qrCheck: () => Promise<{ success: boolean; userId?: string; expiresAt?: number; error?: string }>;
+        qrStart: () => Promise<{ qrCodeDataUrl: string; expiresIn?: number; expireAt?: number } | { error: string }>;
+        qrCheck: () => Promise<{
+          success: boolean;
+          tokenInfo?: { accessToken: string; refreshToken: string; userID: string; expiresAt?: number; platform?: string };
+          error?: string;
+        }>;
+        qrFinalize: () => Promise<{
+          success: boolean;
+          tokenInfo?: { accessToken: string; refreshToken: string; userID: string; expiresAt?: number; platform?: string };
+          error?: string;
+        }>;
+        qrCancel: () => Promise<{ success: boolean } | { success: false; error: string }>;
         logout: () => Promise<{ ok: true }>;
+      };
+      account: {
+        getUserInfo: () => Promise<
+          | {
+              success: true;
+              data: {
+                userId: string;
+                userName: string;
+                avatar: string;
+                level?: number;
+                fansCount?: number;
+                followCount?: number;
+                signature?: string;
+                isLive?: boolean;
+                liveRoomId?: string;
+                avatarFrame?: string;
+                contributeCount?: number;
+                verifiedText?: string;
+                isJoinUpCollege?: boolean;
+                isFollowing?: boolean;
+                isFollowed?: boolean;
+                likeCount?: number;
+              };
+            }
+          | { success: false; error: string }
+        >;
+      };
+      window: {
+        minimizeWindow: () => Promise<void>;
+        closeWindow: () => Promise<void>;
+        maximizeWindow: () => Promise<void>;
+        restoreWindow: () => Promise<void>;
       };
       room: {
         connect: (roomId: string) => Promise<{ success: boolean; code?: string; error?: string }>;

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
-import { AcFunLiveApi, createApi, ApiConfig } from 'acfunlive-http-api';
-import { TokenManager } from '../services/TokenManager';
+import { AcFunLiveApi, ApiConfig } from 'acfunlive-http-api';
+import { TokenManager } from '../server/TokenManager';
 
 /**
  * 连接池配置接口

@@ -408,36 +408,8 @@ const formatTime = (timestamp: number) => {
 const refreshLogs = async () => {
   logsLoading.value = true
   try {
-    // 模拟获取日志数据
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // 生成模拟日志数据
-    const mockLogs: LogItem[] = [
-      {
-        id: '1',
-        timestamp: Date.now() - 1000 * 60 * 5,
-        level: 'info',
-        message: '应用启动成功',
-        source: 'main'
-      },
-      {
-        id: '2',
-        timestamp: Date.now() - 1000 * 60 * 3,
-        level: 'warn',
-        message: '检测到网络连接不稳定',
-        source: 'network'
-      },
-      {
-        id: '3',
-        timestamp: Date.now() - 1000 * 60 * 1,
-        level: 'error',
-        message: '插件加载失败: plugin-example',
-        source: 'plugin',
-        details: { pluginId: 'plugin-example', error: 'Module not found' }
-      }
-    ]
-    
-    logs.value = mockLogs
+    const result = await window.electronApi.system.getSystemLog(1000);
+    logs.value = result;
     
     if (autoScroll.value) {
       await nextTick()
@@ -488,22 +460,8 @@ const scrollToBottom = () => {
 // 配置管理方法
 const loadConfig = async () => {
   try {
-    // 模拟加载配置
-    const mockConfig = {
-      app: {
-        name: 'AcFun Live Toolbox MKII',
-        version: '2.0.0'
-      },
-      network: {
-        timeout: 30000,
-        retries: 3
-      },
-      ui: {
-        theme: 'auto',
-        language: 'zh-CN'
-      }
-    }
-    configContent.value = JSON.stringify(mockConfig, null, 2)
+    const config = await window.electronApi.system.getConfig()
+    configContent.value = JSON.stringify(config, null, 2)
   } catch (error) {
     MessagePlugin.error('加载配置失败')
   }
@@ -513,10 +471,9 @@ const saveConfig = async () => {
   savingConfig.value = true
   try {
     // 验证 JSON 格式
-    JSON.parse(configContent.value)
+    const newConfig = JSON.parse(configContent.value)
     
-    // 模拟保存配置
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await window.electronApi.system.updateConfig(newConfig)
     MessagePlugin.success('配置保存成功')
   } catch (error) {
     MessagePlugin.error('配置格式错误或保存失败')
@@ -534,9 +491,30 @@ const resetConfig = async () => {
 const exportData = async () => {
   exportingData.value = true
   try {
-    // 模拟数据导出
-    await new Promise(resolve => setTimeout(resolve, 3000))
-    MessagePlugin.success(`数据导出成功 (${exportOptions.format.toUpperCase()} 格式)`)
+    if (!canExport.value) {
+      MessagePlugin.warning('请先选择房间与时间范围')
+      return
+    }
+
+    const roomId = exportOptions.rooms[0]
+    const [start, end] = exportOptions.timeRange as [string, string]
+    const fromTs = new Date(start).getTime()
+    const toTs = new Date(end).getTime()
+
+    const filename = `export-${roomId}-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`
+    const result = await window.electronApi.http.get('/api/export', {
+      room_id: roomId,
+      from_ts: fromTs,
+      to_ts: toTs,
+      filename,
+      includeRaw: false
+    })
+
+    if (result && result.filepath) {
+      MessagePlugin.success(`数据导出成功：${result.filepath}`)
+    } else {
+      MessagePlugin.success(`数据导出成功 (${exportOptions.format.toUpperCase()} 格式)`) // 兜底提示
+    }
   } catch (error) {
     MessagePlugin.error('数据导出失败')
   } finally {
@@ -548,11 +526,9 @@ const exportData = async () => {
 const generateDiagnostic = async () => {
   generatingDiagnostic.value = true
   try {
-    // 模拟生成诊断包
-    await new Promise(resolve => setTimeout(resolve, 5000))
+    const result = await window.electronApi.system.genDiagnosticZip();
     
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    lastDiagnosticPath.value = `C:\\Users\\用户\\Desktop\\diagnostic-${timestamp}.zip`
+    lastDiagnosticPath.value = result;
     
     MessagePlugin.success('诊断包生成成功')
   } catch (error) {
@@ -563,8 +539,11 @@ const generateDiagnostic = async () => {
 }
 
 const openDiagnosticFolder = () => {
-  // 模拟打开文件夹
-  MessagePlugin.info('正在打开文件夹...')
+  if (lastDiagnosticPath.value) {
+    window.electronApi.system.showItemInFolder(lastDiagnosticPath.value)
+  } else {
+    MessagePlugin.info('请先生成诊断包')
+  }
 }
 
 // 生命周期

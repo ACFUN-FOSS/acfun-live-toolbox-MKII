@@ -2,7 +2,7 @@ import { DatabaseManager, EventWriter } from './persistence';
 import { RoomManager } from './rooms';
 import { ApiServer } from './server/ApiServer';
 import { initializeIpcHandlers } from './ipc/ipcHandlers';
-import { AuthManager } from './services/AuthManager';
+import { TokenManager } from './server/TokenManager';
 import { app, BrowserWindow } from 'electron';
 import { runDependencyGuards } from './bootstrap/dependencyGuards';
 import { WindowManager } from './bootstrap/WindowManager';
@@ -13,8 +13,9 @@ import { ConfigManager } from './config/ConfigManager';
 import { PluginManager } from './plugins/PluginManager';
 import { OverlayManager } from './plugins/OverlayManager';
 import { DiagnosticsService } from './logging/DiagnosticsService';
-import { LogManager } from './logging/LogManager';
+import { getLogManager, LogManager } from './logging/LogManager';
 import { ConsoleManager } from './console/ConsoleManager';
+import { acfunDanmuModule } from './adapter/AcfunDanmuModule';
 import path from 'path';
 
 async function main() {
@@ -47,7 +48,8 @@ async function main() {
   console.log('[Main] Initializing services...');
   const databaseManager = new DatabaseManager();
   await databaseManager.initialize();
-  
+  const logManager = getLogManager();
+
   const eventWriter = new EventWriter(databaseManager);
   const roomManager = new RoomManager(eventWriter);
   
@@ -62,13 +64,14 @@ async function main() {
   
   const apiPort = parseInt(process.env.ACFRAME_API_PORT || '18299');
   
-  const authManager = new AuthManager();
+  const tokenManager = TokenManager.getInstance();
   
   const pluginManager = new PluginManager({
     apiServer: null as any, // 临时设置，稍后更新
     roomManager,
     databaseManager,
-    configManager
+    configManager,
+    tokenManager
   });
 
   // 初始化控制台管理器
@@ -89,8 +92,22 @@ async function main() {
   
   await apiServer.start();
 
-  initializeIpcHandlers(roomManager, authManager, pluginManager, overlayManager, consoleManager);
+  // 预先实例化窗口管理器以供 IPC 处理程序使用（窗口创建仍在 app ready 后）
+  const windowManager = new WindowManager(); // This will need refactoring
 
+  initializeIpcHandlers(
+    roomManager,
+    tokenManager,
+    pluginManager,
+    overlayManager,
+    consoleManager,
+    windowManager,
+    configManager,
+    logManager,
+    diagnosticsService
+  );
+
+  // --- 4. Start API Server ---
   // Wire RoomManager -> WsHub broadcasting
   const wsHub = apiServer.getWsHub();
   roomManager.on('event', (event) => {
@@ -125,13 +142,19 @@ async function main() {
     }
   });
 
-  // For now, we just create a window manager
-  const windowManager = new WindowManager(); // This will need refactoring
-
   // --- 3. Application Ready ---
   await app.whenReady();
 
   console.log('[Main] App is ready.');
+
+  // Ensure AcfunDanmuModule is initialized so IPC room.details can fetch data
+  try {
+    await acfunDanmuModule.initialize();
+    console.log('[Main] AcfunDanmuModule initialized.');
+  } catch (err) {
+    console.error('[Main] Failed to initialize AcfunDanmuModule:', err);
+  }
+
   windowManager.createWindow(); // Placeholder for creating the main UI
 
   app.on('activate', () => {

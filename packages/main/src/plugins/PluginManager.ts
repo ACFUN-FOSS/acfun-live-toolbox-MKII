@@ -17,7 +17,7 @@ import { ConnectionPoolManager } from './ConnectionPoolManager';
 import { pluginCacheManager } from './PluginCacheManager';
 import { pluginPerformanceMonitor } from './PluginPerformanceMonitor';
 import { pluginLazyLoader } from './PluginLazyLoader';
-import { TokenManager } from '../services/TokenManager';
+import { TokenManager } from '../server/TokenManager';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';

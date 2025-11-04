@@ -107,6 +107,33 @@ class YourPlugin {
 module.exports = YourPlugin;
 ```
 
+### 认证与统一 API 实例
+
+插件不应自行创建或管理 AcFun API 实例与令牌。宿主应用通过统一的 `TokenManager` 管理认证状态和 API 实例，并在 `api.auth` 接口中向插件暴露必要能力：
+
+- 使用统一认证状态：`this.api.auth.isAuthenticated()`、`this.api.auth.getTokenInfo()`
+- 响应认证事件：`tokenExpiring`、`authenticationFailed` 等
+- 令牌刷新：`await this.api.auth.refreshToken()`（由宿主协调，兼容 acfunlive-http-api）
+
+示例：
+```javascript
+class YourPlugin {
+  async start() {
+    if (!this.api.auth.isAuthenticated()) {
+      this.api.logger.warn('未认证，部分功能不可用');
+      return;
+    }
+
+    const tokenInfo = await this.api.auth.getTokenInfo();
+    this.api.logger.info('当前用户', { userId: tokenInfo?.userID });
+
+    this.api.auth.on('tokenExpiring', () => {
+      this.api.logger.warn('令牌即将过期');
+    });
+  }
+}
+```
+
 ### API 对象
 
 插件构造函数会接收一个 `api` 对象，提供以下功能：

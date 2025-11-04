@@ -310,10 +310,10 @@ async function installPlugin() {
     // 创建临时文件路径（实际实现中可能需要更复杂的文件处理）
     const result = await window.electronApi.plugin.install({
       filePath: file.name, // 注意：在实际应用中需要处理文件上传
-      force: false
+      overwrite: false
     });
     
-    if ('success' in result && result.success) {
+    if (result && result.success) {
       installStatus.value = { type: 'success', message: '插件安装成功！' };
       
       // 重新加载插件列表
@@ -325,7 +325,7 @@ async function installPlugin() {
         uploadFiles.value = [];
       }, 1500);
     } else {
-      installStatus.value = { type: 'error', message: '插件安装失败：' + (result.error || '未知错误') };
+      installStatus.value = { type: 'error', message: '插件安装失败：' + ((result && (result as any).error) || '未知错误') };
     }
     
   } catch (error) {

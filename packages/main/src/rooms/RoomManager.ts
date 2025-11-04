@@ -22,6 +22,8 @@ export class RoomManager extends EventEmitter {
   private rooms: Map<string, RoomInfo> = new Map();
   private eventWriter: EventWriter;
   private reconnectTimers: Map<string, NodeJS.Timeout> = new Map();
+  // 标记正在移除的房间，避免触发自动重连
+  private removingRooms: Set<string> = new Set();
 
   constructor(eventWriter: EventWriter) {
     super();
@@ -84,6 +86,9 @@ export class RoomManager extends EventEmitter {
     }
 
     try {
+      // 标记房间正在移除，防止后续状态变更触发重连
+      this.removingRooms.add(roomId);
+
       // 清除重连定时器
       const timer = this.reconnectTimers.get(roomId);
       if (timer) {
@@ -91,22 +96,28 @@ export class RoomManager extends EventEmitter {
         this.reconnectTimers.delete(roomId);
       }
 
+      // 先移除监听器，避免 disconnect 引发的 'closed' 事件触发重连流程
+      try {
+        roomInfo.adapter.removeAllListeners();
+      } catch {}
+
       // 断开连接并销毁适配器
       await roomInfo.adapter.disconnect();
       await roomInfo.adapter.destroy();
-      
-      // 移除监听器
-      roomInfo.adapter.removeAllListeners();
       
       // 从管理器中移除
       this.rooms.delete(roomId);
       
       console.log(`[RoomManager] Successfully removed room ${roomId}`);
       this.emit('roomRemoved', roomId);
+      // 完成移除，清除标记
+      this.removingRooms.delete(roomId);
       return true;
     } catch (error) {
       console.error(`[RoomManager] Failed to remove room ${roomId}:`, error);
       this.emit('error', error);
+      // 发生错误也尝试清除标记，避免卡住状态
+      this.removingRooms.delete(roomId);
       return false;
     }
   }
@@ -173,6 +184,11 @@ export class RoomManager extends EventEmitter {
     const { adapter, roomId } = roomInfo;
 
     adapter.on('statusChange', (status: RoomStatus) => {
+      // 如果房间已被标记移除或不在管理器中，忽略状态变更
+      if (this.removingRooms.has(roomId) || !this.rooms.has(roomId)) {
+        return;
+      }
+
       roomInfo.status = status;
       
       if (status === 'open') {
@@ -209,6 +225,10 @@ export class RoomManager extends EventEmitter {
 
   private handleRoomDisconnection(roomInfo: RoomInfo): void {
     const { roomId } = roomInfo;
+    // 如果房间已被移除或适配器已销毁，直接返回，避免误重连
+    if (this.removingRooms.has(roomId) || !this.rooms.has(roomId) || roomInfo.adapter.isDestroyed()) {
+      return;
+    }
     
     // 清除之前的重连定时器
     const existingTimer = this.reconnectTimers.get(roomId);

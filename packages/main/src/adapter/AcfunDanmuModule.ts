@@ -1,10 +1,10 @@
 import type { AppModule } from '../AppModule';
 import { ModuleContext } from '../ModuleContext';
 import { getLogManager } from '../logging/LogManager';
-import { AcFunLiveApi, createApi, ApiConfig } from 'acfunlive-http-api';
+import { AcFunLiveApi, ApiConfig } from 'acfunlive-http-api';
 import { connectionPool, PooledConnection } from './ConnectionPoolManager';
 import { performanceMonitor } from './PerformanceMonitor';
-import { AuthManager } from '../services/AuthManager';
+import { TokenManager } from '../server/TokenManager';
 
 // 定义配置接口
 interface DanmuSendResponse {
@@ -50,13 +50,12 @@ export class AcfunDanmuModule implements AppModule {
   private logCallback: ((message: string, type: 'info' | 'error') => void) | null = null;
   private logManager: ReturnType<typeof getLogManager>;
   private isInitialized: boolean = false;
-  private authManager: AuthManager;
-
-  constructor(config: Partial<AcfunDanmuConfig> = {}, authManager?: AuthManager) {
+  private tokenManager: TokenManager;
+  constructor(config: Partial<AcfunDanmuConfig> = {}, tokenManager?: TokenManager) {
     // 合并配置，确保API配置符合规范
     this.config = this.validateAndMergeConfig(config);
     this.logManager = getLogManager();
-    this.authManager = authManager || new AuthManager();
+    this.tokenManager = tokenManager || TokenManager.getInstance();
   }
 
   /**
@@ -527,34 +526,32 @@ export class AcfunDanmuModule implements AppModule {
     }
 
     try {
-      // 检查当前是否已认证
-      const isAuthenticated = this.pooledConnection.api.isAuthenticated();
-      
+      // 优先使用统一 TokenManager 状态
+      const isAuthenticated = this.tokenManager.isAuthenticated();
+
       if (!isAuthenticated) {
-        this.log('No authentication found, attempting to authenticate...', 'info');
-        
-        // 尝试从 AuthManager 获取令牌信息
-        const tokenInfo = await this.authManager.getTokenInfo();
-        
-        if (tokenInfo && tokenInfo.isValid) {
-          // 设置认证令牌 - 传递完整的TokenInfo对象的JSON字符串
-          this.pooledConnection.api.setAuthToken(JSON.stringify(tokenInfo));
-          this.log('Authentication restored from saved token', 'info');
-        } else if (tokenInfo && !tokenInfo.isValid) {
-          // 令牌已过期，清除过期令牌
-          this.log('Token expired, clearing expired token...', 'info');
-          await this.authManager.logout();
-          this.log('Token expired and cannot be refreshed automatically, continuing with anonymous access', 'info');
+        this.log('No authentication found, attempting to load persisted token...', 'info');
+
+        // 触发加载并校验令牌（TokenManager 会自动同步到统一 API 实例）
+        const tokenInfo = await this.tokenManager.getTokenInfo();
+        const validation = await this.tokenManager.validateToken(tokenInfo ?? undefined);
+
+        if (validation.isValid) {
+          this.log('Authentication restored via TokenManager', 'info');
         } else {
+          if (tokenInfo) {
+            this.log(`Invalid token: ${validation.reason || 'Unknown reason'}. Clearing token.`, 'info');
+            await this.tokenManager.logout();
+          }
           this.log('No valid authentication token available, continuing with anonymous access', 'info');
         }
       } else {
         this.log('Authentication already established', 'debug');
-        
+
         // 检查令牌是否即将过期
-        const isExpiringSoon = await this.authManager.isTokenExpiringSoon();
+        const isExpiringSoon = await this.tokenManager.isTokenExpiringSoon();
         if (isExpiringSoon) {
-          this.log('Token expiring soon, but automatic refresh is not supported. Manual re-login may be required.', 'info');
+          this.log('Token expiring soon; acfunlive-http-api requires manual re-login.', 'info');
         }
       }
     } catch (error) {
@@ -564,10 +561,10 @@ export class AcfunDanmuModule implements AppModule {
   }
 
   /**
-   * 获取 AuthManager 实例
+   * 获取 TokenManager 实例
    */
-  public getAuthManager(): AuthManager {
-    return this.authManager;
+  public getTokenManager(): TokenManager {
+    return this.tokenManager;
   }
 
   // 私有方法：日志记录
@@ -583,16 +580,16 @@ export class AcfunDanmuModule implements AppModule {
 }
 
 // 创建模块工厂函数
-export function createAcfunDanmuModule(config: Partial<AcfunDanmuConfig> = {}, authManager?: AuthManager): AppModule {
-  return new AcfunDanmuModule(config, authManager);
+export function createAcfunDanmuModule(config: Partial<AcfunDanmuConfig> = {}, tokenManager?: TokenManager): AppModule {
+  return new AcfunDanmuModule(config, tokenManager);
 }
 
 // 创建并导出单例
 let instance: AcfunDanmuModule | null = null;
 
-export function getAcfunDanmuModule(authManager?: AuthManager): AcfunDanmuModule {
+export function getAcfunDanmuModule(tokenManager?: TokenManager): AcfunDanmuModule {
   if (!instance) {
-    instance = new AcfunDanmuModule({}, authManager);
+    instance = new AcfunDanmuModule({}, tokenManager);
   }
   return instance;
 }

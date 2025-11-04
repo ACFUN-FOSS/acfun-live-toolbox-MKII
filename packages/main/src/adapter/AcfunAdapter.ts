@@ -1,9 +1,10 @@
 import { EventEmitter } from 'events';
-import { AcFunLiveApi, createApi, ApiConfig, DanmuMessage as StandardDanmuMessage, UserInfo, ManagerType } from 'acfunlive-http-api';
-import { AuthManager } from '../services/AuthManager';
-import { TokenManager } from '../services/TokenManager';
+import { AcFunLiveApi, ApiConfig, DanmuMessage as StandardDanmuMessage, UserInfo, ManagerType } from 'acfunlive-http-api';
+// AuthManager removed; use TokenManager directly
+import { TokenManager } from '../server/TokenManager';
+import { NormalizedEvent, NormalizedEventType, RoomStatus } from '../types';
+import { ensureNormalized } from '../events/normalize';
 import { ConnectionPoolManager } from './ConnectionPoolManager';
-import { ApiRetryManager } from '../services/ApiRetryManager';
 import { ConnectionErrorHandler } from './ConnectionErrorHandler';
 
 /**
@@ -123,12 +124,8 @@ export class AcfunAdapter extends EventEmitter {
   private api: AcFunLiveApi | null = null;
   /** Token管理器 */
   private tokenManager: TokenManager;
-  /** 认证管理器 */
-  private authManager: AuthManager;
   /** 连接池管理器 */
   private connectionPool: ConnectionPoolManager;
-  /** API 重试管理器 */
-  private apiRetryManager: ApiRetryManager;
   /** 连接错误处理器 */
   private connectionErrorHandler: ConnectionErrorHandler;
   /** 重连定时器 */
@@ -149,12 +146,10 @@ export class AcfunAdapter extends EventEmitter {
   /**
    * 构造函数
    * @param config 适配器配置
-   * @param authManager 认证管理器（可选）
    * @param connectionPool 连接池管理器（可选）
    */
   constructor(
     config: Partial<AdapterConfig> = {},
-    authManager?: AuthManager,
     connectionPool?: ConnectionPoolManager
   ) {
     super();
@@ -181,9 +176,7 @@ export class AcfunAdapter extends EventEmitter {
 
     // 初始化依赖组件
     this.tokenManager = TokenManager.getInstance();
-    this.authManager = authManager || new AuthManager();
     this.connectionPool = connectionPool || new ConnectionPoolManager();
-    this.apiRetryManager = new ApiRetryManager();
     this.connectionErrorHandler = new ConnectionErrorHandler();
 
     // 使用TokenManager提供的统一API实例
@@ -206,36 +199,26 @@ export class AcfunAdapter extends EventEmitter {
    * @private
    */
   private setupEventListeners(): void {
-    // 认证管理器事件
-    this.authManager.on('loginSuccess', () => {
+    // TokenManager 事件
+    this.tokenManager.on('loginSuccess', () => {
       this.emit('authenticated');
       if (this.config.debug) {
         console.log('[AcfunAdapter] Authentication successful');
       }
     });
 
-    this.authManager.on('loginFailed', (error: Error) => {
+    this.tokenManager.on('loginFailed', (error: Error) => {
       this.emit('auth-failed', error);
       this.handleConnectionError(error);
     });
 
-    this.authManager.on('tokenExpiring', () => {
+    this.tokenManager.on('tokenExpiring', () => {
       if (this.config.debug) {
         console.log('[AcfunAdapter] Token expiring, refreshing...');
       }
     });
 
-    // API 调用管理器事件
-    this.apiRetryManager.on('api-call', (event: { key: string; success: boolean; duration: number }) => {
-      if (this.config.debug) {
-        console.log(`[AcfunAdapter] API call ${event.key}: ${event.success ? 'success' : 'failed'} (${event.duration}ms)`);
-      }
-    });
-
-    this.apiRetryManager.on('auth-refresh-failed', (event: { key: string; error: string }) => {
-      console.error('[AcfunAdapter] Authentication refresh failed:', event.error);
-      this.handleConnectionError(new Error(event.error));
-    });
+    // 已移除 ApiRetryManager 事件；重试由 acfunlive-http-api 处理
 
     // 连接错误处理器事件
     this.connectionErrorHandler.on('connectionLost', () => {
@@ -506,7 +489,6 @@ export class AcfunAdapter extends EventEmitter {
     this.clearTimers();
 
     // 销毁组件
-    this.apiRetryManager.cleanup();
     this.connectionErrorHandler.destroy();
 
     // 移除所有事件监听器
@@ -529,6 +511,28 @@ export class AcfunAdapter extends EventEmitter {
     if (previousState !== newState) {
       this.connectionState = newState;
       this.emit('connection-state-changed', newState, previousState);
+      // 同步发射 RoomManager 期望的状态事件
+      const status = this.mapConnectionStateToRoomStatus(newState);
+      this.safeEmit('statusChange', status);
+    }
+  }
+
+  /**
+   * 将内部连接状态映射为 RoomStatus（供 RoomManager 使用）
+   */
+  private mapConnectionStateToRoomStatus(state: ConnectionState): RoomStatus {
+    switch (state) {
+      case ConnectionState.CONNECTING:
+        return 'connecting';
+      case ConnectionState.CONNECTED:
+        return 'open';
+      case ConnectionState.RECONNECTING:
+        return 'reconnecting';
+      case ConnectionState.FAILED:
+        return 'error';
+      case ConnectionState.DISCONNECTED:
+      default:
+        return 'closed';
     }
   }
 
@@ -537,14 +541,54 @@ export class AcfunAdapter extends EventEmitter {
    * @private
    */
   private async ensureAuthentication(): Promise<void> {
-    // 检查认证状态并处理
-    const isAuthenticated = await this.tokenManager.isAuthenticated();
-    
-    if (!isAuthenticated) {
-      if (this.config.debug) {
-        console.log('[AcfunAdapter] Authentication required but not available');
+    try {
+      // 优先检查当前认证状态
+      const isAuthenticated = this.tokenManager.isAuthenticated();
+
+      if (isAuthenticated) {
+        // 令牌即将过期时提示（但不在此处自动刷新）
+        const isExpiringSoon = await this.tokenManager.isTokenExpiringSoon();
+        if (isExpiringSoon && this.config.debug) {
+          console.log('[AcfunAdapter] Token expiring soon; please re-login if needed.');
+        }
+
+        // 为防止统一实例令牌曾被清理，稳健地重新应用一次
+        const info = await this.tokenManager.getTokenInfo();
+        if (info?.serviceToken) {
+          try { this.api?.setAuthToken(info.serviceToken); } catch {}
+        }
+        return;
       }
-      // 可以选择抛出错误或继续匿名访问
+
+      // 未认证：尝试加载并校验持久化令牌（TokenManager 会在加载时同步到统一 API 实例）
+      if (this.config.debug) {
+        console.log('[AcfunAdapter] No authentication found, attempting to restore via TokenManager...');
+      }
+
+      const tokenInfo = await this.tokenManager.getTokenInfo();
+      const validation = await this.tokenManager.validateToken(tokenInfo ?? undefined);
+
+      if (validation.isValid && tokenInfo?.serviceToken) {
+        // 再次应用一次令牌到统一 API 实例，避免外部清理造成缺失
+        try { this.api?.setAuthToken(tokenInfo.serviceToken); } catch {}
+        if (this.config.debug) {
+          console.log('[AcfunAdapter] Authentication restored via persisted token');
+        }
+        return;
+      }
+
+      // 无有效令牌：记录并继续匿名，由后续API调用决定是否允许
+      if (tokenInfo) {
+        await this.tokenManager.logout();
+      }
+      if (this.config.debug) {
+        console.log('[AcfunAdapter] No valid authentication token available, proceeding anonymously');
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        console.warn('[AcfunAdapter] Authentication check failed:', error);
+      }
+      // 不抛出错误，允许匿名访问
     }
   }
 
@@ -558,13 +602,8 @@ export class AcfunAdapter extends EventEmitter {
     }
 
     try {
-      // 获取认证令牌信息
-      const tokenInfo = await this.tokenManager.getTokenInfo();
-      
-      if (tokenInfo) {
-        // 设置认证令牌到API实例
-        this.api.setAuthToken(tokenInfo.serviceToken);
-      }
+      // 确保令牌已加载并同步到统一 API 实例（TokenManager 会负责设置）
+      await this.tokenManager.getTokenInfo();
 
       // 启动弹幕服务 - 使用标准的 startDanmu 方法
       if (this.api.danmu && typeof this.api.danmu.startDanmu === 'function') {
@@ -617,9 +656,6 @@ export class AcfunAdapter extends EventEmitter {
         // 清除会话ID
         this.danmuSessionId = null;
       }
-      
-      // 清除认证令牌
-      this.api.clearAuthToken();
     } catch (error) {
       console.error('[AcfunAdapter] Failed to stop danmu service:', error);
     }
@@ -725,6 +761,8 @@ export class AcfunAdapter extends EventEmitter {
       };
       
       this.safeEmit('danmu', message);
+      // 发射统一事件
+      this.emitUnifiedEvent('danmaku', message);
     } catch (error) {
       console.error('[AcfunAdapter] Error handling danmu message:', error);
       this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
@@ -745,6 +783,8 @@ export class AcfunAdapter extends EventEmitter {
       };
       
       this.safeEmit('gift', message);
+      // 发射统一事件
+      this.emitUnifiedEvent('gift', message);
     } catch (error) {
       console.error('[AcfunAdapter] Error handling gift message:', error);
       this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
@@ -765,6 +805,8 @@ export class AcfunAdapter extends EventEmitter {
       };
       
       this.safeEmit('like', message);
+      // 发射统一事件
+      this.emitUnifiedEvent('like', message);
     } catch (error) {
       console.error('[AcfunAdapter] Error handling like message:', error);
       this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
@@ -785,6 +827,8 @@ export class AcfunAdapter extends EventEmitter {
       };
       
       this.safeEmit('enter', message);
+      // 发射统一事件
+      this.emitUnifiedEvent('enter', message);
     } catch (error) {
       console.error('[AcfunAdapter] Error handling enter message:', error);
       this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
@@ -805,9 +849,43 @@ export class AcfunAdapter extends EventEmitter {
       };
       
       this.safeEmit('follow', message);
+      // 发射统一事件
+      this.emitUnifiedEvent('follow', message);
     } catch (error) {
       console.error('[AcfunAdapter] Error handling follow message:', error);
       this.safeEmit('error', error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  /**
+   * 统一事件发射：将上游消息标准化为 NormalizedEvent 并通过 'event' 推送
+   */
+  private emitUnifiedEvent(type: NormalizedEventType, message: any): void {
+    try {
+      const raw = message;
+      const ts = Number(message?.timestamp ?? message?.sendTime ?? Date.now());
+      const userIdRaw = message?.userId ?? message?.userInfo?.userID;
+      const userNameRaw = message?.username ?? message?.userInfo?.nickname;
+      const contentRaw = message?.data?.content ?? message?.content ?? message?.text ?? null;
+      const roomIdRaw = message?.roomId ?? this.config.roomId;
+
+      const normalized: NormalizedEvent = ensureNormalized({
+        ts,
+        received_at: Date.now(),
+        room_id: String(roomIdRaw || this.config.roomId),
+        source: 'acfun',
+        event_type: type,
+        user_id: userIdRaw != null ? String(userIdRaw) : null,
+        user_name: userNameRaw != null ? String(userNameRaw) : null,
+        content: contentRaw != null ? String(contentRaw) : null,
+        raw
+      });
+
+      this.safeEmit('event', normalized);
+    } catch (error) {
+      if (this.config.debug) {
+        console.warn('[AcfunAdapter] Failed to normalize/emit unified event:', error);
+      }
     }
   }
 
@@ -922,14 +1000,6 @@ export class AcfunAdapter extends EventEmitter {
   }
 
   /**
-   * 获取认证管理器实例
-   * @returns 认证管理器实例
-   */
-  getAuthManager(): AuthManager {
-    return this.authManager;
-  }
-
-  /**
    * 获取Token管理器实例
    * @returns Token管理器实例
    */
@@ -943,14 +1013,6 @@ export class AcfunAdapter extends EventEmitter {
    */
   getConnectionPool(): ConnectionPoolManager {
     return this.connectionPool;
-  }
-
-  /**
-   * 获取 API 重试管理器实例
-   * @returns API 重试管理器实例
-   */
-  getApiRetryManager(): ApiRetryManager {
-    return this.apiRetryManager;
   }
 
   /**

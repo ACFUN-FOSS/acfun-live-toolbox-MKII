@@ -19,12 +19,14 @@
 
 AcFun Live Toolbox 使用 `acfunlive-http-api` 库进行认证，支持二维码登录和令牌管理。
 
-#### 二维码登录流程
+#### 二维码登录流程（统一 TokenManager）
 
 1. **启动登录流程**
    ```javascript
-   const authManager = new AuthManager(secretsPath);
-   const loginResult = await authManager.loginWithQRCode();
+   import { TokenManager } from '@acfun/main/server/TokenManager';
+
+   const tokenManager = TokenManager.getInstance(/* 可选：自定义 secrets 路径 */);
+   const loginResult = await tokenManager.loginWithQRCode();
    ```
 
 2. **显示二维码**
@@ -33,7 +35,7 @@ AcFun Live Toolbox 使用 `acfunlive-http-api` 库进行认证，支持二维码
 
 3. **轮询登录状态**
    ```javascript
-   const statusResult = await authManager.checkQRLoginStatus();
+   const statusResult = await tokenManager.checkQRLoginStatus();
    ```
 
 4. **处理登录结果**
@@ -46,25 +48,25 @@ AcFun Live Toolbox 使用 `acfunlive-http-api` 库进行认证，支持二维码
 - **过期检查**：定期检查令牌有效性
 - **安全存储**：令牌加密存储在 `secrets.json` 文件中
 
-### 认证事件监听
+### 认证事件监听（通过 TokenManager）
 
 ```javascript
-authManager.on('qrCodeReady', (data) => {
+tokenManager.on('qrCodeReady', ({ qrCode }) => {
   // 显示二维码
-  console.log('二维码已准备:', data.qrCode);
+  console.log('二维码已准备:', qrCode);
 });
 
-authManager.on('loginSuccess', (data) => {
+tokenManager.on('loginSuccess', ({ tokenInfo }) => {
   // 登录成功处理
-  console.log('登录成功:', data.tokenInfo);
+  console.log('登录成功:', tokenInfo);
 });
 
-authManager.on('loginFailed', (data) => {
+tokenManager.on('loginFailed', ({ error }) => {
   // 登录失败处理
-  console.error('登录失败:', data.error);
+  console.error('登录失败:', error);
 });
 
-authManager.on('tokenExpiring', () => {
+tokenManager.on('tokenExpiring', () => {
   // 令牌即将过期
   console.warn('令牌即将过期，正在刷新...');
 });
@@ -137,19 +139,27 @@ configManager.on('configChanged', (key, newValue, oldValue) => {
 
 ## API 集成
 
-### AcFun Live API 配置
+### AcFun Live API 配置（统一实例）
 
 ```javascript
-// 正确的 API 实例创建方式
-const api = new AcFunLiveApi({
-  timeout: 30000,
-  retryCount: 3,
-  baseUrl: 'https://api.acfun.cn'
-});
+// 通过 TokenManager 获取统一 API 实例
+import { TokenManager } from '@acfun/main/server/TokenManager';
 
-// 设置认证令牌
-api.setAuthToken(tokenInfo.accessToken);
+const tokenManager = TokenManager.getInstance();
+const api = tokenManager.getApiInstance();
+
+// TokenManager 会自动同步认证令牌到 API 实例
+// 如需外部更新令牌，可使用：
+// await tokenManager.updateTokenInfo(newTokenInfo);
 ```
+
+### TokenManager 架构与使用
+
+- 单例模式：全局仅存在一个 `AcFunLiveApi` 实例，由 `TokenManager` 管理
+- 令牌同步：登录成功后自动将令牌同步到统一 API 实例
+- 刷新机制：支持令牌即将过期提醒与刷新流程（与 acfunlive-http-api 保持一致）
+- 事件通知：提供 `loginSuccess`、`loginFailed`、`tokenExpiring`、`logout` 等事件
+- 接入方式：各模块通过 `TokenManager.getInstance().getApiInstance()` 获取 API
 
 ### 连接池管理
 

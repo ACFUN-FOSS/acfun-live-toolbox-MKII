@@ -15,6 +15,8 @@ export interface Room {
   status: RoomStatus; // 使用我们自己的状态类型
   likeCount: number;
   startTime: number;
+  connectedAt?: number | null;
+  lastEventAt?: number | null;
   streamer: {
     userId: string;
     userName: string;
@@ -90,6 +92,8 @@ export const useRoomStore = defineStore('room', () => {
           status: mapToRoomStatus(apiRoom.status),
           likeCount: 0,
           startTime: apiRoom.connectedAt || Date.now(),
+          connectedAt: apiRoom.connectedAt || null,
+          lastEventAt: apiRoom.lastEventAt || null,
           streamer: {
             userId: `uid_${apiRoom.roomId}`,
             userName: `主播${apiRoom.roomId}`,
@@ -101,7 +105,7 @@ export const useRoomStore = defineStore('room', () => {
           name: `直播间 ${apiRoom.roomId}`,
           uperName: `主播${apiRoom.roomId}`,
           avatar: '',
-          isLive: apiRoom.status === 'connected',
+          isLive: mapToRoomStatus(apiRoom.status) === 'connected',
           viewerCount: 0,
           lastUpdate: new Date(apiRoom.lastEventAt || Date.now()),
           url: `https://live.acfun.cn/live/${apiRoom.roomId}`,
@@ -109,6 +113,43 @@ export const useRoomStore = defineStore('room', () => {
           label: '',
           autoConnect: false
         }));
+
+        // 拉取房间详情并填充元数据
+        try {
+          const detailPromises = rooms.value.map(async (room) => {
+            try {
+              const detailRes = await window.electronApi.room.details(room.id);
+              if (detailRes && detailRes.success && detailRes.data) {
+                const d = detailRes.data;
+                const mappedStatus = mapToRoomStatus(d.status || room.status);
+              return {
+                ...room,
+                title: typeof d.title === 'string' ? d.title : room.title,
+                coverUrl: typeof d.coverUrl === 'string' ? d.coverUrl : room.coverUrl,
+                status: mappedStatus,
+                isLive: mappedStatus === 'connected',
+                viewerCount: typeof d.viewerCount === 'number' ? d.viewerCount : room.viewerCount,
+                onlineCount: typeof d.viewerCount === 'number' ? d.viewerCount : room.onlineCount,
+                likeCount: typeof d.likeCount === 'number' ? d.likeCount : room.likeCount,
+                startTime: typeof d.startTime === 'number' ? d.startTime : room.startTime,
+                streamer: {
+                  userId: d.streamer?.userId || room.streamer.userId,
+                  userName: d.streamer?.userName || room.streamer.userName,
+                  avatar: d.streamer?.avatar || room.streamer.avatar,
+                  level: typeof d.streamer?.level === 'number' ? d.streamer.level : room.streamer.level
+                }
+              } as Room;
+              }
+            } catch (e) {
+              console.warn(`Failed to fetch details for room ${room.id}:`, e);
+            }
+            return room;
+          });
+          rooms.value = await Promise.all(detailPromises);
+          saveRoomsToStorage();
+        } catch (e) {
+          console.warn('Populate room details failed:', e);
+        }
       }
       
       // 刷新房间状态
@@ -125,31 +166,72 @@ export const useRoomStore = defineStore('room', () => {
     if (rooms.value.length === 0) return;
     
     try {
-      // 使用真实的preload API获取每个房间的状态
-      const statusPromises = rooms.value.map(async (room) => {
+      // 并行刷新房间的连接状态和详情信息
+      const refreshPromises = rooms.value.map(async (room) => {
         try {
-          const result = await window.electronApi.room.status(room.id);
-          if ('error' in result) {
-            console.warn(`Failed to get status for room ${room.id}:`, result.error);
-            return room; // 返回原始房间信息
+          const [statusRes, detailRes] = await Promise.all([
+            window.electronApi.room.status(room.id),
+            window.electronApi.room.details(room.id)
+          ]);
+
+          let updated: Room = { ...room };
+
+          // 更新状态信息
+          if (!('error' in statusRes)) {
+            const mapped = mapToRoomStatus(statusRes.status);
+            updated.status = mapped;
+            updated.isLive = mapped === 'connected';
+            updated.lastUpdate = new Date(statusRes.lastEventAt || Date.now());
+            // 同步连接时间与最后活动时间，确保页面实时更新
+            if (typeof statusRes.connectedAt === 'number') {
+              updated.connectedAt = statusRes.connectedAt;
+              // 使用连接时间作为开始时间，保持一致
+              updated.startTime = statusRes.connectedAt;
+            }
+            if (typeof statusRes.lastEventAt === 'number') {
+              updated.lastEventAt = statusRes.lastEventAt;
+            }
+            // 保留viewerCount用于观众数显示，不用事件计数覆盖
+          } else {
+            // 若后端返回错误（如房间未连接/已移除），将状态标记为离线
+            updated.status = 'disconnected';
+            updated.isLive = false;
+            updated.connectedAt = null;
+            // 保持最后活动时间不回退，但刷新最后更新时间
+            updated.lastUpdate = new Date();
           }
-          
-          // 更新房间状态
-          return {
-            ...room,
-            status: mapToRoomStatus(result.status),
-            isLive: result.status === 'connected',
-            lastUpdate: new Date(result.lastEventAt || Date.now()),
-            viewerCount: result.eventCount || 0, // 使用事件数量作为活跃度指标
-          };
+
+          // 更新详情信息：标题、封面、观众数、点赞数、主播信息
+          if (detailRes && detailRes.success && detailRes.data) {
+            const d = detailRes.data;
+            const mappedStatus = mapToRoomStatus(d.status || updated.status);
+            updated = {
+              ...updated,
+              title: typeof d.title === 'string' ? d.title : updated.title,
+              coverUrl: typeof d.coverUrl === 'string' ? d.coverUrl : updated.coverUrl,
+              status: mappedStatus,
+              isLive: mappedStatus === 'connected',
+              viewerCount: typeof d.viewerCount === 'number' ? d.viewerCount : updated.viewerCount,
+              onlineCount: typeof d.viewerCount === 'number' ? d.viewerCount : updated.onlineCount,
+              likeCount: typeof d.likeCount === 'number' ? d.likeCount : updated.likeCount,
+              startTime: typeof d.startTime === 'number' ? d.startTime : updated.startTime,
+              streamer: {
+                userId: d.streamer?.userId || updated.streamer.userId,
+                userName: d.streamer?.userName || updated.streamer.userName,
+                avatar: d.streamer?.avatar || updated.streamer.avatar,
+                level: typeof d.streamer?.level === 'number' ? d.streamer.level : updated.streamer.level
+              }
+            } as Room;
+          }
+
+          return updated;
         } catch (err) {
-          console.warn(`Error getting status for room ${room.id}:`, err);
+          console.warn(`Error refreshing room ${room.id}:`, err);
           return room; // 返回原始房间信息
         }
       });
-      
-      const updatedRooms = await Promise.all(statusPromises);
-      rooms.value = updatedRooms;
+
+      rooms.value = await Promise.all(refreshPromises);
       
       // 保存到本地存储
       saveRoomsToStorage();
@@ -192,7 +274,7 @@ export const useRoomStore = defineStore('room', () => {
          connectedAt = statusResult.connectedAt || Date.now();
          eventCount = statusResult.eventCount || 0;
          lastEventAt = statusResult.lastEventAt || Date.now();
-         isLive = statusResult.status === 'connected';
+         isLive = mapToRoomStatus(statusResult.status || '') === 'connected';
        }
       
       const newRoom: Room = {
@@ -205,6 +287,8 @@ export const useRoomStore = defineStore('room', () => {
         status: roomStatus,
         likeCount: 0,
         startTime: connectedAt,
+        connectedAt: connectedAt,
+        lastEventAt: lastEventAt,
         streamer: {
           userId: `uid_${roomId}`,
           userName: `主播${roomId}`,
@@ -232,7 +316,34 @@ export const useRoomStore = defineStore('room', () => {
       } else {
         rooms.value.push(newRoom);
       }
-      
+
+      // 拉取房间详情并更新新房间信息
+      try {
+        const detailRes = await window.electronApi.room.details(roomId);
+        if (detailRes && detailRes.success && detailRes.data) {
+          const d = detailRes.data;
+          const mappedStatus = mapToRoomStatus(d.status || newRoom.status);
+          updateRoomSettings(roomId, {
+            title: typeof d.title === 'string' ? d.title : newRoom.title,
+            coverUrl: typeof d.coverUrl === 'string' ? d.coverUrl : newRoom.coverUrl,
+            status: mappedStatus,
+            isLive: mappedStatus === 'connected',
+            viewerCount: typeof d.viewerCount === 'number' ? d.viewerCount : newRoom.viewerCount,
+            onlineCount: typeof d.viewerCount === 'number' ? d.viewerCount : newRoom.onlineCount,
+            likeCount: typeof d.likeCount === 'number' ? d.likeCount : newRoom.likeCount,
+            startTime: typeof d.startTime === 'number' ? d.startTime : newRoom.startTime,
+            streamer: {
+              userId: d.streamer?.userId || newRoom.streamer.userId,
+              userName: d.streamer?.userName || newRoom.streamer.userName,
+              avatar: d.streamer?.avatar || newRoom.streamer.avatar,
+              level: typeof d.streamer?.level === 'number' ? d.streamer.level : newRoom.streamer.level
+            }
+          });
+        }
+      } catch (e) {
+        console.warn(`Failed to fetch details for new room ${roomId}:`, e);
+      }
+
       saveRoomsToStorage();
       return newRoom;
     } catch (err) {
@@ -363,6 +474,19 @@ export const useRoomStore = defineStore('room', () => {
     }
   }
 
+  // 在收到新弹幕/事件时，更新房间的最后活动时间
+  function touchRoomActivity(roomId: string, ts?: number) {
+    const index = rooms.value.findIndex(r => r.id === roomId || r.liveId === roomId);
+    if (index < 0) return;
+    const t = typeof ts === 'number' ? ts : Date.now();
+    rooms.value[index] = {
+      ...rooms.value[index],
+      lastEventAt: t,
+      lastUpdate: new Date(t)
+    };
+    saveRoomsToStorage();
+  }
+
     // 自动刷新功能
   let refreshTimer: NodeJS.Timeout | null = null;
 
@@ -429,6 +553,7 @@ export const useRoomStore = defineStore('room', () => {
     getRoomById,
     updateRoomSettings,
     updateRoomStatus,
+    touchRoomActivity,
     setPriority,
     setLabel,
     setAutoRefresh,

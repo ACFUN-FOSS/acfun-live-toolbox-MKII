@@ -2,6 +2,26 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { UserInfo } from 'acfunlive-http-api';
 
+// 渲染层最小账户信息结构，去除无用字段（medal、managerType等）
+export interface AccountProfile {
+  userID: number;
+  nickname: string;
+  avatar: string;
+}
+
+// 不再进行多字段归一，仅使用后端返回的 userName 字段
+
+// 完整用户信息类型改为使用 acfunlive-http-api 的 UserInfo 导出
+
+// 清洗头像URL：去除首尾反引号/空白，防止CSP和URL解析异常
+function sanitizeAvatarUrl(url: string | undefined | null): string {
+  if (!url || typeof url !== 'string') return '';
+  // 移除所有引号/反引号，并裁剪空白
+  let cleaned = String(url).trim().replace(/[`'\"]/g, '');
+  if (!/^https?:\/\//i.test(cleaned)) return '';
+  return cleaned;
+}
+
 export interface LoginState {
   isLoggedIn: boolean;
   isLogging: boolean;
@@ -14,7 +34,8 @@ export interface LoginState {
 
 export const useAccountStore = defineStore('account', () => {
   // 状态
-  const userInfo = ref<UserInfo | null>(null);
+  const userInfo = ref<AccountProfile | null>(null);
+  const fullUserInfo = ref<UserInfo | null>(null);
   const loginState = ref<LoginState>({
     isLoggedIn: false,
     isLogging: false,
@@ -32,29 +53,61 @@ export const useAccountStore = defineStore('account', () => {
       const savedUserInfo = localStorage.getItem('userInfo');
       if (savedUserInfo) {
         const parsed = JSON.parse(savedUserInfo);
-        userInfo.value = parsed;
-        loginState.value.isLoggedIn = !!parsed.userID;
+        // 兼容旧缓存结构，统一为最小Profile并进行清洗
+        const profile: AccountProfile = {
+          userID: Number(parsed.userID) || Number(parsed.userId) || 0,
+          nickname: typeof parsed.userName === 'string' && parsed.userName.trim().length > 0
+            ? parsed.userName.trim()
+            : (typeof parsed.nickname === 'string' && parsed.nickname.trim().length > 0
+                ? parsed.nickname.trim()
+                : `用户${String(parsed.userID || parsed.userId || '')}`),
+          avatar: sanitizeAvatarUrl(parsed.avatar)
+        };
+        userInfo.value = profile.userID ? profile : null;
+        loginState.value.isLoggedIn = !!profile.userID;
+      }
+
+      // 启动时始终向主进程请求用户信息，若未认证或过期则回退未登录
+      try {
+        const result = await window.electronApi.account.getUserInfo();
+        if ('success' in result && result.success && result.data) {
+          // 统一完整用户信息（将 userName 映射为 UserInfo.username）
+          const full: UserInfo = {
+            ...(result.data as any),
+            username: typeof (result.data as any).userName === 'string' && (result.data as any).userName.trim().length > 0
+              ? (result.data as any).userName.trim()
+              : (result.data as any).username
+          } as UserInfo;
+          const updated: AccountProfile = {
+            userID: Number(result.data.userId),
+            nickname: typeof result.data.userName === 'string' && result.data.userName.trim().length > 0
+              ? result.data.userName.trim()
+              : `用户${String(result.data.userId)}`,
+            avatar: typeof result.data.avatar === 'string' ? result.data.avatar : ''
+          };
+          userInfo.value = updated;
+          fullUserInfo.value = full;
+          loginState.value.isLoggedIn = true;
+          localStorage.setItem('userInfo', JSON.stringify(updated));
+          console.log('Startup auth verified via main, user info:', updated);
+          console.log('Startup full user info (normalized):', fullUserInfo.value);
+        } else {
+          const errMsg = 'error' in result ? result.error : 'unknown_error';
+          console.warn('Startup auth check failed:', errMsg);
+          // 主进程未保存token或token过期：回退到未登录并清理本地
+          userInfo.value = null;
+          fullUserInfo.value = null;
+          loginState.value.isLoggedIn = false;
+          localStorage.removeItem('userInfo');
+        }
+      } catch (error) {
+        console.warn('Startup auth check error:', error);
       }
     } catch (error) {
       console.error('Failed to load user info:', error);
     }
   }
 
-  // 创建基本用户信息的辅助函数
-  function createBasicUserInfo(userId: string): UserInfo {
-    return {
-      userID: parseInt(userId),
-      nickname: `用户${userId}`,
-      avatar: '',
-      medal: {
-        uperID: 0,
-        userID: parseInt(userId),
-        clubName: '',
-        level: 0
-      },
-      managerType: 0
-    };
-  }
 
   async function startLogin() {
     try {
@@ -70,8 +123,7 @@ export const useAccountStore = defineStore('account', () => {
       
       if ('qrCodeDataUrl' in result) {
         loginState.value.qrCode = result.qrCodeDataUrl;
-        // 不再自动开始轮询，由HomePage.vue控制轮询过程
-        // pollLoginStatus();
+        // 不再自动开始轮询，由 HomePage.vue 控制轮询过程
       } else {
         throw new Error('获取登录二维码失败');
       }
@@ -82,93 +134,7 @@ export const useAccountStore = defineStore('account', () => {
     }
   }
 
-  async function pollLoginStatus() {
-    const maxAttempts = 60; // 最多轮询60次（5分钟）
-    let attempts = 0;
-    
-    const poll = async () => {
-      if (attempts >= maxAttempts || !loginState.value.isLogging) {
-        loginState.value.isLogging = false;
-        loginState.value.qrCode = undefined;
-        return;
-      }
-      
-      try {
-        // 使用真实的preload API
-        const result = await window.electronApi.login.qrCheck();
-        
-        if (result.success && result.tokenInfo) {
-          // 登录成功，使用userId获取完整的用户信息
-          const userId = result.tokenInfo.userID;
-          console.log('Login successful, fetching user info for userId:', userId);
-          
-          try {
-            // 调用HTTP API获取完整的用户信息
-            const userInfoResponse = await fetch(`http://127.0.0.1:18299/api/acfun/user/info?userId=${userId}`);
-            
-            if (userInfoResponse.ok) {
-              const userInfoResult = await userInfoResponse.json();
-              
-              if (userInfoResult.success && userInfoResult.data) {
-                // 使用API返回的完整用户信息
-                const completeUserInfo: UserInfo = {
-                  userID: parseInt(userId),
-                  nickname: userInfoResult.data.username || userInfoResult.data.nickname || `用户${userId}`,
-                  avatar: userInfoResult.data.avatar || '',
-                  medal: {
-                    uperID: 0,
-                    userID: parseInt(userId),
-                    clubName: '',
-                    level: userInfoResult.data.level || 0
-                  },
-                  managerType: 0
-                };
-                
-                userInfo.value = completeUserInfo;
-                console.log('Complete user info fetched:', completeUserInfo);
-              } else {
-                // API调用失败，使用基本信息
-                console.warn('Failed to fetch complete user info, using basic info:', userInfoResult.error);
-                userInfo.value = createBasicUserInfo(userId);
-              }
-            } else {
-              // HTTP请求失败，使用基本信息
-              console.warn('HTTP request failed, using basic user info');
-              userInfo.value = createBasicUserInfo(userId);
-            }
-          } catch (error) {
-            // 网络错误，使用基本信息
-            console.error('Error fetching user info:', error);
-            userInfo.value = createBasicUserInfo(userId);
-          }
-          
-          loginState.value.isLoggedIn = true;
-          loginState.value.isLogging = false;
-          loginState.value.qrCode = undefined;
-          
-          // 保存到本地存储
-          localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
-          
-          console.log('Login completed with user info:', userInfo.value);
-        } else if ('error' in result && result.error) {
-          // 发生错误
-          loginState.value.loginError = result.error;
-          loginState.value.isLogging = false;
-          loginState.value.qrCode = undefined;
-        } else {
-          // 继续轮询
-          attempts++;
-          setTimeout(poll, 2000); // 2秒后再次检查
-        }
-      } catch (error) {
-        console.error('Failed to poll login status:', error);
-        attempts++;
-        setTimeout(poll, 2000);
-      }
-    };
-    
-    poll();
-  }
+  // 轮询逻辑由页面层控制（HomePage.vue），此处不再定义未使用的轮询函数
 
   async function logout() {
     try {
@@ -182,6 +148,7 @@ export const useAccountStore = defineStore('account', () => {
     } finally {
       // 清除本地状态
       userInfo.value = null;
+      fullUserInfo.value = null;
       loginState.value.isLoggedIn = false;
       loginState.value.isLogging = false;
       loginState.value.qrCode = undefined;
@@ -197,80 +164,53 @@ export const useAccountStore = defineStore('account', () => {
   async function handleLoginSuccess(tokenInfo: any) {
     try {
       console.log('处理登录成功，tokenInfo:', tokenInfo);
-      
-      const userId = tokenInfo.userID || tokenInfo.userId;
-      if (!userId) {
-        throw new Error('Token info does not contain user ID');
-      }
-
-      // 创建基本用户信息
-      const createBasicUserInfo = (userId: string): UserInfo => ({
-        userID: userId,
-        nickname: `用户${userId}`,
-        avatar: '',
-        medal: {
-          uperID: 0,
-          userID: userId,
-          clubName: '',
-          level: 0
-        },
-        managerType: 0
-      });
-
-      try {
-        // 尝试获取完整的用户信息
-        const userInfoResponse = await fetch(`http://127.0.0.1:18299/api/acfun/user/info?userId=${userId}`);
-        
-        if (userInfoResponse.ok) {
-          const userInfoResult = await userInfoResponse.json();
-          
-          if (userInfoResult.success && userInfoResult.data) {
-            // 使用完整的用户信息
-            const completeUserInfo: UserInfo = {
-              userID: userId,
-              nickname: userInfoResult.data.username || userInfoResult.data.nickname || `用户${userId}`,
-              avatar: userInfoResult.data.avatar || '',
-              medal: {
-                uperID: 0,
-                userID: userId,
-                clubName: '',
-                level: userInfoResult.data.level || 0
-              },
-              managerType: 0
-            };
-            
-            userInfo.value = completeUserInfo;
-            console.log('Complete user info fetched:', completeUserInfo);
-          } else {
-            // API调用失败，使用基本信息
-            console.warn('Failed to fetch complete user info, using basic info:', userInfoResult.error);
-            userInfo.value = createBasicUserInfo(userId);
-          }
-        } else {
-          // HTTP请求失败，使用基本信息
-          console.warn('HTTP request failed, using basic user info');
-          userInfo.value = createBasicUserInfo(userId);
-        }
-      } catch (error) {
-        // 网络错误，使用基本信息
-        console.error('Error fetching user info:', error);
-        userInfo.value = createBasicUserInfo(userId);
-      }
-      
-      // 设置登录状态
-      loginState.value.isLoggedIn = true;
+      // 先立即关闭登录对话框，缩短响应时间
       loginState.value.isLogging = false;
       loginState.value.qrCode = undefined;
       loginState.value.loginError = undefined;
+
+      // 每次登录向主进程请求用户信息；若主进程未保存token或已过期则报错并回退未登录
+      const result = await window.electronApi.account.getUserInfo();
+      if (!('success' in result) || result.success !== true || !result.data) {
+        const errMsg = 'error' in result ? result.error : 'unknown_error';
+        console.error('Failed to get user info from main:', errMsg);
+        // 回退到未登录状态
+        userInfo.value = null;
+        loginState.value.isLoggedIn = false;
+        loginState.value.loginError = `登录处理失败: ${errMsg}`;
+        localStorage.removeItem('userInfo');
+        return;
+      }
+
+      // 使用主进程返回的完整用户信息，提取最小展示所需字段
+      const full: UserInfo = {
+        ...(result.data as any),
+        username: typeof (result.data as any).userName === 'string' && (result.data as any).userName.trim().length > 0
+          ? (result.data as any).userName.trim()
+          : (result.data as any).username
+      } as UserInfo;
+      const profile: AccountProfile = {
+        userID: Number(result.data.userId),
+        nickname: typeof result.data.userName === 'string' && result.data.userName.trim().length > 0
+          ? result.data.userName.trim()
+          : `用户${String(result.data.userId)}`,
+        // 主进程已完成头像URL清洗，这里不再二次清洗
+        avatar: typeof result.data.avatar === 'string' ? result.data.avatar : ''
+      };
+      userInfo.value = profile;
+      fullUserInfo.value = full;
+      
+      // 设置登录状态
+      loginState.value.isLoggedIn = true;
       
       // 保存到本地存储
       localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
-      
+
       console.log('Login completed with user info:', userInfo.value);
+      console.log('Login completed with full user info:', fullUserInfo.value);
     } catch (error) {
       console.error('Failed to handle login success:', error);
       loginState.value.loginError = `登录处理失败: ${error instanceof Error ? error.message : String(error)}`;
-      loginState.value.isLogging = false;
     }
   }
 
@@ -281,35 +221,35 @@ export const useAccountStore = defineStore('account', () => {
         console.log('Refreshing user info for logged in user:', userInfo.value.userID);
         
         try {
-          // 调用HTTP API获取最新的用户信息
-          const userInfoResponse = await fetch(`http://127.0.0.1:18299/api/acfun/user/info?userId=${userInfo.value.userID}`);
-          
-          if (userInfoResponse.ok) {
-            const userInfoResult = await userInfoResponse.json();
-            
-            if (userInfoResult.success && userInfoResult.data) {
-              // 更新用户信息
-              const updatedUserInfo: UserInfo = {
-                userID: userInfo.value.userID,
-                nickname: userInfoResult.data.username || userInfoResult.data.nickname || userInfo.value.nickname,
-                avatar: userInfoResult.data.avatar || userInfo.value.avatar,
-                medal: {
-                  uperID: 0,
-                  userID: userInfo.value.userID,
-                  clubName: '',
-                  level: userInfoResult.data.level || userInfo.value.medal.level
-                },
-                managerType: userInfo.value.managerType
-              };
-              
-              userInfo.value = updatedUserInfo;
-              localStorage.setItem('userInfo', JSON.stringify(updatedUserInfo));
-              console.log('User info refreshed successfully:', updatedUserInfo);
-            } else {
-              console.warn('Failed to refresh user info:', userInfoResult.error);
-            }
+          const result = await window.electronApi.account.getUserInfo();
+          if ('success' in result && result.success && result.data) {
+            const full: UserInfo = {
+              ...(result.data as any),
+              username: typeof (result.data as any).userName === 'string' && (result.data as any).userName.trim().length > 0
+                ? (result.data as any).userName.trim()
+                : (result.data as any).username
+            } as UserInfo;
+            const updated: AccountProfile = {
+              userID: Number(result.data.userId),
+              nickname: typeof result.data.userName === 'string' && result.data.userName.trim().length > 0
+                ? result.data.userName.trim()
+                : `用户${String(result.data.userId)}`,
+              avatar: (typeof result.data.avatar === 'string' ? result.data.avatar : '') || userInfo.value.avatar
+            };
+            userInfo.value = updated;
+            fullUserInfo.value = full;
+            localStorage.setItem('userInfo', JSON.stringify(updated));
+            console.log('User info refreshed successfully:', updated);
+            console.log('Full user info refreshed successfully:', fullUserInfo.value);
           } else {
-            console.warn('HTTP request failed when refreshing user info');
+            const errMsg = 'error' in result ? result.error : 'unknown_error';
+            console.warn('Failed to refresh user info:', errMsg);
+            if (errMsg === 'not_authenticated' || errMsg === 'Token expired') {
+              // 主进程未认证或过期，回退到未登录
+              userInfo.value = null;
+              loginState.value.isLoggedIn = false;
+              localStorage.removeItem('userInfo');
+            }
           }
         } catch (error) {
           console.error('Error refreshing user info:', error);
@@ -332,6 +272,7 @@ export const useAccountStore = defineStore('account', () => {
   return {
     // 状态
     userInfo,
+    fullUserInfo,
     loginState,
     
     // 计算属性

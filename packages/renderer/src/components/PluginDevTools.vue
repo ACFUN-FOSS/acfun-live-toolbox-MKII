@@ -369,9 +369,12 @@ async function saveConfig() {
 
 async function loadConfig() {
   try {
-    const savedConfig = await window.electronApi.plugin.loadDevConfig();
-    if (savedConfig) {
+    const result = await window.electronApi.plugin.loadDevConfig();
+    if (result && (result as any).success) {
+      const savedConfig = (result as any).data || {};
       config.value = { ...config.value, ...savedConfig };
+    } else if (result && (result as any).error) {
+      addLog('error', `加载配置失败: ${(result as any).error}`);
     }
   } catch (error) {
     addLog('error', `加载配置失败: ${error}`);

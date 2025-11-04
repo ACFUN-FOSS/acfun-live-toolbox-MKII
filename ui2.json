@@ -18,6 +18,49 @@
         "plugin_hosting": "wujie-vue / <iframe> 注入承载插件前端，可开独立 BrowserWindow 弹窗",
         "db_export": "SQLite events 表 + CSV 导出"
     },
+    "implementation_status": {
+      "tech_stack": {
+        "app": "已实现",
+        "ui_lib": "已实现",
+        "state": "已实现",
+        "charts": "已实现",
+        "plugin_hosting": "已实现",
+        "db_export": "已实现"
+      },
+      "global_constraints": {
+        "window": {
+          "size": "已实现",
+          "drag_region": "已实现",
+          "controls": "已实现"
+        }
+      },
+      "pages": {
+            "LayoutShell": "已实现",
+            "HomePage": "已实现",
+            "PluginsPage": "已实现",
+            "PluginFramePage": "已实现",
+            "SystemPage": "已实现",
+            "SettingsPage": "已实现",
+            "ErrorPage": "已实现",
+            "NotFoundPage": "已实现",
+            "ConsoleEmbedPage": "暂不实现"
+        },
+        "navigation": {
+            "keyboard_shortcuts": {
+                "alt_1_5": "已实现",
+                "esc_close": "已实现",
+                "ctrl_f": "暂不实现"
+            }
+        },
+        "routing": {
+            "pattern": "已实现"
+        },
+        "capabilities": {
+            "auth": {
+                "qr_login": "已实现"
+            }
+        }
+    },
     "global_constraints": {
         "window": {
             "size": "1024x768（固定窗口）",
@@ -152,14 +195,14 @@
                     }
                 },
                 {
-                    "path": "/settings",
+                    "path": "/system/settings",
                     "component": "SettingsPage",
                     "meta": {
-                        "title": "设置"
+                        "title": "系统设置"
                     }
                 },
                 {
-                    "path": "/console",
+                    "path": "/system/console",
                     "component": "ConsoleEmbedPage",
                     "meta": {
                         "title": "控制台"

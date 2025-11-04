@@ -344,11 +344,14 @@ const generateQrCode = async () => {
       qrSession.value.qrDataUrl = result.qrCodeDataUrl;
       qrSession.value.status = 'waiting';
       
-      // 设置30秒过期时间
-      qrSession.value.expireAt = new Date(Date.now() + 30 * 1000);
+      // 使用主进程返回的过期锚定时间（优先 expireAt，其次 expiresIn）
+      const expireAtMs = (result as any).expireAt ?? (typeof (result as any).expiresIn === 'number' ? Date.now() + (result as any).expiresIn * 1000 : undefined);
+      qrSession.value.expireAt = typeof expireAtMs === 'number' ? new Date(expireAtMs) : null;
       
       // 开始倒计时
-      startQrCountdown();
+      if (qrSession.value.expireAt) {
+        startQrCountdown();
+      }
       
       // 开始轮询登录状态
       startQrPolling();
@@ -394,8 +397,16 @@ const startQrPolling = () => {
           qrSession.value.pollInterval = null;
         }
         
-        // 处理登录成功，更新账户状态
-        await accountStore.handleLoginSuccess(result.tokenInfo);
+        // 调用 finalize 获取最终令牌信息（与主进程状态一致）
+        try {
+          const finalize = await window.electronApi.login.qrFinalize();
+          const info = finalize.success && finalize.tokenInfo ? finalize.tokenInfo : result.tokenInfo;
+          // 处理登录成功，更新账户状态
+          await accountStore.handleLoginSuccess(info);
+        } catch (e) {
+          console.warn('Finalize 调用失败，回退使用 check 的 tokenInfo');
+          await accountStore.handleLoginSuccess(result.tokenInfo);
+        }
         
         // 关闭对话框
         setTimeout(() => {
@@ -528,7 +539,12 @@ const refreshQrCode = () => {
   generateQrCode();
 };
 
-const cancelQrLogin = () => {
+const cancelQrLogin = async () => {
+  try {
+    await window.electronApi.login.qrCancel();
+  } catch (e) {
+    // 静默处理取消异常，确保UI流畅
+  }
   qrDialogVisible.value = false;
   qrSession.value.status = 'idle';
   

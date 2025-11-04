@@ -1,10 +1,14 @@
-import { ipcMain, app, dialog } from 'electron';
+import { ipcMain, app, dialog, shell } from 'electron';
+import { acfunDanmuModule } from '../adapter/AcfunDanmuModule';
 import { RoomManager } from '../rooms/RoomManager';
-import { AuthManager } from '../services/AuthManager';
+import { TokenManager } from '../server/TokenManager';
 import { PluginManager } from '../plugins/PluginManager';
 import { OverlayManager } from '../plugins/OverlayManager';
 import { ConsoleManager } from '../console/ConsoleManager';
 import { WindowManager } from '../bootstrap/WindowManager';
+import { ConfigManager } from '../config/ConfigManager'; // Import ConfigManager
+import { LogManager } from '../logging/LogManager';
+import { DiagnosticsService } from '../logging/DiagnosticsService';
 import * as fs from 'fs';
 
 /**
@@ -12,12 +16,15 @@ import * as fs from 'fs';
  * This is where the renderer process can communicate with the main process.
  */
 export function initializeIpcHandlers(
-  roomManager: RoomManager, 
-  authManager: AuthManager, 
-  pluginManager: PluginManager, 
+  roomManager: RoomManager,
+  tokenManager: TokenManager,
+  pluginManager: PluginManager,
   overlayManager: OverlayManager,
   consoleManager: ConsoleManager,
-  windowManager: WindowManager
+  windowManager: WindowManager,
+  configManager: ConfigManager, // Add ConfigManager to parameters
+  logManager: LogManager,
+  diagnosticsService: DiagnosticsService
 ) {
   console.log('[IPC] Initializing IPC handlers...');
 
@@ -34,11 +41,14 @@ export function initializeIpcHandlers(
   // Login: QR start -> returns base64 data URL
   ipcMain.handle('login.qrStart', async () => {
     try {
-      const result = await authManager.loginWithQRCode();
+      const result = await tokenManager.loginWithQRCode();
       
       if (result.success && result.qrCode) {
-        // 返回前端期望的格式
-        return { qrCodeDataUrl: result.qrCode.qrCodeDataUrl };
+        // 返回前端期望的格式（包含过期信息）
+        const expiresIn = result.qrCode.expiresIn;
+        const expireAt = typeof expiresIn === 'number' ? Date.now() + expiresIn * 1000 : undefined;
+        const sessionId = (result.qrCode as any).sessionId;
+        return { qrCodeDataUrl: result.qrCode.qrCodeDataUrl, expiresIn, expireAt, sessionId };
       } else {
         return { error: result.error || '获取二维码失败' };
       }
@@ -50,7 +60,35 @@ export function initializeIpcHandlers(
   // Login: poll status
   ipcMain.handle('login.qrCheck', async () => {
     try {
-      return await authManager.checkQRLoginStatus();
+      const result = await tokenManager.checkQRLoginStatus();
+      // 不向渲染层暴露敏感令牌，仅返回最小信息
+      if (result.success && result.tokenInfo) {
+        return { success: true, tokenInfo: { userID: result.tokenInfo.userID } };
+      }
+      return { success: false, error: result.error || 'unknown_error' };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // Login: finalize
+  ipcMain.handle('login.qrFinalize', async () => {
+    try {
+      const result = await tokenManager.finalizeQrLogin();
+      // 不向渲染层暴露敏感令牌，仅返回最小信息
+      if (result.success && result.tokenInfo) {
+        return { success: true, tokenInfo: { userID: result.tokenInfo.userID } };
+      }
+      return { success: false, error: result.error || 'not_authenticated' };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // Login: cancel current QR session
+  ipcMain.handle('login.qrCancel', async () => {
+    try {
+      return tokenManager.cancelQrLogin();
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
@@ -58,8 +96,87 @@ export function initializeIpcHandlers(
 
   // Logout: clear secrets
   ipcMain.handle('login.logout', async () => {
-    await authManager.logout();
-    return { ok: true };
+    await tokenManager.logout();
+    return { ok: true };}
+  );
+
+  ipcMain.handle('system.getSystemLog', async (event, count) => {
+    return logManager.getRecentLogs(count);
+  });
+
+  ipcMain.handle('system.genDiagnosticZip', async () => {
+    return diagnosticsService.generateDiagnosticPackage();
+  });
+
+  // System: 打开文件所在文件夹
+  ipcMain.handle('system.showItemInFolder', async (_event, targetPath: string) => {
+    try {
+      if (!targetPath || typeof targetPath !== 'string') {
+        throw new Error('Invalid path');
+      }
+      shell.showItemInFolder(targetPath);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || String(error) };
+    }
+  });
+
+  // Account: get current user info via main process, requires valid token
+  ipcMain.handle('account.getUserInfo', async () => {
+    try {
+      const info = await tokenManager.getTokenInfo();
+      const validation = await tokenManager.validateToken(info || undefined);
+      if (!validation.isValid) {
+        return { success: false, error: validation.reason || 'not_authenticated' };
+      }
+
+      const userId = String(info?.userID || '').trim();
+      if (!userId) {
+        return { success: false, error: 'no_user_id' };
+      }
+
+      const api = tokenManager.getApiInstance();
+      const result = await api.user.getUserInfo(userId);
+      if (result?.success && result?.data) {
+        const data = result.data as any;
+        // 参照 acfunlive-http-api 的 UserInfoResponse，返回完整字段集
+        const userIdOut: string = String(data?.userId ?? userId);
+        const userNameRaw = typeof data?.userName === 'string' && data.userName.trim().length > 0
+          ? data.userName.trim()
+          : `用户${userIdOut}`;
+        // 清洗 URL 字段
+        const cleanUrl = (u: any) => {
+          if (!u || typeof u !== 'string') return '';
+          const s = String(u).trim().replace(/[`'\"]/g, '');
+          return /^https?:\/\//i.test(s) ? s : '';
+        };
+        const avatar = cleanUrl(data?.avatar);
+        const avatarFrame = cleanUrl(data?.avatarFrame);
+
+        const fullData = {
+          userId: userIdOut,
+          userName: userNameRaw,
+          avatar,
+          level: Number(data?.level ?? 0),
+          fansCount: Number(data?.fansCount ?? 0),
+          followCount: Number(data?.followCount ?? 0),
+          signature: typeof data?.signature === 'string' ? data.signature : undefined,
+          isLive: Boolean(data?.isLive),
+          liveRoomId: typeof data?.liveRoomId !== 'undefined' ? String(data?.liveRoomId) : undefined,
+          avatarFrame: avatarFrame || undefined,
+          contributeCount: typeof data?.contributeCount === 'number' ? data.contributeCount : undefined,
+          verifiedText: typeof data?.verifiedText === 'string' ? data.verifiedText : undefined,
+          isJoinUpCollege: Boolean(data?.isJoinUpCollege),
+          isFollowing: typeof data?.isFollowing === 'boolean' ? data.isFollowing : undefined,
+          isFollowed: typeof data?.isFollowed === 'boolean' ? data.isFollowed : undefined,
+          likeCount: typeof data?.likeCount === 'number' ? data.likeCount : undefined,
+        };
+        return { success: true, data: fullData };
+      }
+      return { success: false, error: result?.error || 'fetch_failed' };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
   });
 
   // --- Room Management ---
@@ -138,6 +255,107 @@ export function initializeIpcHandlers(
         : { error: 'not_found', code: 'not_found' };
     } catch (err: any) {
       return { error: err?.message || String(err) };
+    }
+  });
+
+  // 获取房间详情（标题、主播、封面、观众数、点赞数等）
+  ipcMain.handle('room.details', async (_event, roomIdRaw: string) => {
+    try {
+      const roomId = String(roomIdRaw || '').trim();
+      if (!roomId) {
+        return { success: false, code: 'invalid_room_id', error: '房间ID无效' };
+      }
+
+      // 通过用户直播信息获取基础数据
+      const userInfoRes = await acfunDanmuModule.getUserLiveInfo(Number(roomId));
+      if (!userInfoRes || userInfoRes.success !== true) {
+        return { success: false, code: 'fetch_failed', error: userInfoRes?.error || '获取房间信息失败' };
+      }
+
+      const data = userInfoRes.data || {};
+      const profile = data.profile || {};
+      const isLive = Boolean(data.liveID);
+      const liveId = data.liveID ? String(data.liveID) : undefined;
+
+      let viewerCount = typeof data.onlineCount === 'number' ? data.onlineCount : 0;
+      let likeCount = 0;
+      let ownerUserName: string | undefined;
+      let titleFromRoomInfo: string | undefined;
+      let streamerAvatar: string | undefined;
+
+      if (liveId) {
+        try {
+          const summaryRes = await acfunDanmuModule.getSummary(liveId);
+          if (summaryRes && summaryRes.success === true) {
+            const s = summaryRes.data || {};
+            if (typeof s.viewerCount === 'number') viewerCount = s.viewerCount;
+            if (typeof s.likeCount === 'number') likeCount = s.likeCount;
+          }
+        } catch (e) {
+          console.warn('[ipc.room.details] getSummary failed:', e);
+        }
+      }
+
+      // 进一步尝试通过弹幕房间信息获取更准确的主播名称与基础信息
+      try {
+        const api = await acfunDanmuModule.getApiInstance();
+        // 某些实现中参数名为 liverUID，这里直接传入 roomId（用户UID）
+        const roomInfoRes = await (api as any).danmu?.getLiveRoomInfo?.(roomId);
+        if (roomInfoRes && roomInfoRes.success === true) {
+          const ri = roomInfoRes.data || {};
+          if (typeof ri?.owner?.username === 'string' && ri.owner.username.trim().length > 0) {
+            ownerUserName = ri.owner.username;
+          }
+          if (typeof ri.viewerCount === 'number') viewerCount = ri.viewerCount;
+          if (typeof ri.likeCount === 'number') likeCount = ri.likeCount;
+          if (typeof ri.title === 'string' && ri.title.trim().length > 0) {
+            titleFromRoomInfo = ri.title;
+          }
+          if (typeof ri.owner?.avatar === 'string' && ri.owner.avatar.trim().length > 0) {
+            streamerAvatar = ri.owner.avatar;
+          }
+        }
+      } catch (e) {
+        console.warn('[ipc.room.details] getLiveRoomInfo failed:', e);
+      }
+
+      // 进一步通过用户信息获取更准确的主播名称与头像
+      try {
+        const api = await acfunDanmuModule.getApiInstance();
+        const userInfo = await (api as any).user?.getUserInfo?.(String(roomId));
+        if (userInfo && userInfo.success === true) {
+          const ud = userInfo.data || {};
+          const nameCandidate = typeof ud.userName === 'string' ? ud.userName.trim() : '';
+          const avatarCandidate = typeof ud.avatar === 'string' ? ud.avatar.trim() : '';
+          if (nameCandidate.length > 0) ownerUserName = nameCandidate;
+          if (avatarCandidate.length > 0) streamerAvatar = avatarCandidate;
+        }
+      } catch (e) {
+        console.warn('[ipc.room.details] user.getUserInfo failed:', e);
+      }
+
+      return {
+        success: true,
+        data: {
+          roomId,
+          liveId,
+          title: typeof data.title === 'string' ? data.title : (titleFromRoomInfo || `直播间 ${roomId}`),
+          isLive,
+          status: isLive ? 'open' : 'closed',
+          startTime: data.liveStartTime ? Number(new Date(data.liveStartTime)) : undefined,
+          viewerCount,
+          likeCount,
+          coverUrl: typeof data.coverUrl === 'string' ? data.coverUrl : '',
+          streamer: {
+            userId: profile.userID ? String(profile.userID) : roomId,
+            userName: ownerUserName || (typeof profile.userName === 'string' ? profile.userName : `主播${roomId}`),
+            avatar: streamerAvatar || (typeof profile.avatar === 'string' ? profile.avatar : ''),
+            level: typeof profile.level === 'number' ? profile.level : 0
+          }
+        }
+      };
+    } catch (err: any) {
+      return { success: false, code: 'exception', error: err?.message || String(err) };
     }
   });
 
@@ -417,7 +635,7 @@ export function initializeIpcHandlers(
   });
 
   // --- Overlay System ---
-  
+
   // 创建overlay
   ipcMain.handle('overlay.create', async (_event, options: any) => {
     try {
@@ -499,7 +717,7 @@ export function initializeIpcHandlers(
   });
 
   // --- Console Management ---
-  
+
   // 创建控制台会话
   ipcMain.handle('console:createSession', async (_event, options: { source: 'local' | 'remote'; userId?: string }) => {
     try {
@@ -566,7 +784,7 @@ export function initializeIpcHandlers(
   });
 
   // --- Plugin Development Tools ---
-  
+
   // 保存开发工具配置
   ipcMain.handle('plugin.devtools.saveConfig', async (_event, config: any) => {
     try {
@@ -732,5 +950,32 @@ export function initializeIpcHandlers(
     }
   });
 
-  console.log('[IPC] All IPC handlers initialized successfully');
+  // Config: Get all config
+  ipcMain.handle('system.getConfig', () => {
+    return configManager.getAll();
+  });
+
+  // Config: Update config
+  ipcMain.handle('system.updateConfig', (event, newConfig: Record<string, any>) => {
+    try {
+      // Basic validation
+      if (typeof newConfig !== 'object' || newConfig === null) {
+        throw new Error('Invalid configuration format.');
+      }
+      configManager.setAll(newConfig);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  // （重复块已移除）
+
+  // 窗口控制处理程序
+  // 重复的 window.* 处理器已移除（已在上文定义）
+
+console.log('[IPC] All IPC handlers initialized successfully');
 }
+
+// Login: QR check
+// 重复的登录相关处理器已移除（上文已定义）

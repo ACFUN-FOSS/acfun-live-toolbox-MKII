@@ -410,6 +410,10 @@ const handleDanmu = (danmuData: any) => {
   };
 
   danmuList.value.push(danmu);
+  // 更新房间活动时间
+  if (selectedRoomId.value) {
+    roomStore.touchRoomActivity(selectedRoomId.value, danmu.timestamp);
+  }
   
   // 限制弹幕数量
   if (danmuList.value.length > 1000) {

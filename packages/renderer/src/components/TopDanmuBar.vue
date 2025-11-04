@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useRoomStore } from '../stores/room';
 
 interface DanmuMessage {
   id: string;
@@ -79,6 +80,8 @@ let ws: WebSocket | null = null;
 let reconnectTimer: any = null;
 let wsPortIdx = 0;
 let animationId: number | null = null;
+
+const roomStore = useRoomStore();
 
 // 房间颜色映射
 const roomColors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
@@ -173,6 +176,8 @@ function addDanmu(eventData: any) {
   };
 
   danmuQueue.value.push(danmu);
+  // 触发房间最后活动时间更新
+  roomStore.touchRoomActivity(danmu.roomId, danmu.receivedAt);
   
   // 限制队列长度
   if (danmuQueue.value.length > 50) {

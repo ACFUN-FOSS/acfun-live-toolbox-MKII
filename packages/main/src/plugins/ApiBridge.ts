@@ -4,10 +4,10 @@ import { DatabaseManager } from '../persistence/DatabaseManager';
 import { ConfigManager } from '../config/ConfigManager';
 import { PopupManager, PopupOptions, PopupInstance } from './PopupManager';
 import type { NormalizedEvent, NormalizedEventType } from '../types';
-import { TokenManager } from '../services/TokenManager';
-import { rateLimitManager, RateLimitManager } from '../services/RateLimitManager';
+import { TokenManager } from '../server/TokenManager';
+import { rateLimitManager, RateLimitManager } from './PluginRateLimitManager';
 import { EventFilter, DEFAULT_FILTERS, applyFilters, getEventQualityScore } from '../events/normalize';
-import { apiRetryManager, ApiRetryManager, ApiCallOptions } from '../services/ApiRetryManager';
+// Removed ApiRetryManager in favor of direct TokenManager usage
 
 export interface PluginAPI {
   subscribeEvents(
@@ -15,7 +15,7 @@ export interface PluginAPI {
     filter?: { room_id?: string; type?: NormalizedEventType }
   ): () => void;
 
-  callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }, options?: ApiCallOptions): Promise<any>;
+  callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }): Promise<any>;
 
   pluginStorage: {
     write(table: string, row: any): Promise<void>;
@@ -86,7 +86,7 @@ export class ApiBridge implements PluginAPI {
     this.configManager = opts.configManager;
     this.popupManager = opts.popupManager;
     this.onPluginFault = opts.onPluginFault;
-    this.tokenManager = opts.tokenManager || new TokenManager();
+    this.tokenManager = opts.tokenManager || TokenManager.getInstance();
     
     // 使用TokenManager提供的统一API实例
     this.acfunApi = this.tokenManager.getApiInstance();
@@ -293,86 +293,78 @@ export class ApiBridge implements PluginAPI {
   /**
    * 代表插件调用 AcFun API。使用 acfunlive-http-api 进行统一的 API 调用。
    */
-  async callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }, options?: ApiCallOptions): Promise<any> {
-    const callKey = `${this.pluginId}-${req.method}-${req.path}`;
-    
-    return await apiRetryManager.executeApiCall(
-      callKey,
-      async () => {
-        // 检查速率限制
-        const rateLimitCheck = await rateLimitManager.canMakeRequest();
-        if (!rateLimitCheck.allowed) {
-          const error = new Error(`RATE_LIMIT_EXCEEDED: ${rateLimitCheck.reason}`);
-          (error as any).waitTime = rateLimitCheck.waitTime;
-          this.onPluginFault('rate-limit-exceeded');
-          throw error;
+  async callAcfun(req: { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string; body?: any }): Promise<any> {
+    // 检查速率限制
+    const rateLimitCheck = await rateLimitManager.canMakeRequest();
+    if (!rateLimitCheck.allowed) {
+      const error = new Error(`RATE_LIMIT_EXCEEDED: ${rateLimitCheck.reason}`);
+      (error as any).waitTime = rateLimitCheck.waitTime;
+      this.onPluginFault('rate-limit-exceeded');
+      throw error;
+    }
+
+    // 确保认证状态有效
+    await this.ensureValidAuthentication();
+
+    try {
+      // 记录请求
+      rateLimitManager.recordRequest();
+      
+      const httpClient = this.acfunApi.getHttpClient();
+      let response;
+
+      switch (req.method) {
+        case 'GET':
+          response = await httpClient.get(req.path);
+          break;
+        case 'POST':
+          response = await httpClient.post(req.path, req.body);
+          break;
+        case 'PUT':
+          response = await httpClient.put(req.path, req.body);
+          break;
+        case 'DELETE':
+          response = await httpClient.delete(req.path);
+          break;
+        default:
+          throw new Error(`Unsupported HTTP method: ${req.method}`);
+      }
+
+      if (!response.success) {
+        // 记录错误状态码以便速率限制管理器处理
+        const statusCode = (response as any).statusCode || (response.error?.includes('429') ? 429 : 
+                          response.error?.includes('503') ? 503 : undefined);
+        if (statusCode) {
+          rateLimitManager.recordError(statusCode);
         }
 
-        // 确保认证状态有效
-        await this.ensureValidAuthentication();
-
-        try {
-          // 记录请求
-          rateLimitManager.recordRequest();
-          
-          const httpClient = this.acfunApi.getHttpClient();
-          let response;
-
-          switch (req.method) {
-            case 'GET':
-              response = await httpClient.get(req.path);
-              break;
-            case 'POST':
-              response = await httpClient.post(req.path, req.body);
-              break;
-            case 'PUT':
-              response = await httpClient.put(req.path, req.body);
-              break;
-            case 'DELETE':
-              response = await httpClient.delete(req.path);
-              break;
-            default:
-              throw new Error(`Unsupported HTTP method: ${req.method}`);
-          }
-
-          if (!response.success) {
-            // 记录错误状态码以便速率限制管理器处理
-            const statusCode = response.statusCode || (response.error?.includes('429') ? 429 : 
-                              response.error?.includes('503') ? 503 : undefined);
-            if (statusCode) {
-              rateLimitManager.recordError(statusCode);
-            }
-
-            // 检查是否是认证错误
-            if (response.error && (response.error.includes('401') || response.error.includes('unauthorized'))) {
-              // 由于无法自动刷新令牌，清除过期令牌并抛出错误
-              console.warn('[ApiBridge] Authentication failed, clearing expired token');
-              await this.authManager.logout();
-              const err = new Error('ACFUN_TOKEN_EXPIRED');
-              this.onPluginFault('token-expired');
-              throw err;
-            }
-            
-            const err = new Error(`ACFUN_API_ERROR: ${response.error || 'Unknown error'}`);
-            this.onPluginFault(`acfun-api-error`);
-            throw err;
-          }
-
-          return response.data;
-        } catch (error: any) {
-          // 如果是网络错误或服务器错误，记录到速率限制管理器
-          if (error.message?.includes('503') || error.message?.includes('429')) {
-            const statusCode = error.message.includes('429') ? 429 : 503;
-            rateLimitManager.recordError(statusCode);
-          }
-          
-          const err = new Error(`ACFUN_API_ERROR: ${error.message || 'Unknown error'}`);
-          this.onPluginFault('acfun-api-error');
+        // 检查是否是认证错误
+        if (response.error && (response.error.includes('401') || response.error.includes('unauthorized'))) {
+          // 由于无法自动刷新令牌，清除过期令牌并抛出错误
+          console.warn('[ApiBridge] Authentication failed, clearing expired token');
+          await this.tokenManager.logout();
+          const err = new Error('ACFUN_TOKEN_EXPIRED');
+          this.onPluginFault('token-expired');
           throw err;
         }
-      },
-      options
-    );
+        
+        const err = new Error(`ACFUN_API_ERROR: ${response.error || 'Unknown error'}`);
+        this.onPluginFault('acfun-api-error');
+        throw err;
+      }
+
+      return response.data;
+    } catch (error: any) {
+      // 如果是网络错误或服务器错误，记录到速率限制管理器
+      if (error.message?.includes('503') || error.message?.includes('429')) {
+        const statusCode = error.message.includes('429') ? 429 : 503;
+        rateLimitManager.recordError(statusCode);
+      }
+      
+      const err = new Error(`ACFUN_API_ERROR: ${error.message || 'Unknown error'}`);
+      this.onPluginFault('acfun-api-error');
+      throw err;
+    }
   }
 
   /**
@@ -386,7 +378,7 @@ export class ApiBridge implements PluginAPI {
         throw err;
       }
 
-      const tokenInfo = this.tokenManager.getTokenInfo();
+      const tokenInfo = await this.tokenManager.getTokenInfo();
       if (!tokenInfo || !tokenInfo.isValid) {
         // 令牌无效或过期，尝试刷新
         console.warn('[ApiBridge] Token invalid or expired, attempting refresh');

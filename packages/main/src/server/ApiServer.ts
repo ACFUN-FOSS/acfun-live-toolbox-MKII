@@ -62,7 +62,7 @@ export class ApiServer {
     this.overlayManager = overlayManager;
     this.consoleManager = consoleManager;
     this.acfunApiProxy = new AcfunApiProxy();
-    
+
     this.configureMiddleware();
     this.configureRoutes();
     this.configureErrorHandling();
@@ -267,7 +267,63 @@ export class ApiServer {
         const levelRaw = req.query.level as string | undefined;
         const level: 'info' | 'warn' | 'error' | undefined =
           levelRaw === 'info' || levelRaw === 'warn' || levelRaw === 'error' ? levelRaw : undefined;
-        
+
+        const logs = this.diagnosticsService.getRecentLogs(limit, level);
+        res.json({
+          logs,
+          total: logs.length,
+          timestamp: Date.now()
+        });
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to retrieve logs' });
+      }
+    });
+
+    // GET /api/export - 导出数据为 CSV
+    this.app.get('/api/export', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      try {
+        const options: ExportOptions = {
+          room_id: req.query.room_id as string,
+          from_ts: req.query.from_ts ? parseInt(req.query.from_ts as string) : undefined,
+          to_ts: req.query.to_ts ? parseInt(req.query.to_ts as string) : undefined,
+          type: req.query.type as NormalizedEventType,
+          filename: req.query.filename as string,
+          includeRaw: req.query.includeRaw === 'true'
+        };
+        const result = await this.csvExporter.exportToCsv(options);
+        res.status(200).json(result);
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // GET /api/diagnostics - 获取诊断信息
+    this.app.get('/api/diagnostics', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      try {
+        const zipPath = await this.diagnosticsService.generateDiagnosticPackage();
+        const stat = fs.statSync(zipPath);
+        const filename = path.basename(zipPath);
+
+        res.setHeader('Content-Type', 'application/zip');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', stat.size);
+
+        const stream = fs.createReadStream(zipPath);
+        stream.on('error', (err) => next(err));
+        stream.pipe(res);
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // GET /api/logs - 获取最近的日志
+    this.app.get('/api/logs', (req: express.Request, res: express.Response) => {
+      try {
+        const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+        const levelRaw = req.query.level as string | undefined;
+        const level: 'info' | 'warn' | 'error' | undefined =
+          levelRaw === 'info' || levelRaw === 'warn' || levelRaw === 'error' ? levelRaw : undefined;
+
         const logs = this.diagnosticsService.getRecentLogs(limit, level);
         res.json({
           logs,
@@ -292,7 +348,7 @@ export class ApiServer {
         };
 
         const result = await this.csvExporter.exportToCsv(options);
-        
+
         res.json({
           success: true,
           filename: result.filename,
@@ -320,7 +376,7 @@ export class ApiServer {
       try {
         const commands = this.consoleManager.getCommands();
         const sessions = this.consoleManager.getActiveSessions();
-        
+
         res.json({
           success: true,
           data: {
@@ -330,9 +386,9 @@ export class ApiServer {
           }
         });
       } catch (error) {
-        res.status(500).json({ 
-          success: false, 
-          error: (error as Error).message 
+        res.status(500).json({
+          success: false,
+          error: (error as Error).message
         });
       }
     });
@@ -444,11 +500,11 @@ export class ApiServer {
       const overlayId = req.params.overlayId;
       const room = req.query.room as string;
       const token = req.query.token as string;
-      
+
       try {
         // 获取overlay配置
         const overlay = this.overlayManager.getOverlay(overlayId);
-        
+
         if (!overlay) {
           return res.status(404).json({
             success: false,
@@ -468,7 +524,7 @@ export class ApiServer {
             websocket_endpoint: `ws://127.0.0.1:${this.config.port}`
           }
         });
-        
+
       } catch (error) {
         console.error('[ApiServer] Error getting overlay data:', error);
         res.status(500).json({
@@ -495,7 +551,7 @@ export class ApiServer {
   private configureErrorHandling(): void {
     this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
       console.error('[ApiServer] Error:', err);
-      
+
       res.status(err.status || 500).json({
         success: false,
         error: err.message || 'Internal Server Error',
@@ -578,7 +634,7 @@ export class ApiServer {
   public stop(): Promise<void> {
     return new Promise((resolve) => {
       console.log('[ApiServer] Shutting down server...');
-      
+
       // 关闭 WebSocket Hub
       this.wsHub.close();
 
@@ -599,7 +655,7 @@ export class ApiServer {
    */
   private generateOverlayPage(overlay: any, room?: string, token?: string): string {
     const { id, type, content, component, props, title, description, position, size, style, className } = overlay;
-    
+
     // 基础样式
     const baseStyles = `
       * {
@@ -676,7 +732,7 @@ export class ApiServer {
 
     // 生成内容
     let overlayContent = '';
-    
+
     switch (type) {
       case 'text':
         overlayContent = `
@@ -687,7 +743,7 @@ export class ApiServer {
           </div>
         `;
         break;
-        
+
       case 'html':
         overlayContent = `
           <div class="overlay-content">
@@ -697,7 +753,7 @@ export class ApiServer {
           </div>
         `;
         break;
-        
+
       case 'component':
         overlayContent = `
           <div class="overlay-content">
@@ -713,7 +769,7 @@ export class ApiServer {
           </div>
         `;
         break;
-        
+
       default:
         overlayContent = `
           <div class="overlay-content">
@@ -830,7 +886,7 @@ export class ApiServer {
   private generateConsolePage(): string {
     const commands = this.consoleManager.getCommands();
     const sessions = this.consoleManager.getActiveSessions();
-    
+
     return `
       <!DOCTYPE html>
       <html lang="zh-CN">

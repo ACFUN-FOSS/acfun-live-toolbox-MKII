@@ -24,6 +24,12 @@ export class ConfigManager {
     return raw ? { ...raw } : {};
   }
 
+  public setAll(updates: Record<string, any>): void {
+    for (const [key, value] of Object.entries(updates)) {
+      this.store.set(key, value);
+    }
+  }
+
   public delete(key: string): void {
     this.store.delete(key);
   }

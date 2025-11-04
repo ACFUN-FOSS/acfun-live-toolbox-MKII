@@ -2,10 +2,9 @@ import express from 'express';
 import { EventSourceService } from 'acfunlive-http-api/dist/services/EventSourceService';
 import { ImageService } from 'acfunlive-http-api/dist/services/ImageService';
 import { HttpClient } from 'acfunlive-http-api/dist/core/HttpClient';
-import { TokenManager } from '../services/TokenManager';
-import { rateLimitManager } from './RateLimitManager';
-import { apiRetryManager, ApiCallOptions } from '../services/ApiRetryManager';
-import { AcfunApiProxyConfig, ApiRequest, ApiResponse } from './types/AcfunApiTypes';
+import { TokenManager } from './TokenManager';
+import { rateLimitManager } from './ApiRateLimitManager';
+import { AcfunApiProxyConfig,  ApiResponse } from './types/AcfunApiTypes';
 
 /**
  * AcFun API代理服务
