@@ -83,6 +83,43 @@ const api = {
       bringToFront: (pluginId: string, popupId: string) => ipcRenderer.invoke('plugin.popup.bringToFront', pluginId, popupId)
     }
   },
+  // Wujie helper bridging
+  wujie: {
+    getUIConfig: async (pluginId: string) => {
+      const res = await ipcRenderer.invoke('plugin.get', pluginId);
+      if (res && 'success' in res && res.success) {
+        const ui = res.data?.manifest?.ui?.wujie || null;
+        return { success: true, data: ui };
+      }
+      return { success: false, error: res?.error || 'Failed to fetch plugin' };
+    },
+    getOverlayConfig: async (pluginId: string) => {
+      const res = await ipcRenderer.invoke('plugin.get', pluginId);
+      if (res && 'success' in res && res.success) {
+        const ov = res.data?.manifest?.overlay?.wujie || null;
+        return { success: true, data: ov };
+      }
+      return { success: false, error: res?.error || 'Failed to fetch plugin' };
+    }
+  },
+  // Unified hosting manifest bridging
+  hosting: {
+    getConfig: async (pluginId: string) => {
+      const res = await ipcRenderer.invoke('plugin.get', pluginId);
+      if (res && 'success' in res && res.success) {
+        const m = res.data?.manifest || {};
+        return {
+          success: true,
+          data: {
+            ui: m.ui ? { spa: !!m.ui.spa, route: m.ui.route || '/', html: m.ui.html || 'ui.html' } : null,
+            window: (m as any).window ? { spa: !!(m as any).window.spa, route: (m as any).window.route || '/', html: (m as any).window.html || 'window.html' } : null,
+            overlay: m.overlay ? { spa: !!m.overlay.spa, route: m.overlay.route || '/', html: m.overlay.html || 'overlay.html' } : null
+          }
+        };
+      }
+      return { success: false, error: res?.error || 'Failed to fetch plugin' };
+    }
+  },
   // Room API bridging
   room: {
     connect: (roomId: string) => ipcRenderer.invoke('room.connect', roomId),

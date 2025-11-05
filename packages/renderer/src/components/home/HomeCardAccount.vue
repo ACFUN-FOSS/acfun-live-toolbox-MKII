@@ -34,8 +34,8 @@
               <p class="user-uid">
                 UID: {{ accountStore.userInfo?.userID || '-' }}
               </p>
-              <p class="user-signature" :title="accountStore.fullUserInfo?.signature || ''">
-                {{ accountStore.fullUserInfo?.signature || '这个人很懒，什么都没写。' }}
+              <p class="user-signature" :title="signatureTitle">
+                {{ signatureText }}
                 <t-link theme="primary" hover="underline" size="small" @click="openUserSpace">个人空间</t-link>
                 &nbsp;<t-link theme="primary" hover="underline" size="small" @click="logout">退出登录</t-link>
               </p>
@@ -45,19 +45,19 @@
           <div class="profile-stats">
             <div class="stat-item">
               <div class="stat-title">粉丝数</div>
-              <div class="stat-value">{{ formatCompact(((accountStore.fullUserInfo as any)?.fansCount ?? (accountStore.fullUserInfo as any)?.fancount ?? 0)) }}</div>
+              <div class="stat-value">{{ formatCompact(fansCount) }}</div>
             </div>
             <div class="stat-item">
               <div class="stat-title">关注数</div>
-              <div class="stat-value">{{ formatCompact(((accountStore.fullUserInfo as any)?.followCount ?? (accountStore.fullUserInfo as any)?.followcount ?? 0)) }}</div>
+              <div class="stat-value">{{ formatCompact(followCount) }}</div>
             </div>
             <div class="stat-item">
               <div class="stat-title">投稿数</div>
-              <div class="stat-value">{{ formatCompact(((accountStore.fullUserInfo as any)?.contributeCount ?? (accountStore.fullUserInfo as any)?.contributecount ?? 0)) }}</div>
+              <div class="stat-value">{{ formatCompact(contributeCount) }}</div>
             </div>
             <div class="stat-item">
               <div class="stat-title">收藏数</div>
-              <div class="stat-value">{{ formatCompact(((accountStore.fullUserInfo as any)?.likeCount ?? (accountStore.fullUserInfo as any)?.likecount ?? 0)) }}</div>
+              <div class="stat-value">{{ formatCompact(likeCount) }}</div>
             </div>
           </div>
         </div>
@@ -68,7 +68,8 @@
 
     <!-- 二维码登录对话框 -->
     <t-dialog 
-      v-model:visible="qrDialogVisible" 
+      :visible="qrDialogVisible"
+      @update:visible="(v) => (qrDialogVisible = v)"
       title="二维码登录" 
       width="420px"
       :close-on-overlay-click="false"
@@ -115,13 +116,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useAccountStore } from '../../stores/account';
 import { useHomeStore } from '../../stores/home';
 import { formatCompact } from '../../utils/format';
 
 const accountStore = useAccountStore();
 const home = useHomeStore();
+
+// 统一模板所需的完整用户信息字段，避免在模板中使用 TS 断言
+const fullInfo = computed(() => (accountStore.fullUserInfo as any) || null);
+const signatureText = computed(() => fullInfo.value?.signature || '这个人很懒，什么都没写。');
+const signatureTitle = computed(() => fullInfo.value?.signature || '');
+const fansCount = computed(() => fullInfo.value?.fansCount ?? fullInfo.value?.fancount ?? 0);
+const followCount = computed(() => fullInfo.value?.followCount ?? fullInfo.value?.followcount ?? 0);
+const contributeCount = computed(() => fullInfo.value?.contributeCount ?? fullInfo.value?.contributecount ?? 0);
+const likeCount = computed(() => fullInfo.value?.likeCount ?? fullInfo.value?.likecount ?? 0);
 
 const isAuthError = (msg: string | null) => {
   if (!msg) return false;
@@ -267,7 +277,6 @@ const cancelQrLogin = async () => {
   qrSession.value.expireAt = null;
 };
 
-const switchAccount = () => { showQrLogin(); };
 const logout = async () => { await accountStore.logout(); };
 
 const openUserSpace = async () => {
@@ -343,7 +352,7 @@ const formatCountdown = (expireAt: Date) => {
 .profile-info { flex: 1; }
 .user-nickname { margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: var(--td-text-color-primary); }
 .user-uid { margin: 4px 0; font-size: 12px; color: var(--td-text-color-secondary); }
-.user-signature { margin: 4px 0; font-size: 12px; color: var(--td-text-color-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.user-signature { margin: 4px 0; font-size: 12px; color: var(--td-text-color-secondary); display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .action-buttons { display: flex; gap: 8px; margin-top: 8px; }
 .profile-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
 .stat-item { text-align: center; padding: 6px 0; background: var(--td-bg-color-container-hover); border-radius: 6px; cursor: pointer; transition: transform 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease; }

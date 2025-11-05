@@ -34,6 +34,16 @@ const rendererWatchServer = await createServer({
 
 await rendererWatchServer.listen();
 
+// 输出 renderer 开发服务器地址，便于在日志中获取预览 URL
+try {
+  const urls = rendererWatchServer.resolvedUrls || {};
+  const local = (urls.local && urls.local[0]) || '';
+  const network = (urls.network && urls.network[0]) || '';
+  console.log(`[Renderer] Dev server running at: ${local || network || 'unknown'}`);
+} catch (e) {
+  console.log('[Renderer] Dev server URL not available');
+}
+
 
 /**
  * 3. We are creating a simple provider plugin.

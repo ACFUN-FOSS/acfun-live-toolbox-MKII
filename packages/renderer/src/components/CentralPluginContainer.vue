@@ -44,14 +44,16 @@
           :name="currentPlugin.id"
           :url="pluginUrl"
           :sync="false"
+          :alive="true"
           :fetch="customFetch"
           :props="pluginProps"
-          @before-load="onPluginBeforeLoad"
-          @before-mount="onPluginBeforeMount"
-          @after-mount="onPluginAfterMount"
-          @before-unmount="onPluginBeforeUnmount"
-          @after-unmount="onPluginAfterUnmount"
-          @load-error="onPluginLoadError"
+          :attrs="{ style: 'width:100%;height:100%;display:block;' }"
+          @beforeLoad="onPluginBeforeLoad"
+          @beforeMount="onPluginBeforeMount"
+          @afterMount="onPluginAfterMount"
+          @beforeUnmount="onPluginBeforeUnmount"
+          @afterUnmount="onPluginAfterUnmount"
+          @loadError="onPluginLoadError"
         />
         
         <!-- 加载状态 -->

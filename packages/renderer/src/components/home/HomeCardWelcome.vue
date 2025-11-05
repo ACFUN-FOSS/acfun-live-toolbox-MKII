@@ -31,9 +31,6 @@
           </div>
         </div>
       </div>
-      <template #footer>
-        <t-button theme="primary" size="small" @click="goMainCta">开始</t-button>
-      </template>
     </t-card>
   </div>
   
@@ -64,19 +61,6 @@ const goStep = (n: number) => {
   if (n === 1) router.push('/live/room');
   else if (n === 2) router.push('/plugins/management');
   else router.push('/system/console');
-};
-
-const goMainCta = () => {
-  switch (role.current) {
-    case 'moderator':
-      router.push('/live/room');
-      break;
-    case 'developer':
-      router.push('/system/console');
-      break;
-    default:
-      router.push('/live/room');
-  }
 };
 </script>
 

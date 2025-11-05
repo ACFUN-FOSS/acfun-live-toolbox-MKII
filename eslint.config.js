@@ -94,6 +94,7 @@ export default [
       '@typescript-eslint/no-empty-object-type': 'warn',
       'vue/multi-word-component-names': 'off',
       'vue/no-unused-vars': 'warn',
+      'vue/no-v-model-argument': 'off',
       'vue/max-attributes-per-line': 'off',
       'vue/attribute-hyphenation': 'off',
       'no-empty': 'warn',

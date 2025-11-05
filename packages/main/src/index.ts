@@ -89,6 +89,8 @@ async function main() {
   // 更新管理器中的apiServer引用
   (pluginManager as any).apiServer = apiServer;
   (consoleManager as any).apiServer = apiServer;
+  // 向 ApiServer 注入 PluginManager 以支持统一静态托管
+  apiServer.setPluginManager(pluginManager);
   
   await apiServer.start();
 

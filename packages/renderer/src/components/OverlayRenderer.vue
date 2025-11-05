@@ -6,6 +6,25 @@
     :style="overlayStyles"
     @click="handleOverlayClick"
   >
+    <!-- Wujie Overlay 渲染 -->
+    <WujieVue
+      v-if="isWujieOverlay"
+      class="overlay-content wujie-content"
+      :key="pluginKey"
+      :name="wujieName"
+      :url="wujieUrl"
+      :sync="false"
+      :alive="true"
+      :fetch="customFetch"
+      :props="wujieProps"
+      :attrs="wujieAttrs"
+      @beforeLoad="onOverlayBeforeLoad"
+      @beforeMount="onOverlayBeforeMount"
+      @afterMount="onOverlayAfterMount"
+      @beforeUnmount="onOverlayBeforeUnmount"
+      @afterUnmount="onOverlayAfterUnmount"
+      @loadError="onOverlayLoadError"
+    />
     <!-- HTML内容渲染 -->
     <div 
       v-if="overlay.type === 'html'" 
@@ -55,6 +74,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import WujieVue from 'wujie-vue3'
 import TestOverlayComponent from './overlay/TestOverlayComponent.vue'
 
 export interface OverlayPosition {
@@ -102,6 +122,8 @@ export interface OverlayOptions {
   duration?: number
   autoClose?: number
   className?: string
+  // 绑定的插件ID，用于读取清单的 overlay.wujie 配置
+  pluginId?: string
 }
 
 interface Props {
@@ -139,6 +161,40 @@ const getComponent = computed(() => {
 
 // 自动关闭定时器
 const autoCloseTimer = ref<number | null>(null)
+
+// Wujie 相关状态
+interface OverlayWujieConfig {
+  url: string
+  spa?: boolean
+  route?: string
+}
+
+interface PluginManifestLike {
+  id: string
+  version: string
+  manifest?: {
+    overlay?: {
+      wujie?: OverlayWujieConfig
+    }
+  }
+}
+
+const isWujieOverlay = ref(false)
+const wujieUrl = ref('')
+const wujieName = ref('')
+const pluginKey = ref('')
+const wujieProps = ref<Record<string, any>>({})
+const wujieAttrs = ref<Record<string, any>>({ style: 'width:100%;height:100%;display:block;' })
+
+function customFetch(url: string, options?: RequestInit) {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options?.headers,
+      'X-Plugin-Token': 'overlay-plugin-token'
+    }
+  })
+}
 
 // 计算overlay的CSS类
 const overlayClasses = computed(() => {
@@ -250,11 +306,58 @@ onMounted(() => {
   if (props.visible) {
     setupAutoClose()
   }
+  resolveWujieConfig()
 })
 
 onUnmounted(() => {
   clearAutoClose()
 })
+
+watch(() => props.overlay, () => {
+  resolveWujieConfig()
+})
+
+async function resolveWujieConfig() {
+  try {
+    const pluginId = props.overlay.pluginId
+    if (!pluginId) {
+      isWujieOverlay.value = false
+      return
+    }
+    const res = await window.electronApi.plugin.get(pluginId)
+    if (res && 'success' in res && res.success) {
+      const info = res.data as PluginManifestLike
+      const w = info?.manifest?.overlay?.wujie || null
+      if (w && typeof w.url === 'string' && w.url.trim()) {
+        isWujieOverlay.value = true
+        wujieUrl.value = w.url
+        wujieName.value = `overlay-${pluginId}`
+        pluginKey.value = `${pluginId}-${props.overlay.id}-${Date.now()}`
+        wujieProps.value = {
+          overlayId: props.overlay.id,
+          pluginId,
+          version: info.version
+        }
+      } else {
+        isWujieOverlay.value = false
+      }
+    } else {
+      isWujieOverlay.value = false
+    }
+  } catch (err) {
+    console.error('resolveWujieConfig error:', err)
+    isWujieOverlay.value = false
+  }
+}
+
+function onOverlayBeforeLoad() {}
+function onOverlayBeforeMount() {}
+function onOverlayAfterMount() {}
+function onOverlayBeforeUnmount() {}
+function onOverlayAfterUnmount() {}
+function onOverlayLoadError(err: any) {
+  console.error('Wujie overlay load error:', err)
+}
 </script>
 
 <style scoped>

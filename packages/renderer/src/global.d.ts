@@ -78,6 +78,31 @@ declare global {
           | { roomId: string; status: string; eventCount: number; connectedAt: number | null; lastEventAt: number | null; reconnectAttempts: number }
           | { error: string }
         >;
+        details: (
+          roomId: string
+        ) => Promise<
+          | {
+              success: true;
+              data: {
+                roomId: string;
+                liveId?: string;
+                title: string;
+                isLive: boolean;
+                status: string;
+                startTime?: number;
+                viewerCount?: number;
+                likeCount?: number;
+                coverUrl?: string;
+                streamer?: {
+                  userId: string;
+                  userName: string;
+                  avatar?: string;
+                  level?: number;
+                };
+              };
+            }
+          | { success: false; error: string }
+        >;
         setPriority: (roomId: string, priority: number) => Promise<{ success: boolean; code?: string; error?: string }>;
         setLabel: (roomId: string, label: string) => Promise<{ success: boolean; code?: string; error?: string }>;
       };
@@ -87,8 +112,25 @@ declare global {
         uninstall: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
         enable: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
         disable: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
-        get: (pluginId: string) => Promise<{ plugin: { id: string; name: string; version: string; description?: string; enabled: boolean; author?: string; homepage?: string; } } | { error: string }>;
-        stats: () => Promise<{ stats: { total: number; enabled: number; disabled: number; } } | { error: string }>;
+        get: (
+          pluginId: string
+        ) => Promise<
+          | {
+              success: true;
+              data: {
+                id: string;
+                name: string;
+                version: string;
+                description?: string;
+                enabled: boolean;
+                author?: string;
+                homepage?: string;
+                manifest?: any;
+              };
+            }
+          | { success: false; error: string }
+        >;
+        stats: () => Promise<{ success: true; data: { total: number; enabled: number; disabled: number; error: number } }>;
         logs: (pluginId?: string, limit?: number) => Promise<{ logs: Array<{ level: string; message: string; timestamp: number; context?: any; }> } | { error: string }>;
         errorHistory: (pluginId: string) => Promise<{ errors: Array<{ type: string; message: string; timestamp: number; context?: any; recoveryAction?: string; }> } | { error: string }>;
         errorStats: () => Promise<{ stats: { totalErrors: number; errorsByType: Record<string, number>; errorsByPlugin: Record<string, number>; } } | { error: string }>;
@@ -107,6 +149,20 @@ declare global {
           action: (pluginId: string, popupId: string, actionId: string) => Promise<{ success: boolean; error?: string }>;
           bringToFront: (pluginId: string, popupId: string) => Promise<{ success: boolean; error?: string }>;
         };
+      };
+      wujie: {
+        getUIConfig: (
+          pluginId: string
+        ) => Promise<
+          | { success: true; data: { url: string; spa?: boolean; route?: string } | null }
+          | { success: false; error: string }
+        >;
+        getOverlayConfig: (
+          pluginId: string
+        ) => Promise<
+          | { success: true; data: { url: string; spa?: boolean; route?: string } | null }
+          | { success: false; error: string }
+        >;
       };
       overlay: {
         create: (options: any) => Promise<{ success: boolean; overlayId?: string; error?: string }>;

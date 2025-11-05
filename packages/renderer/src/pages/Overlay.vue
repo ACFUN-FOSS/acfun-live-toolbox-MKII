@@ -3,6 +3,26 @@
     v-if="overlayData"
     class="overlay-container"
   >
+    <!-- Wujie 微前端 Overlay，当插件清单声明 overlay.wujie.url 时加载 -->
+    <WujieVue
+      v-if="isWujieOverlay"
+      :key="pluginKey"
+      :name="wujieName"
+      :url="wujieUrl"
+      :props="wujieProps"
+      :attrs="wujieAttrs"
+      :sync="true"
+      :alive="true"
+      :width="'100%'"
+      :height="'100%'"
+      @beforeLoad="onBeforeLoad"
+      @beforeMount="onBeforeMount"
+      @afterMount="onAfterMount"
+      @beforeUnmount="onBeforeUnmount"
+      @afterUnmount="onAfterUnmount"
+      @loadError="onLoadError"
+    />
+
     <!-- 文本类型 Overlay -->
     <div 
       v-if="overlayData.overlay.type === 'text'" 
@@ -68,6 +88,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import WujieVue from 'wujie-vue3'
 
 interface OverlayConfig {
   type: 'text' | 'html' | 'component'
@@ -75,6 +96,8 @@ interface OverlayConfig {
   component?: string
   config?: Record<string, any>
   style?: Record<string, any>
+  // 插件ID，用于读取插件清单中的 overlay.wujie 配置
+  pluginId?: string
 }
 
 interface OverlayData {
@@ -90,10 +113,43 @@ interface ErrorInfo {
   details?: string
 }
 
+interface OverlayWujieConfig {
+  url: string
+  spa?: boolean
+  route?: string
+}
+
+interface PluginManifest {
+  id: string
+  name: string
+  version: string
+  main: string
+  overlay?: {
+    wujie?: OverlayWujieConfig
+  }
+}
+
+interface PluginInfoLite {
+  id: string
+  name: string
+  version: string
+  manifest: PluginManifest
+}
+
 const route = useRoute()
 const overlayData = ref<OverlayData | null>(null)
 const error = ref<ErrorInfo | null>(null)
 let websocket: WebSocket | null = null
+
+// Wujie 相关状态
+const pluginInfo = ref<PluginInfoLite | null>(null)
+const overlayWujie = ref<OverlayWujieConfig | null>(null)
+const isWujieOverlay = ref(false)
+const wujieUrl = ref('')
+const wujieName = ref('')
+const pluginKey = ref('')
+const wujieProps = ref<Record<string, any>>({})
+const wujieAttrs = ref<Record<string, any>>({ style: 'width:100%;height:100%;display:block;' })
 
 const fetchOverlayData = async () => {
   try {
@@ -113,6 +169,9 @@ const fetchOverlayData = async () => {
       if (result.success) {
         overlayData.value = result.data
         connectWebSocket(result.data.websocket_endpoint)
+
+        // 根据 overlay.pluginId 加载插件清单，判断是否启用 Wujie Overlay
+        await resolveWujieConfig()
       } else {
         error.value = {
           title: '获取 Overlay 失败',
@@ -134,6 +193,58 @@ const fetchOverlayData = async () => {
       message: '无法连接到服务器',
       details: (err as Error).message
     }
+  }
+}
+
+const resolveWujieConfig = async () => {
+  try {
+    const pluginId = overlayData.value?.overlay?.pluginId
+    if (!pluginId) {
+      // 未绑定插件，按旧模式渲染
+      isWujieOverlay.value = false
+      return
+    }
+
+    // 通过真实的 preload API 读取插件信息
+    const res = await window.electronApi.plugin.get(pluginId)
+    if (res && 'success' in res && res.success) {
+      const info = res.data
+      pluginInfo.value = info as PluginInfoLite
+      const w = info?.manifest?.overlay?.wujie || null
+      overlayWujie.value = w
+
+      if (w && typeof w.url === 'string' && w.url.trim()) {
+        isWujieOverlay.value = true
+        wujieUrl.value = w.url
+        wujieName.value = `overlay-${pluginId}`
+        pluginKey.value = `${pluginId}-${route.params.overlayId}-${Date.now()}`
+
+        // 传递给子应用的属性
+        wujieProps.value = {
+          overlayId: route.params.overlayId,
+          pluginId,
+          version: info.version,
+          room: overlayData.value?.room,
+          token: overlayData.value?.token,
+          api: {
+            // 透传必要能力，可视需要扩展
+            close: () => window.electronApi.overlay.close(String(route.params.overlayId)),
+            action: (action: string, data?: any) => window.electronApi.overlay.action(String(route.params.overlayId), action, data),
+            update: (updates: any) => window.electronApi.overlay.update(String(route.params.overlayId), updates)
+          },
+          // SPA 初始路由支持
+          initialRoute: w.spa ? (w.route || '/') : undefined
+        }
+      } else {
+        isWujieOverlay.value = false
+      }
+    } else {
+      isWujieOverlay.value = false
+    }
+  } catch (err) {
+    console.error('Failed to resolve Wujie overlay config:', err)
+    // 回落到旧模式
+    isWujieOverlay.value = false
   }
 }
 
@@ -218,6 +329,30 @@ onUnmounted(() => {
     websocket.close()
   }
 })
+
+// Wujie 生命周期事件（保持与 CentralPluginContainer 一致的钩子结构）
+const onBeforeLoad = () => {
+  // 预留加载前处理，例如打点
+}
+const onBeforeMount = () => {
+  // 预留挂载前处理
+}
+const onAfterMount = () => {
+  // 预留挂载后处理
+}
+const onBeforeUnmount = () => {
+  // 预留卸载前处理
+}
+const onAfterUnmount = () => {
+  // 预留卸载后处理
+}
+const onLoadError = (e: any) => {
+  error.value = {
+    title: 'Wujie 加载失败',
+    message: '无法加载插件 Overlay 前端资源',
+    details: String(e?.message || e)
+  }
+}
 </script>
 
 <style scoped>
@@ -335,5 +470,11 @@ onUnmounted(() => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Wujie 容器占满 Overlay 区域 */
+:deep(.wujie-container) {
+  width: 100%;
+  height: 100%;
 }
 </style>

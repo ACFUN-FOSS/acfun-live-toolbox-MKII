@@ -58,6 +58,46 @@ your-plugin/
 - `icon`: 插件图标文件路径
 - `engines`: 支持的应用版本范围
 
+#### 统一静态托管（UI/Window/Overlay）
+
+为便于托管插件的前端页面和资源，支持在 `manifest.json` 中为 `ui`、`window`、`overlay` 声明统一的静态托管字段：
+
+```json
+{
+  "id": "your-plugin-id",
+  "name": "插件名称",
+  "version": "1.0.0",
+  "main": "index.js",
+  "ui": {
+    "spa": true,
+    "route": "/",
+    "html": "ui.html",
+    "wujie": { "url": "/", "spa": true, "route": "/" }
+  },
+  "window": {
+    "spa": true,
+    "route": "/",
+    "html": "window.html"
+  },
+  "overlay": {
+    "spa": false,
+    "html": "overlay.html",
+    "wujie": { "url": "/overlay", "spa": false }
+  }
+}
+```
+
+- `spa`: 是否为单页应用（SPA）。当为 `true` 时，`/plugins/:id/<type>/*` 会回退到入口 `html` 文件。
+- `route`: SPA 场景下的初始路由（未提供时默认 `/`）。
+- `html`: 入口 HTML 文件（位于插件安装目录的相对路径）。不提供时默认使用 `<type>.html`。
+- `wujie`: 兼容历史字段，用于声明 Wujie 微前端入口；`url` 可与上述 `route` 对齐。
+
+托管后的访问路由：
+- `GET /plugins/:id/ui[/*]`、`/plugins/:id/window[/*]`、`/plugins/:id/overlay[/*]`
+- 直接入口：`GET /plugins/:id/ui.html`、`/plugins/:id/window.html`、`/plugins/:id/overlay.html`
+
+若非 SPA（`spa:false`），`/plugins/:id/<type>/<path>` 将按静态资源路径映射到插件安装目录（带安全路径校验）。
+
 #### 权限系统
 
 插件可以请求以下权限：

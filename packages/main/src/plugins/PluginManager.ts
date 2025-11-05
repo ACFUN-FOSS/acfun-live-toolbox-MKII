@@ -40,6 +40,10 @@ export interface PluginManifest {
     name?: string;
     description?: string;
     icon?: string;
+    // 统一静态托管字段（新）
+    spa?: boolean;
+    route?: string;
+    html?: string;
     wujie?: {
       url: string;
       spa?: boolean;
@@ -47,11 +51,21 @@ export interface PluginManifest {
     };
   };
   overlay?: {
+    // 统一静态托管字段（新）
+    spa?: boolean;
+    route?: string;
+    html?: string;
     wujie?: {
       url: string;
       spa?: boolean;
       route?: string;
     };
+  };
+  // 新增窗口页（与 UI 区分）：统一静态托管字段
+  window?: {
+    spa?: boolean;
+    route?: string;
+    html?: string;
   };
 }
 
@@ -988,6 +1002,29 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
           w.route = '/';
         }
       }
+
+      // 统一静态托管字段（ui/window/overlay）
+      const validateHosting = (label: string, cfg: any) => {
+        if (!cfg) return;
+        if (cfg.spa !== undefined && typeof cfg.spa !== 'boolean') {
+          throw new Error(`${label}.spa 必须为布尔值`);
+        }
+        if (cfg.route !== undefined && typeof cfg.route !== 'string') {
+          throw new Error(`${label}.route 必须为字符串`);
+        }
+        if (cfg.html !== undefined && typeof cfg.html !== 'string') {
+          throw new Error(`${label}.html 必须为字符串`);
+        }
+        // 当声明为 SPA 而未提供 route 时，设置为默认 '/'
+        if (cfg.spa && (cfg.route === undefined || cfg.route === '')) {
+          cfg.route = '/';
+        }
+      };
+
+      // 注意：ui/overlay 根级对象既承载展示元数据（name/description/icon），又包含新的托管字段
+      validateHosting('ui', manifest.ui);
+      validateHosting('overlay', manifest.overlay);
+      validateHosting('window', (manifest as any).window);
 
       return manifest;
     } catch (error) {

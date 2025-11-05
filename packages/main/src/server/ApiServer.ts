@@ -12,6 +12,7 @@ import { CsvExporter, ExportOptions } from '../persistence/CsvExporter';
 import { DatabaseManager } from '../persistence/DatabaseManager';
 import { DiagnosticsService } from '../logging/DiagnosticsService';
 import { OverlayManager } from '../plugins/OverlayManager';
+import { PluginManager } from '../plugins/PluginManager';
 import { ConsoleManager } from '../console/ConsoleManager';
 import { AcfunApiProxy } from './AcfunApiProxy';
 import { NormalizedEventType } from '../types';
@@ -43,6 +44,7 @@ export class ApiServer {
   private consoleManager: ConsoleManager;
   private acfunApiProxy: AcfunApiProxy;
   private pluginRoutes: Map<string, { method: 'GET' | 'POST'; path: string; handler: express.RequestHandler }[]> = new Map();
+  private pluginManager?: PluginManager;
 
   constructor(config: ApiServerConfig = { port: 1299 }, databaseManager: DatabaseManager, diagnosticsService: DiagnosticsService, overlayManager: OverlayManager, consoleManager: ConsoleManager) {
     this.config = {
@@ -66,6 +68,13 @@ export class ApiServer {
     this.configureMiddleware();
     this.configureRoutes();
     this.configureErrorHandling();
+  }
+
+  /**
+   * 注入 PluginManager 引用，用于统一静态托管插件页面。
+   */
+  public setPluginManager(pm: PluginManager): void {
+    this.pluginManager = pm;
   }
 
   /**
@@ -488,13 +497,91 @@ export class ApiServer {
       const candidate = routes.find(r => r.method === method && reqPath.startsWith(r.path));
 
       if (!candidate) {
-        // 静态托管后续实现，此处返回 404
-        return res.status(404).json({
-          error: 'PLUGIN_ROUTE_NOT_FOUND',
-          pluginId,
-          path: reqPath,
-          method
-        });
+        // 统一静态托管：/plugins/:id/ui[/*]、/window[/*]、/overlay[/*] 与 *.html 入口
+        try {
+          if (!this.pluginManager) {
+            return res.status(404).json({ error: 'PLUGIN_MANAGER_NOT_AVAILABLE' });
+          }
+          const plugin = this.pluginManager.getPlugin(pluginId);
+          if (!plugin) {
+            return res.status(404).json({ error: 'PLUGIN_NOT_FOUND', pluginId });
+          }
+
+          const segments = reqPath.split('/').filter(Boolean);
+          // 支持直接 *.html 入口，例如 /plugins/:id/ui.html
+          const directHtmlMatch = segments.length === 1 && /^(ui|window|overlay)\.html$/i.test(segments[0]);
+
+          const getPageConf = (type: 'ui' | 'window' | 'overlay') => {
+            const m: any = plugin.manifest || {};
+            const legacy = (type === 'ui' ? m.ui?.wujie : type === 'overlay' ? m.overlay?.wujie : undefined) || undefined;
+            const conf = m[type] || {};
+            // 统一字段：spa、route、html；兼容 legacy .wujie.url
+            return {
+              spa: conf?.spa === true,
+              route: typeof conf?.route === 'string' ? conf.route : undefined,
+              html: typeof conf?.html === 'string' ? conf.html : undefined,
+              legacyUrl: legacy?.url
+            } as { spa: boolean; route?: string; html?: string; legacyUrl?: string };
+          };
+
+          const sendFile = (absPath: string) => {
+            // 防止目录穿越，仅允许位于插件安装目录中
+            const safeRoot = plugin.installPath;
+            const resolved = path.resolve(absPath);
+            if (!resolved.startsWith(path.resolve(safeRoot))) {
+              return res.status(403).json({ error: 'FORBIDDEN_PATH' });
+            }
+            if (!fs.existsSync(resolved)) {
+              return res.status(404).json({ error: 'FILE_NOT_FOUND', path: reqPath });
+            }
+            return res.sendFile(resolved);
+          };
+
+          const servePage = (type: 'ui' | 'window' | 'overlay', subPath: string[]) => {
+            const conf = getPageConf(type);
+            const defaultHtml = `${type}.html`;
+
+            // 1) direct entry: /plugins/:id/<type>
+            if (subPath.length === 0) {
+              const htmlFile = conf.html || defaultHtml;
+              return sendFile(path.join(plugin.installPath, htmlFile));
+            }
+
+            // 2) SPA fallback: /plugins/:id/<type>/* -> serve entry html
+            if (conf.spa) {
+              const htmlFile = conf.html || defaultHtml;
+              return sendFile(path.join(plugin.installPath, htmlFile));
+            }
+
+            // 3) 非 SPA：按静态资源路径映射（相对插件目录）
+            const rel = subPath.join('/');
+            const abs = path.join(plugin.installPath, rel);
+            return sendFile(abs);
+          };
+
+          if (directHtmlMatch) {
+            const type = segments[0].split('.')[0] as 'ui' | 'window' | 'overlay';
+            const conf = getPageConf(type);
+            const htmlFile = conf.html || `${type}.html`;
+            return sendFile(path.join(plugin.installPath, htmlFile));
+          }
+
+          const pageType = segments[0] as 'ui' | 'window' | 'overlay';
+          if (pageType === 'ui' || pageType === 'window' || pageType === 'overlay') {
+            return servePage(pageType, segments.slice(1));
+          }
+
+          // 若不匹配约定页面作用域，则返回 404
+          return res.status(404).json({
+            error: 'PLUGIN_ROUTE_NOT_FOUND',
+            pluginId,
+            path: reqPath,
+            method
+          });
+        } catch (err) {
+          console.error('[ApiServer] Static hosting error:', err);
+          return res.status(500).json({ error: 'PLUGIN_STATIC_HOSTING_ERROR' });
+        }
       }
 
       // 调用已注册处理器；确保插件无法逃逸作用域

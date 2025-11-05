@@ -12,6 +12,14 @@ export interface AccountProfile {
 // 不再进行多字段归一，仅使用后端返回的 userName 字段
 
 // 完整用户信息类型改为使用 acfunlive-http-api 的 UserInfo 导出
+// 扩展完整用户信息以兼容渲染层需要的签名与计数字段（后端可能返回但未在类型中声明）
+export type ExtendedUserInfo = UserInfo & {
+  signature?: string;
+  fansCount?: number;
+  followCount?: number;
+  contributeCount?: number;
+  likeCount?: number;
+};
 
 // 清洗头像URL：去除首尾反引号/空白，防止CSP和URL解析异常
 function sanitizeAvatarUrl(url: string | undefined | null): string {
@@ -35,7 +43,7 @@ export interface LoginState {
 export const useAccountStore = defineStore('account', () => {
   // 状态
   const userInfo = ref<AccountProfile | null>(null);
-  const fullUserInfo = ref<UserInfo | null>(null);
+  const fullUserInfo = ref<ExtendedUserInfo | null>(null);
   const loginState = ref<LoginState>({
     isLoggedIn: false,
     isLogging: false,
@@ -72,12 +80,12 @@ export const useAccountStore = defineStore('account', () => {
         const result = await window.electronApi.account.getUserInfo();
         if ('success' in result && result.success && result.data) {
           // 统一完整用户信息（将 userName 映射为 UserInfo.username）
-          const full: UserInfo = {
+          const full: ExtendedUserInfo = {
             ...(result.data as any),
             username: typeof (result.data as any).userName === 'string' && (result.data as any).userName.trim().length > 0
               ? (result.data as any).userName.trim()
               : (result.data as any).username
-          } as UserInfo;
+          } as ExtendedUserInfo;
           const updated: AccountProfile = {
             userID: Number(result.data.userId),
             nickname: typeof result.data.userName === 'string' && result.data.userName.trim().length > 0
@@ -183,12 +191,12 @@ export const useAccountStore = defineStore('account', () => {
       }
 
       // 使用主进程返回的完整用户信息，提取最小展示所需字段
-      const full: UserInfo = {
+      const full: ExtendedUserInfo = {
         ...(result.data as any),
         username: typeof (result.data as any).userName === 'string' && (result.data as any).userName.trim().length > 0
           ? (result.data as any).userName.trim()
           : (result.data as any).username
-      } as UserInfo;
+      } as ExtendedUserInfo;
       const profile: AccountProfile = {
         userID: Number(result.data.userId),
         nickname: typeof result.data.userName === 'string' && result.data.userName.trim().length > 0
@@ -223,12 +231,12 @@ export const useAccountStore = defineStore('account', () => {
         try {
           const result = await window.electronApi.account.getUserInfo();
           if ('success' in result && result.success && result.data) {
-            const full: UserInfo = {
+            const full: ExtendedUserInfo = {
               ...(result.data as any),
               username: typeof (result.data as any).userName === 'string' && (result.data as any).userName.trim().length > 0
                 ? (result.data as any).userName.trim()
                 : (result.data as any).username
-            } as UserInfo;
+            } as ExtendedUserInfo;
             const updated: AccountProfile = {
               userID: Number(result.data.userId),
               nickname: typeof result.data.userName === 'string' && result.data.userName.trim().length > 0
