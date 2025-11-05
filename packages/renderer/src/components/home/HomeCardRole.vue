@@ -4,7 +4,13 @@
       <div v-if="home.loading.C">
         <t-skeleton :row-col="[[{ width: '100%' }],[{ width: '100%' }]]" />
       </div>
-      <t-alert v-else-if="home.error.C" theme="error" :message="home.error.C" closeBtn @close="home.retryCard('C')"></t-alert>
+      <div v-else-if="home.error.C">
+        <t-alert theme="error" :message="home.error.C" closeBtn @close="home.retryCard('C')"></t-alert>
+        <div class="empty-state">
+          暂无内容
+          <t-button size="small" variant="outline" @click="home.retryCard('C')">重试</t-button>
+        </div>
+      </div>
       <div v-else class="role-body">
         <div v-if="role.current === 'anchor'" class="stats-block">
           <div class="overview-grid">
@@ -76,6 +82,7 @@
             <t-radio-button value="7d">7天</t-radio-button>
             <t-radio-button value="30d">30天</t-radio-button>
           </t-radio-group>
+          <t-link v-if="role.current === 'moderator'" theme="primary" @click="goMore">查看更多</t-link>
         </t-space>
       </template>
     </t-card>
@@ -84,12 +91,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useHomeStore } from '../../stores/home';
 import { useRoleStore } from '../../stores/role';
 import { formatCompact } from '../../utils/format';
 
 const home = useHomeStore();
 const role = useRoleStore();
+const router = useRouter();
 
 const roleTitle = computed(() => role.current === 'anchor' ? '主播统计' : (role.current === 'moderator' ? '管理房间' : '开发者指标'));
 
@@ -124,6 +133,8 @@ const formatNumber = (num?: number) => {
   }
   return num.toString();
 };
+
+const goMore = () => router.push('/live/room');
 </script>
 
 <style scoped>

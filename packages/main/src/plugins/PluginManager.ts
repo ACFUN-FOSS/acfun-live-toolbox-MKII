@@ -36,6 +36,23 @@ export interface PluginManifest {
   permissions?: string[];
   minAppVersion?: string;
   maxAppVersion?: string;
+  ui?: {
+    name?: string;
+    description?: string;
+    icon?: string;
+    wujie?: {
+      url: string;
+      spa?: boolean;
+      route?: string;
+    };
+  };
+  overlay?: {
+    wujie?: {
+      url: string;
+      spa?: boolean;
+      route?: string;
+    };
+  };
 }
 
 export interface PluginInfo {
@@ -933,6 +950,43 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
       const mainFilePath = path.join(pluginDir, manifest.main);
       if (!fs.existsSync(mainFilePath)) {
         throw new Error(`插件主文件 ${manifest.main} 不存在`);
+      }
+
+      // 校验 Wujie 相关可选字段（UI / Overlay）
+      // UI.wujie
+      if (manifest.ui?.wujie) {
+        const w = manifest.ui.wujie;
+        if (typeof w.url !== 'string' || !w.url.trim()) {
+          throw new Error('ui.wujie.url 必须为非空字符串');
+        }
+        if (w.spa !== undefined && typeof w.spa !== 'boolean') {
+          throw new Error('ui.wujie.spa 必须为布尔值');
+        }
+        if (w.route !== undefined && typeof w.route !== 'string') {
+          throw new Error('ui.wujie.route 必须为字符串');
+        }
+        // 默认路由：当声明为 SPA 但未提供 route 时，设置为 '/'
+        if (w.spa && (w.route === undefined || w.route === '')) {
+          w.route = '/';
+        }
+      }
+
+      // overlay.wujie
+      if (manifest.overlay?.wujie) {
+        const w = manifest.overlay.wujie;
+        if (typeof w.url !== 'string' || !w.url.trim()) {
+          throw new Error('overlay.wujie.url 必须为非空字符串');
+        }
+        if (w.spa !== undefined && typeof w.spa !== 'boolean') {
+          throw new Error('overlay.wujie.spa 必须为布尔值');
+        }
+        if (w.route !== undefined && typeof w.route !== 'string') {
+          throw new Error('overlay.wujie.route 必须为字符串');
+        }
+        // 默认路由处理
+        if (w.spa && (w.route === undefined || w.route === '')) {
+          w.route = '/';
+        }
       }
 
       return manifest;

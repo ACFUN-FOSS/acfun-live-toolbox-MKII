@@ -1,0 +1,10 @@
+{
+  "id": "add-danmu-sqlite-archiving-and-query",
+  "title": "Danmu SQLite Archiving and Query API (Spec Addition)",
+  "created_at": "2025-11-05",
+  "status": "archived",
+  "capabilities": ["danmu-display"],
+  "authors": ["AI Assistant"],
+  "tags": ["danmu", "sqlite", "api", "persistence"],
+  "summary": "Formalize SQLite archiving of danmaku events and HTTP query filters via /api/events."
+}

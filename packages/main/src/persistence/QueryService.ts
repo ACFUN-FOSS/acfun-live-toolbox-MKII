@@ -1,12 +1,16 @@
 import { DatabaseManager } from './DatabaseManager';
 import { NormalizedEvent, NormalizedEventType } from '../types';
+import { TokenManager } from '../server/TokenManager';
 
 export interface EventQuery {
   room_id?: string;
+  room_kw?: string; // 主播用户名关键词（模糊匹配）
   from_ts?: number;
   to_ts?: number;
-  type?: NormalizedEventType;
+  type?: NormalizedEventType; // 兼容旧字段
+  types?: NormalizedEventType[]; // 新字段：支持类型集合过滤
   user_id?: string;
+  user_kw?: string; // 中文用户名关键词（模糊匹配）
   q?: string;
   page?: number;
   pageSize?: number;
@@ -30,10 +34,13 @@ export class QueryService {
   public async queryEvents(query: EventQuery): Promise<EventQueryResult> {
     const {
       room_id,
+      room_kw,
       from_ts,
       to_ts,
       type,
+      types,
       user_id,
+      user_kw,
       q,
       page = 1,
       pageSize = 200
@@ -48,6 +55,23 @@ export class QueryService {
       params.push(room_id);
     }
 
+    // 解析 room_kw -> room_id 集合过滤
+    if (room_kw && !room_id) {
+      const resolvedRoomIds = await this.resolveRoomIdsByKeyword(room_kw);
+      if (resolvedRoomIds.length === 0) {
+        // 关键词无匹配，直接返回空结果
+        return {
+          items: [],
+          total: 0,
+          page,
+          pageSize,
+          hasNext: false
+        };
+      }
+      conditions.push(`room_id IN (${resolvedRoomIds.map(() => '?').join(',')})`);
+      params.push(...resolvedRoomIds);
+    }
+
     if (from_ts) {
       conditions.push('timestamp >= ?');
       params.push(from_ts);
@@ -58,14 +82,29 @@ export class QueryService {
       params.push(to_ts);
     }
 
-    if (type) {
-      conditions.push('type = ?');
-      params.push(type);
+    // 类型过滤：支持单个或集合
+    const typeList: NormalizedEventType[] | undefined = Array.isArray(types) && types.length > 0
+      ? types
+      : (type ? [type] : undefined);
+    if (typeList && typeList.length > 0) {
+      if (typeList.length === 1) {
+        conditions.push('type = ?');
+        params.push(typeList[0]);
+      } else {
+        conditions.push(`type IN (${typeList.map(() => '?').join(',')})`);
+        params.push(...typeList);
+      }
     }
 
     if (user_id) {
       conditions.push('user_id = ?');
       params.push(user_id);
+    }
+
+    if (user_kw && user_kw.trim().length > 0) {
+      const likeUser = `%${user_kw.trim()}%`;
+      conditions.push('(username LIKE ?)');
+      params.push(likeUser);
     }
 
     if (q && q.trim().length > 0) {
@@ -244,5 +283,99 @@ export class QueryService {
       byType,
       dateRange: { earliest, latest }
     };
+  }
+
+  // 根据主播用户名关键词解析 room_id 集合（使用 rooms_meta，必要时从 API 补充）
+  private async resolveRoomIdsByKeyword(keyword: string): Promise<string[]> {
+    const kw = keyword.trim();
+    if (!kw) return [];
+
+    // 先查 rooms_meta 表
+    const like = `%${kw}%`;
+    const existing = await this.executeQuery<{ room_id: string }>(
+      'SELECT room_id FROM rooms_meta WHERE streamer_name LIKE ?',
+      [like]
+    );
+    const matched = existing.map(r => String(r.room_id));
+    if (matched.length > 0) {
+      return matched;
+    }
+
+    // 无匹配则尝试补全 rooms_meta：遍历 events 中已知房间并拉取主播名
+    const distinctRooms = await this.executeQuery<{ room_id: string }>(
+      'SELECT DISTINCT room_id FROM events',
+      []
+    );
+    const roomIds = distinctRooms.map(r => String(r.room_id));
+    if (roomIds.length === 0) return [];
+
+    const tokenMgr = TokenManager.getInstance();
+    const api: any = tokenMgr.getApiInstance();
+
+    for (const rid of roomIds) {
+      try {
+        let streamerName: string | undefined;
+        let streamerUid: string | undefined;
+
+        // 优先通过 live 用户信息获取 profile.userName
+        try {
+          const res = await api.live.getUserLiveInfo(Number(rid));
+          if (res && res.success) {
+            const profile = res.data?.profile || {};
+            if (typeof profile.userName === 'string' && profile.userName.trim().length > 0) {
+              streamerName = String(profile.userName);
+            }
+            if (profile.userID != null) {
+              streamerUid = String(profile.userID);
+            }
+          }
+        } catch {}
+
+        // 兜底通过 danmu.getLiveRoomInfo 获取 owner.userName
+        if (!streamerName) {
+          try {
+            const roomRes = await api.danmu.getLiveRoomInfo(rid);
+            const owner = roomRes?.data?.owner || roomRes?.owner || {};
+            const n = owner.userName || owner.nickname || owner.name;
+            if (typeof n === 'string' && n.trim().length > 0) {
+              streamerName = String(n);
+            }
+            const uidRaw = owner.userID || owner.uid || owner.id;
+            if (uidRaw != null) streamerUid = String(uidRaw);
+          } catch {}
+        }
+
+        if (streamerName) {
+          // upsert 到 rooms_meta
+          await this.executeRun(
+            `INSERT INTO rooms_meta (room_id, streamer_name, streamer_user_id, updated_at)
+             VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+             ON CONFLICT(room_id) DO UPDATE SET streamer_name=excluded.streamer_name, streamer_user_id=excluded.streamer_user_id, updated_at=CURRENT_TIMESTAMP`,
+            [rid, streamerName, streamerUid || null]
+          );
+        }
+      } catch {}
+    }
+
+    // 重新按关键词查一次
+    const refreshed = await this.executeQuery<{ room_id: string }>(
+      'SELECT room_id FROM rooms_meta WHERE streamer_name LIKE ?',
+      [like]
+    );
+    return refreshed.map(r => String(r.room_id));
+  }
+
+  private async executeRun(sql: string, params: any[] = []): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const db = this.databaseManager.getDb();
+      db.run(sql, params, (err: any) => {
+        if (err) {
+          console.error('Exec error:', err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   }
 }

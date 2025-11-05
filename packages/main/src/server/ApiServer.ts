@@ -199,12 +199,23 @@ export class ApiServer {
     // GET /api/events - 查询分页事件
     this.app.get('/api/events', async (req: express.Request, res: express.Response, next: express.NextFunction) => {
       try {
+        // 解析 type（支持集合）
+        const rawType = req.query.type as string | string | undefined;
+        let typesArr: NormalizedEventType[] | undefined;
+        if (Array.isArray(rawType)) {
+          typesArr = (rawType as string[]).map(s => String(s)).filter(Boolean) as NormalizedEventType[];
+        } else if (typeof rawType === 'string' && rawType.trim().length > 0) {
+          typesArr = rawType.split(',').map(s => s.trim()).filter(Boolean) as NormalizedEventType[];
+        }
+
         const query: EventQuery = {
           room_id: req.query.room_id as string,
+          room_kw: req.query.room_kw as string,
           from_ts: req.query.from_ts ? parseInt(req.query.from_ts as string) : undefined,
           to_ts: req.query.to_ts ? parseInt(req.query.to_ts as string) : undefined,
-          type: req.query.type as NormalizedEventType,
+          types: typesArr,
           user_id: req.query.user_id as string,
+          user_kw: req.query.user_kw as string,
           q: req.query.q as string,
           page: req.query.page ? parseInt(req.query.page as string) : 1,
           pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string) : 200

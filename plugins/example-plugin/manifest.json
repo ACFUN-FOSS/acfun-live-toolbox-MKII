@@ -14,5 +14,12 @@
   "keywords": ["example", "test", "demo"],
   "engines": {
     "ACLiveFrame": ">=2.0.0"
+  },
+  "ui": {
+    "wujie": {
+      "url": "http://localhost:3000/plugins/example-plugin",
+      "spa": true,
+      "route": "/"
+    }
   }
 }

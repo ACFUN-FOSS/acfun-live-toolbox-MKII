@@ -66,11 +66,22 @@ export class DatabaseManager {
         );
       `;
 
+      // 房间元数据：用于根据主播用户名关键词解析 room_kw 到 room_id 集合
+      const createRoomsMetaTableSql = `
+        CREATE TABLE IF NOT EXISTS rooms_meta (
+          room_id TEXT PRIMARY KEY,
+          streamer_name TEXT,
+          streamer_user_id TEXT,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+
       const createIndexesSql = [
         'CREATE INDEX IF NOT EXISTS idx_events_room_ts ON events (room_id, timestamp);',
         'CREATE INDEX IF NOT EXISTS idx_events_type_ts ON events (type, timestamp);',
         'CREATE INDEX IF NOT EXISTS idx_events_source ON events (source);',
-        'CREATE INDEX IF NOT EXISTS idx_events_received_at ON events (received_at);'
+        'CREATE INDEX IF NOT EXISTS idx_events_received_at ON events (received_at);',
+        'CREATE INDEX IF NOT EXISTS idx_rooms_meta_streamer_name ON rooms_meta (streamer_name)'
       ];
 
       // 检查并添加新列的迁移逻辑
@@ -86,6 +97,14 @@ export class DatabaseManager {
             reject(err);
             return;
           }
+
+          // 创建房间元数据表
+          this.db!.run(createRoomsMetaTableSql, (roomsErr: Error | null) => {
+            if (roomsErr) {
+              console.error('Error creating rooms_meta table:', roomsErr.message);
+              reject(roomsErr);
+              return;
+            }
 
           // 执行迁移（如果列不存在）
           migrationSql.forEach(sql => {
@@ -113,6 +132,7 @@ export class DatabaseManager {
             console.log('Events table and indexes created/verified');
             resolve();
           }
+          });
         });
       });
     });

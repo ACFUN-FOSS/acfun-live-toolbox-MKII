@@ -4,7 +4,17 @@
       <div v-if="home.loading.B">
         <t-skeleton :row-col="[[{ width: '100%' }],[{ width: '70%' }],[{ width: '100%' }]]" />
       </div>
-      <t-alert v-else-if="home.error.B" theme="error" :message="home.error.B" closeBtn @close="home.retryCard('B')"></t-alert>
+      <div v-else-if="home.error.B">
+        <t-alert theme="error" :message="home.error.B" closeBtn @close="home.retryCard('B')"></t-alert>
+        <div v-if="isAuthError(home.error.B)" class="empty-state">
+          <span>请登录以继续</span>
+          <t-button theme="primary" size="small" @click="showQrLogin"><t-icon name="qrcode" />登录</t-button>
+        </div>
+        <div v-else class="empty-state">
+          暂无内容
+          <t-button size="small" variant="outline" @click="home.retryCard('B')">重试</t-button>
+        </div>
+      </div>
       <div v-else class="account-body">
         <div v-if="!accountStore.isLoggedIn" class="login-section">
           <p class="login-text">您尚未登录</p>
@@ -112,6 +122,12 @@ import { formatCompact } from '../../utils/format';
 
 const accountStore = useAccountStore();
 const home = useHomeStore();
+
+const isAuthError = (msg: string | null) => {
+  if (!msg) return false;
+  const low = msg.toLowerCase();
+  return low.includes('401') || low.includes('unauthorized') || low.includes('未登录') || low.includes('权限');
+};
 
 // 二维码登录相关状态
 const qrDialogVisible = ref(false);
@@ -335,6 +351,8 @@ const formatCountdown = (expireAt: Date) => {
 .stat-item:active { transform: translateY(0); }
 .stat-title { font-size: 12px; color: var(--td-text-color-secondary); margin-bottom: 2px; }
 .stat-value { font-size: 14px; font-weight: 600; color: var(--td-text-color-primary); }
+
+.empty-state { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; color: var(--td-text-color-secondary); }
 
 
 .qr-login-content { padding: 16px; text-align: center; }

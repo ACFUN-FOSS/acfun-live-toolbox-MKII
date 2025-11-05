@@ -1,7 +1,11 @@
 <template>
   <div class="grid-cell">
     <t-card hover-shadow title="欢迎">
-      <div class="cell-body">
+      <div v-if="home.loading.A">
+        <t-skeleton :row-col="[[{ width: '100%' }],[{ width: '100%' }]]" />
+      </div>
+      <t-alert v-else-if="home.error.A" theme="error" :message="home.error.A" closeBtn @close="home.retryCard('A')"></t-alert>
+      <div v-else class="cell-body">
         <p class="welcome-tip">{{ welcomeText }}</p>
         <div class="guide-steps">
           <div class="step-item" role="link" tabindex="0" @click="goStep(1)" @keypress.enter="goStep(1)">
@@ -27,16 +31,21 @@
           </div>
         </div>
       </div>
+      <template #footer>
+        <t-button theme="primary" size="small" @click="goMainCta">开始</t-button>
+      </template>
     </t-card>
   </div>
   
 </template>
 
 <script setup lang="ts">
+import { useHomeStore } from '../../stores/home';
 import { useRoleStore } from '../../stores/role';
 import { useRouter } from 'vue-router';
 import { computed } from 'vue';
 
+const home = useHomeStore();
 const role = useRoleStore();
 const router = useRouter();
 
@@ -55,6 +64,19 @@ const goStep = (n: number) => {
   if (n === 1) router.push('/live/room');
   else if (n === 2) router.push('/plugins/management');
   else router.push('/system/console');
+};
+
+const goMainCta = () => {
+  switch (role.current) {
+    case 'moderator':
+      router.push('/live/room');
+      break;
+    case 'developer':
+      router.push('/system/console');
+      break;
+    default:
+      router.push('/live/room');
+  }
 };
 </script>
 
