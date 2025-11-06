@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Base Example Plugin UI</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; }
+      .wrap { padding: 24px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+      .muted { color: #6b7280; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h2>Base Example Plugin</h2>
+      <div class="card">
+        <p>这是示例插件的 UI 页面，由主进程统一静态托管。</p>
+        <p class="muted">路径：/plugins/base-example/ui 或 /plugins/base-example/ui/index.html</p>
+        <div id="status"></div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>生命周期事件</h3>
+        <div id="lifecycle" class="muted">尚未收到事件</div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>配置读取</h3>
+        <div id="config" class="muted">读取中...</div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>配置写入演示（安全去敏）</h3>
+        <div class="muted">配置来自主进程持久化，令牌字段在页面展示时进行去敏处理。</div>
+        <div style="margin-top:8px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <label><input type="checkbox" id="cfg-enable" /> 启用功能</label>
+          <label>刷新间隔（秒） <input type="number" id="cfg-interval" min="1" step="1" style="width:80px;" /></label>
+          <label>令牌 <input type="text" id="cfg-token" placeholder="不在前端透传敏感令牌" style="width:220px;" /></label>
+          <button id="btn-save-config">保存配置</button>
+          <button id="btn-reset-config">重置显示</button>
+        </div>
+        <div id="config-write-status" class="muted" style="margin-top:8px;">待操作...</div>
+        <div id="config-current" class="muted" style="margin-top:8px;">当前配置：未知</div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>Overlay 演示</h3>
+        <div id="overlay-controls">
+          <button id="btn-create">创建 Overlay</button>
+          <button id="btn-close" disabled>关闭 Overlay</button>
+          <button id="btn-show" disabled>显示</button>
+          <button id="btn-hide" disabled>隐藏</button>
+          <button id="btn-front" disabled>置于顶层</button>
+          <button id="btn-update" disabled>更新样式</button>
+          <button id="btn-list">列举</button>
+          <button id="btn-send-msg" disabled>向 Overlay 发送消息</button>
+        </div>
+        <div id="overlay-status" class="muted">未创建</div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>页面内嵌说明</h3>
+        <ul class="muted" style="padding-left:18px;">
+          <li>只读数据通过 Wujie props/shared 注入，页面不可修改。</li>
+          <li>生命周期钩子由宿主触发并通过 postMessage 转发至页面展示。</li>
+          <li>配置读写经主进程桥接，保存后无需刷新即可生效；令牌字段仅在后端持久化，前端展示时做去敏。</li>
+          <li>UI → Overlay 下行消息使用 `overlay.send(event,payload)`；Overlay 上行使用动作事件，宿主记录与分发。</li>
+        </ul>
+      </div>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

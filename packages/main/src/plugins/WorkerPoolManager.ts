@@ -3,6 +3,7 @@ import { TypedEventEmitter } from '../utils/TypedEventEmitter';
 import { pluginLogger } from './PluginLogger';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import * as fs from 'fs';
 
 export interface WorkerPoolConfig {
   maxWorkers: number;
@@ -90,7 +91,17 @@ export class WorkerPoolManager extends TypedEventEmitter<WorkerPoolEvents> {
     }
 
     const workerId = crypto.randomUUID();
-    const workerScriptPath = path.join(__dirname, 'worker', 'plugin-worker.js');
+    const candidatePaths = [
+      // Bundled dist: index.cjs __dirname → dist
+      path.join(__dirname, 'worker', 'plugin-worker.js'),
+      // Fallback in case bundler preserves plugin folder
+      path.join(__dirname, 'plugins', 'worker', 'plugin-worker.js'),
+      // Source path for development runs
+      path.resolve(process.cwd(), 'packages', 'main', 'src', 'plugins', 'worker', 'plugin-worker.js'),
+    ];
+    const workerScriptPath = candidatePaths.find(p => {
+      try { return fs.existsSync(p); } catch { return false; }
+    }) || candidatePaths[0];
 
     try {
       const worker = new Worker(workerScriptPath, {

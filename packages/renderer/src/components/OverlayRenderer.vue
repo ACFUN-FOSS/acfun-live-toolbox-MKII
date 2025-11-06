@@ -4,6 +4,7 @@
     class="overlay-renderer"
     :class="overlayClasses"
     :style="overlayStyles"
+    ref="rootEl"
     @click="handleOverlayClick"
   >
     <!-- Wujie Overlay 渲染 -->
@@ -76,6 +77,10 @@
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import WujieVue from 'wujie-vue3'
 import TestOverlayComponent from './overlay/TestOverlayComponent.vue'
+import { resolveOverlayWujieUrl } from '../utils/hosting'
+import { useRoleStore } from '../stores/role'
+import { useRoomStore } from '../stores/room'
+import { useDanmuStore } from '../stores/danmu'
 
 export interface OverlayPosition {
   x?: number | string
@@ -144,6 +149,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<Emits>()
+const rootEl = ref<HTMLElement | null>(null)
 
 // 组件映射
 const componentMap = {
@@ -186,14 +192,64 @@ const pluginKey = ref('')
 const wujieProps = ref<Record<string, any>>({})
 const wujieAttrs = ref<Record<string, any>>({ style: 'width:100%;height:100%;display:block;' })
 
+// 简单转发遥测计数
+const telemetry = {
+  overlayLifecycleEmits: 0,
+  overlayPostMessages: 0
+}
+
 function customFetch(url: string, options?: RequestInit) {
+  // 遵循统一 Token 管理策略，不在渲染层注入占位令牌
   return fetch(url, {
     ...options,
     headers: {
-      ...options?.headers,
-      'X-Plugin-Token': 'overlay-plugin-token'
+      ...options?.headers
     }
   })
+}
+
+function toPlain<T>(value: T): any {
+  try {
+    return JSON.parse(JSON.stringify(value))
+  } catch {
+    return value as any
+  }
+}
+
+function deepFreeze(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj
+  Object.getOwnPropertyNames(obj).forEach((prop) => {
+    const value = (obj as any)[prop]
+    if (value && typeof value === 'object') deepFreeze(value)
+  })
+  return Object.freeze(obj)
+}
+
+function buildReadonlySnapshotForOverlay() {
+  const role = useRoleStore()
+  const rooms = useRoomStore()
+  const danmu = useDanmuStore()
+  const roomSummary = rooms.rooms.map((r) => ({
+    id: r.id,
+    title: r.title,
+    status: r.status,
+    isLive: r.isLive,
+    viewerCount: r.viewerCount,
+    lastUpdate: r.lastUpdate
+  }))
+  const snapshot = {
+    role: { current: role.current, statsScope: role.statsScope },
+    rooms: {
+      list: roomSummary,
+      liveRoomsCount: rooms.liveRooms.length,
+      totalViewers: rooms.totalViewers
+    },
+    danmu: {
+      isConnected: danmu.isConnected,
+      stats: toPlain(danmu.stats)
+    }
+  }
+  return deepFreeze(snapshot)
 }
 
 // 计算overlay的CSS类
@@ -324,24 +380,88 @@ async function resolveWujieConfig() {
       isWujieOverlay.value = false
       return
     }
-    const res = await window.electronApi.plugin.get(pluginId)
-    if (res && 'success' in res && res.success) {
-      const info = res.data as PluginManifestLike
-      const w = info?.manifest?.overlay?.wujie || null
-      if (w && typeof w.url === 'string' && w.url.trim()) {
-        isWujieOverlay.value = true
-        wujieUrl.value = w.url
-        wujieName.value = `overlay-${pluginId}`
-        pluginKey.value = `${pluginId}-${props.overlay.id}-${Date.now()}`
-        wujieProps.value = {
-          overlayId: props.overlay.id,
-          pluginId,
-          version: info.version
+    // 优先使用统一托管配置
+    try {
+      const r = await resolveOverlayWujieUrl(pluginId)
+      isWujieOverlay.value = true
+      wujieUrl.value = r.url
+      wujieName.value = r.name
+      pluginKey.value = `${pluginId}-${props.overlay.id}-${Date.now()}`
+  wujieProps.value = {
+    overlayId: props.overlay.id,
+    pluginId,
+    ...r.props,
+    api: {
+      action: (actionId: string, data?: any) => {
+        try {
+          window.electronApi?.overlay?.action?.(props.overlay.id, actionId, data);
+        } catch (e) {
+          console.warn('[OverlayRenderer] overlay.action bridge failed:', e);
         }
-      } else {
-        isWujieOverlay.value = false
+      },
+      close: () => {
+        try {
+          window.electronApi?.overlay?.close?.(props.overlay.id);
+        } catch (e) {
+          console.warn('[OverlayRenderer] overlay.close bridge failed:', e);
+        }
+      },
+      update: (updates: any) => {
+        try {
+          window.electronApi?.overlay?.update?.(props.overlay.id, updates);
+        } catch (e) {
+          console.warn('[OverlayRenderer] overlay.update bridge failed:', e);
+        }
+      },
+      send: (eventName: string, payload?: any) => {
+        try {
+          window.electronApi?.overlay?.send?.(props.overlay.id, eventName, payload);
+        } catch (e) {
+          console.warn('[OverlayRenderer] overlay.send bridge failed:', e);
+        }
       }
-    } else {
+    },
+    shared: {
+      readonlyStore: buildReadonlySnapshotForOverlay()
+    }
+  }
+      return
+    } catch (_hostingErr) {
+      // 回退：读取清单中的 wujie.url
+      const res = await window.electronApi.plugin.get(pluginId)
+      if (res && 'success' in res && res.success) {
+        const info = res.data as PluginManifestLike
+        const w = info?.manifest?.overlay?.wujie || null
+        if (w && typeof w.url === 'string' && w.url.trim()) {
+          isWujieOverlay.value = true
+          wujieUrl.value = w.url
+          wujieName.value = `overlay-${pluginId}`
+          pluginKey.value = `${pluginId}-${props.overlay.id}-${Date.now()}`
+          wujieProps.value = {
+            overlayId: props.overlay.id,
+            pluginId,
+            version: info.version,
+            api: {
+              action: (actionId: string, data?: any) => {
+                try { window.electronApi?.overlay?.action?.(props.overlay.id, actionId, data); } catch (e) { console.warn('[OverlayRenderer] overlay.action bridge failed:', e); }
+              },
+              close: () => {
+                try { window.electronApi?.overlay?.close?.(props.overlay.id); } catch (e) { console.warn('[OverlayRenderer] overlay.close bridge failed:', e); }
+              },
+              update: (updates: any) => {
+                try { window.electronApi?.overlay?.update?.(props.overlay.id, updates); } catch (e) { console.warn('[OverlayRenderer] overlay.update bridge failed:', e); }
+              },
+              send: (eventName: string, payload?: any) => {
+                try { window.electronApi?.overlay?.send?.(props.overlay.id, eventName, payload); } catch (e) { console.warn('[OverlayRenderer] overlay.send bridge failed:', e); }
+              }
+            },
+            shared: {
+              readonlyStore: buildReadonlySnapshotForOverlay()
+            }
+          }
+          return
+        }
+      }
       isWujieOverlay.value = false
     }
   } catch (err) {
@@ -350,14 +470,125 @@ async function resolveWujieConfig() {
   }
 }
 
-function onOverlayBeforeLoad() {}
+function onOverlayBeforeLoad() {
+  receiveMessage('overlay-lifecycle', { phase: 'beforeOverlayOpen', overlayId: props.overlay.id });
+  try {
+    const pluginId = props.overlay.pluginId
+    if (pluginId && window.electronApi?.plugin?.lifecycle?.emit) {
+      window.electronApi.plugin.lifecycle.emit('beforeOverlayOpen', pluginId, { pageType: 'overlay', overlayId: props.overlay.id })
+      telemetry.overlayLifecycleEmits++
+    }
+  } catch (e) {
+    console.warn('[OverlayRenderer] lifecycle emit beforeOverlayOpen failed:', e)
+  }
+}
 function onOverlayBeforeMount() {}
-function onOverlayAfterMount() {}
+function onOverlayAfterMount() {
+  receiveMessage('overlay-lifecycle', { phase: 'afterOverlayOpen', overlayId: props.overlay.id });
+  try {
+    const pluginId = props.overlay.pluginId
+    if (pluginId && window.electronApi?.plugin?.lifecycle?.emit) {
+      window.electronApi.plugin.lifecycle.emit('afterOverlayOpen', pluginId, { pageType: 'overlay', overlayId: props.overlay.id })
+      telemetry.overlayLifecycleEmits++
+    }
+  } catch (e) {
+    console.warn('[OverlayRenderer] lifecycle emit afterOverlayOpen failed:', e)
+  }
+}
 function onOverlayBeforeUnmount() {}
-function onOverlayAfterUnmount() {}
+function onOverlayAfterUnmount() {
+  receiveMessage('overlay-lifecycle', { phase: 'overlayClosed', overlayId: props.overlay.id });
+  try {
+    const pluginId = props.overlay.pluginId
+    if (pluginId && window.electronApi?.plugin?.lifecycle?.emit) {
+      window.electronApi.plugin.lifecycle.emit('overlayClosed', pluginId, { pageType: 'overlay', overlayId: props.overlay.id })
+      telemetry.overlayLifecycleEmits++
+    }
+  } catch (e) {
+    console.warn('[OverlayRenderer] lifecycle emit overlayClosed failed:', e)
+  }
+}
 function onOverlayLoadError(err: any) {
   console.error('Wujie overlay load error:', err)
 }
+
+// 接收并转发来自父级（渲染进程）的消息到 Wujie 子应用
+function receiveMessage(eventName: string, payload?: any) {
+  try {
+    if (isWujieOverlay.value) {
+      const iframe = rootEl.value?.querySelector('iframe') as HTMLIFrameElement | null
+      const targetWin = iframe?.contentWindow
+      if (targetWin) {
+        targetWin.postMessage({
+          type: 'overlay-event',
+          overlayId: props.overlay.id,
+          eventType: 'overlay-message',
+          event: eventName,
+          payload
+        }, '*')
+        telemetry.overlayPostMessages++
+        return
+      }
+      console.warn('[OverlayRenderer] Wujie iframe not found for overlay:', props.overlay.id)
+    }
+  } catch (err) {
+    console.error('[OverlayRenderer] Failed to forward message to child app:', err)
+  }
+}
+
+// 暴露方法供父组件调用
+defineExpose({ receiveMessage })
+
+// 在子应用挂载后发送一次只读快照初始化事件
+watch(isWujieOverlay, (val) => {
+  if (val) {
+    // defer to ensure iframe is ready
+    setTimeout(() => {
+      try {
+        const snapshot = buildReadonlySnapshotForOverlay()
+        receiveMessage('readonly-store-init', snapshot)
+      } catch (e) {
+        console.warn('[OverlayRenderer] Failed to send readonly-store-init:', e)
+      }
+    }, 0)
+  }
+})
+
+// 接收子应用通过 postMessage 发来的动作/关闭/更新事件
+function handleChildPostMessage(evt: MessageEvent) {
+  try {
+    const msg = evt?.data || {};
+    if (!msg || typeof msg !== 'object') return;
+    const { type, overlayId } = msg as any;
+    if (!type || overlayId !== props.overlay.id) return;
+
+    if (type === 'overlay-action') {
+      const { action, data } = msg as any;
+      emit('action', props.overlay.id, String(action || ''), data);
+      return;
+    }
+    if (type === 'overlay-close') {
+      emit('close', props.overlay.id);
+      return;
+    }
+    if (type === 'overlay-update') {
+      const { updates } = msg as any;
+      // 直接调用桥接更新，主进程会进行状态同步
+      try { window.electronApi?.overlay?.update?.(props.overlay.id, updates); } catch {}
+      return;
+    }
+  } catch (e) {
+    console.warn('[OverlayRenderer] child postMessage handler error:', e);
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('message', handleChildPostMessage);
+});
+
+onUnmounted(() => {
+  try { window.removeEventListener('message', handleChildPostMessage); } catch {}
+});
 </script>
 
 <style scoped>

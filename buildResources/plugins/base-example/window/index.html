@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Base Example Plugin Window</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; }
+      .wrap { padding: 24px; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+      .muted { color: #6b7280; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h2>Base Example Plugin Window</h2>
+      <div class="card">
+        <p>这是示例插件的独立窗口页面。</p>
+        <p class="muted">路径：/plugins/base-example/window 或 /plugins/base-example/window/index.html</p>
+        <div id="status"></div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>生命周期事件</h3>
+        <div id="lifecycle" class="muted">尚未收到事件</div>
+      </div>
+      <div class="card" style="margin-top:12px;">
+        <h3>页面内嵌说明</h3>
+        <ul class="muted" style="padding-left:18px;">
+          <li>窗口页面通过 Wujie 注入只读快照，展示宿主触发的窗口生命周期。</li>
+          <li>无需 Electron API；在独立浏览器预览下保持只读展示。</li>
+        </ul>
+      </div>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

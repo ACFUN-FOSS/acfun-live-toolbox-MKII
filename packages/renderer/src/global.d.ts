@@ -130,6 +130,8 @@ declare global {
             }
           | { success: false; error: string }
         >;
+        getConfig: (pluginId: string) => Promise<{ success: boolean; data?: Record<string, any>; error?: string }>;
+        updateConfig: (pluginId: string, config: Record<string, any>) => Promise<{ success: boolean; error?: string }>;
         stats: () => Promise<{ success: true; data: { total: number; enabled: number; disabled: number; error: number } }>;
         logs: (pluginId?: string, limit?: number) => Promise<{ logs: Array<{ level: string; message: string; timestamp: number; context?: any; }> } | { error: string }>;
         errorHistory: (pluginId: string) => Promise<{ errors: Array<{ type: string; message: string; timestamp: number; context?: any; recoveryAction?: string; }> } | { error: string }>;
@@ -164,6 +166,24 @@ declare global {
           | { success: false; error: string }
         >;
       };
+      hosting: {
+        getConfig: (
+          pluginId: string
+        ) => Promise<
+          | {
+              success: true;
+              data: {
+                ui: { spa: boolean; route: string; html: string } | null;
+                window: { spa: boolean; route: string; html: string } | null;
+                overlay: { spa: boolean; route: string; html: string } | null;
+              };
+            }
+          | { success: false; error: string }
+        >;
+      };
+      http: {
+        get: (path: string, params?: Record<string, any>) => Promise<any>;
+      };
       overlay: {
         create: (options: any) => Promise<{ success: boolean; overlayId?: string; error?: string }>;
         update: (overlayId: string, updates: any) => Promise<{ success: boolean; error?: string }>;
@@ -173,6 +193,7 @@ declare global {
         bringToFront: (overlayId: string) => Promise<{ success: boolean; error?: string }>;
         list: () => Promise<{ overlays: Array<{ id: string; type: string; visible: boolean; createdAt: number; }> } | { error: string }>;
         action: (overlayId: string, action: string, data?: any) => Promise<{ success: boolean; error?: string }>;
+        send: (overlayId: string, event: string, payload?: any) => Promise<{ success: boolean; error?: string }>;
       };
       console: {
         createSession: (options: any) => Promise<{ success: boolean; data?: any; error?: string }>;

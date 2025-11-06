@@ -53,7 +53,8 @@ const api = {
     hide: (overlayId: string) => ipcRenderer.invoke('overlay.hide', overlayId),
     bringToFront: (overlayId: string) => ipcRenderer.invoke('overlay.bringToFront', overlayId),
     list: () => ipcRenderer.invoke('overlay.list'),
-    action: (overlayId: string, action: string, data?: any) => ipcRenderer.invoke('overlay.action', overlayId, action, data)
+    action: (overlayId: string, action: string, data?: any) => ipcRenderer.invoke('overlay.action', overlayId, action, data),
+    send: (overlayId: string, event: string, payload?: any) => ipcRenderer.invoke('overlay.send', overlayId, event, payload)
   },
   // Plugin API bridging
   plugin: {
@@ -63,6 +64,8 @@ const api = {
     enable: (pluginId: string) => ipcRenderer.invoke('plugin.enable', pluginId),
     disable: (pluginId: string) => ipcRenderer.invoke('plugin.disable', pluginId),
     get: (pluginId: string) => ipcRenderer.invoke('plugin.get', pluginId),
+    getConfig: (pluginId: string) => ipcRenderer.invoke('plugin.getConfig', pluginId),
+    updateConfig: (pluginId: string, config: any) => ipcRenderer.invoke('plugin.updateConfig', pluginId, config),
     stats: () => ipcRenderer.invoke('plugin.stats'),
     logs: (pluginId?: string, limit?: number) => ipcRenderer.invoke('plugin.logs', pluginId, limit),
     errorHistory: (pluginId: string) => ipcRenderer.invoke('plugin.errorHistory', pluginId),
@@ -81,6 +84,9 @@ const api = {
       close: (pluginId: string, popupId: string) => ipcRenderer.invoke('plugin.popup.close', pluginId, popupId),
       action: (pluginId: string, popupId: string, actionId: string) => ipcRenderer.invoke('plugin.popup.action', pluginId, popupId, actionId),
       bringToFront: (pluginId: string, popupId: string) => ipcRenderer.invoke('plugin.popup.bringToFront', pluginId, popupId)
+    },
+    lifecycle: {
+      emit: (hook: string, pluginId: string, context?: any) => ipcRenderer.invoke('plugin.lifecycle.emit', hook, pluginId, context)
     }
   },
   // Wujie helper bridging
@@ -156,6 +162,98 @@ const api = {
       return res.text();
     }
   },
+  // Activity events bridge (WS-based, sanitized payloads, throttle for danmu)
+  events: (() => {
+    type Handler = (payload: any) => void;
+    const port = parseInt(process.env.ACFRAME_API_PORT || '18299');
+    let ws: WebSocket | null = null;
+    let connected = false;
+    const listeners: Record<string, Set<Handler>> = {};
+    const DANMU_BUFFER: any[] = [];
+    let danmuFlushTimer: any = null;
+    const DANMU_FLUSH_INTERVAL_MS = 250; // up to 4 Hz
+    const DANMU_MAX_BATCH = 50; // cap batch size
+
+    const emit = (type: string, payload: any) => {
+      const set = listeners[type];
+      if (!set || set.size === 0) return;
+      set.forEach((fn) => {
+        try { fn(payload); } catch (e) { console.warn('[preload.events] listener error', e); }
+      });
+    };
+
+    const sanitizeEvent = (e: any) => {
+      if (!e || typeof e !== 'object') return e;
+      const { ts, received_at, room_id, source, event_type, user_id, user_name, content } = e;
+      return { ts, received_at, room_id, source, event_type, user_id, user_name, content };
+    };
+
+    const flushDanmu = () => {
+      if (DANMU_BUFFER.length === 0) return;
+      const batch = DANMU_BUFFER.splice(0, DANMU_MAX_BATCH).map(sanitizeEvent);
+      emit('danmu.batch', { events: batch, ts: Date.now() });
+      if (DANMU_BUFFER.length > 0) {
+        // schedule next flush quickly
+        danmuFlushTimer = setTimeout(flushDanmu, DANMU_FLUSH_INTERVAL_MS);
+      } else {
+        danmuFlushTimer = null;
+      }
+    };
+
+    const ensureConnection = () => {
+      if (ws && connected) return;
+      try {
+        ws = new WebSocket(`ws://127.0.0.1:${port}`);
+        ws.onopen = () => { connected = true; };
+        ws.onclose = () => { connected = false; ws = null; };
+        ws.onerror = () => { connected = false; };
+        ws.onmessage = (evt) => {
+          try {
+            const msg = JSON.parse(String(evt.data));
+            if (msg && msg.op === 'event' && msg.d) {
+              const ev = msg.d;
+              const type = String(ev?.event_type || '').toLowerCase();
+              if (type === 'danmaku') {
+                DANMU_BUFFER.push(ev);
+                if (!danmuFlushTimer) {
+                  danmuFlushTimer = setTimeout(flushDanmu, DANMU_FLUSH_INTERVAL_MS);
+                }
+              } else {
+                // forward room.* and live.* semantics if applicable
+                emit(`live.${type}`, sanitizeEvent(ev));
+              }
+            } else if (msg && msg.op === 'room_status' && msg.d) {
+              emit('room.status', msg.d);
+            } else if (msg && msg.op === 'activity' && msg.d) {
+              const { type, payload } = msg.d || {};
+              if (typeof type === 'string') {
+                emit(type, payload);
+              }
+            }
+          } catch (e) {
+            console.warn('[preload.events] message parse error', e);
+          }
+        };
+      } catch (e) {
+        console.warn('[preload.events] WS connection failed', e);
+      }
+    };
+
+    return {
+      connect: () => ensureConnection(),
+      disconnect: () => { try { ws?.close(); } catch {/**/} ws = null; connected = false; },
+      on: (channel: string, handler: Handler) => {
+        if (!listeners[channel]) listeners[channel] = new Set();
+        listeners[channel].add(handler);
+        // auto-connect when a listener is added
+        ensureConnection();
+      },
+      off: (channel: string, handler: Handler) => {
+        const set = listeners[channel];
+        if (set) set.delete(handler);
+      }
+    };
+  })(),
   // Console API bridging (note: uses colon channels)
   console: {
     createSession: (options: any) => ipcRenderer.invoke('console:createSession', options),

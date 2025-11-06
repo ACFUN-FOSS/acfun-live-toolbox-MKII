@@ -10,6 +10,7 @@ import { ConfigManager } from '../config/ConfigManager'; // Import ConfigManager
 import { LogManager } from '../logging/LogManager';
 import { DiagnosticsService } from '../logging/DiagnosticsService';
 import * as fs from 'fs';
+import { pluginLifecycleManager } from '../plugins/PluginLifecycle';
 
 /**
  * Initializes all IPC handlers for the main process.
@@ -467,6 +468,40 @@ export function initializeIpcHandlers(
     }
   });
 
+  // 获取插件配置
+  ipcMain.handle('plugin.getConfig', async (_event, pluginId: string) => {
+    try {
+      const id = String(pluginId || '').trim();
+      if (!id) {
+        return { success: false, error: '插件ID无效' };
+      }
+      // 直接读取配置管理器中的插件配置节点
+      const config = configManager.get(`plugins.${id}.config`, {});
+      return { success: true, data: config || {} };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 更新插件配置（浅合并）
+  ipcMain.handle('plugin.updateConfig', async (_event, pluginId: string, newConfig: Record<string, any>) => {
+    try {
+      const id = String(pluginId || '').trim();
+      if (!id) {
+        return { success: false, error: '插件ID无效' };
+      }
+      if (!newConfig || typeof newConfig !== 'object') {
+        return { success: false, error: '配置格式无效' };
+      }
+      const current = (configManager.get(`plugins.${id}.config`, {}) || {}) as Record<string, any>;
+      const merged = { ...current, ...newConfig };
+      configManager.set(`plugins.${id}.config`, merged);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
   // 获取插件统计信息
   ipcMain.handle('plugin.stats', async () => {
     try {
@@ -502,6 +537,25 @@ export function initializeIpcHandlers(
     try {
       const stats = await pluginManager.getPluginErrorStats();
       return { success: true, data: stats };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 生命周期：由渲染进程（UI/Window页面）发起的钩子事件
+  ipcMain.handle('plugin.lifecycle.emit', async (_event, hookName: string, pluginId: string, context?: Record<string, any>) => {
+    try {
+      const plugin = await pluginManager.getPlugin(pluginId);
+      await pluginLifecycleManager.executeHook(hookName as any, {
+        pluginId,
+        plugin: plugin || undefined,
+        manifest: plugin?.manifest,
+        context: {
+          pageType: (context && typeof (context as any).pageType === 'string') ? (context as any).pageType : 'ui',
+          ...context
+        }
+      });
+      return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
@@ -714,6 +768,16 @@ export function initializeIpcHandlers(
     try {
       const result = await overlayManager.listOverlays();
       return { success: true, data: result };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  // 发送消息到 overlay（UI/Window -> Overlay）
+  ipcMain.handle('overlay.send', async (_event, overlayId: string, eventName: string, payload?: any) => {
+    try {
+      const result = await overlayManager.sendMessage(overlayId, eventName, payload);
+      return result;
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }

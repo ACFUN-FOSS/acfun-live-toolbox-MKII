@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { registerPluginRoute, unregisterPluginRoute } from '../router/index';
+import { getPluginHostingConfig, buildPluginPageUrl } from '../utils/hosting';
 
 export interface PluginInfo {
   id: string;
@@ -17,6 +18,8 @@ export interface PluginInfo {
   autoStart: boolean;
   installTime: Date;
   lastUpdate: Date;
+  // 统一托管入口（UI页面）——按需填充，不自动使用
+  entryUrl?: string;
   
   // 插件配置
   config?: Record<string, any>;
@@ -386,6 +389,52 @@ export const usePluginStore = defineStore('plugin', () => {
       localStorage.setItem('installedPlugins', JSON.stringify(plugins.value));
     } catch (err) {
       console.error('Failed to save plugins to storage:', err);
+    }
+  }
+
+  // 托管相关：按需获取插件页面URL（不变更UI渲染逻辑）
+  async function getPluginUIUrl(pluginId: string): Promise<string | null> {
+    try {
+      const conf = await getPluginHostingConfig(pluginId);
+      const item = conf.ui || undefined;
+      return buildPluginPageUrl(pluginId, 'ui', item || undefined);
+    } catch (err) {
+      console.warn('[plugin] 获取UI托管URL失败:', err);
+      return null;
+    }
+  }
+
+  async function getPluginWindowUrl(pluginId: string): Promise<string | null> {
+    try {
+      const conf = await getPluginHostingConfig(pluginId);
+      const item = conf.window || undefined;
+      return buildPluginPageUrl(pluginId, 'window', item || undefined);
+    } catch (err) {
+      console.warn('[plugin] 获取Window托管URL失败:', err);
+      return null;
+    }
+  }
+
+  async function getPluginOverlayUrl(pluginId: string): Promise<string | null> {
+    try {
+      const conf = await getPluginHostingConfig(pluginId);
+      const item = conf.overlay || undefined;
+      return buildPluginPageUrl(pluginId, 'overlay', item || undefined);
+    } catch (err) {
+      console.warn('[plugin] 获取Overlay托管URL失败:', err);
+      return null;
+    }
+  }
+
+  // 可选：为指定插件写入统一托管入口URL（不主动调用）
+  async function updatePluginHostingEntryUrl(pluginId: string) {
+    const plugin = getPluginById(pluginId);
+    if (!plugin) return;
+    const url = await getPluginUIUrl(pluginId);
+    if (url) {
+      plugin.entryUrl = url;
+      plugin.lastUpdate = new Date();
+      savePluginsToStorage();
     }
   }
 
@@ -762,5 +811,10 @@ export const usePluginStore = defineStore('plugin', () => {
     filterPluginsByStatus,
     startAllPlugins,
     stopAllPlugins,
+    // 托管相关工具方法（仅提供给页面按需调用）
+    getPluginUIUrl,
+    getPluginWindowUrl,
+    getPluginOverlayUrl,
+    updatePluginHostingEntryUrl,
   };
 });

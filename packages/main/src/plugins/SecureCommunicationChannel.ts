@@ -224,8 +224,13 @@ export class SecureCommunicationChannel extends TypedEventEmitter<ChannelEvents>
     if (!channel) return;
 
     try {
+      // Ignore non-secure messages (e.g., WorkerPoolManager control messages)
+      if (!message || typeof message !== 'object' || !('id' in message) || !('type' in message) || !('timestamp' in message)) {
+        return;
+      }
+
       // Verify signature if enabled
-      if (this.config.enableSigning && !this.verifySignature(message)) {
+      if (this.config.enableSigning && message.signature && !this.verifySignature(message)) {
         throw new Error('Message signature verification failed');
       }
 

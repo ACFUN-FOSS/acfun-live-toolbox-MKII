@@ -158,6 +158,15 @@ export default class MyPlugin extends Plugin {
 
 更多插件开发信息请参考 [插件开发指南](docs/plugin-development.md)。
 
+#### 内置示例插件：base-example
+- 首次运行时自动安装到 `userData/plugins` 并在启动后自动启用。
+- 统一静态托管（仅使用 `spa/route/html`）：
+  - 路由示例：
+    - `http://127.0.0.1:<port>/plugins/base-example/ui.html`
+    - `http://127.0.0.1:<port>/plugins/base-example/window.html`
+    - `http://127.0.0.1:<port>/plugins/base-example/overlay.html?overlayId=<id>`
+  - 清单示例：`ui/window/overlay` 声明 `spa` 与入口 `html`，示例：`{"ui":{"spa":false,"html":"ui/index.html"}}`。
+
 ## 📁 项目架构
 
 ### 技术栈

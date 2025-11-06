@@ -94,6 +94,17 @@ async function main() {
   
   await apiServer.start();
 
+  // 自动启用内置示例插件（若已安装但未启用）
+  try {
+    const example = pluginManager.getPlugin('base-example');
+    if (example && !example.enabled) {
+      await pluginManager.enablePlugin('base-example');
+      console.log('[Main] Auto-enabled bundled example plugin: base-example');
+    }
+  } catch (err) {
+    console.warn('[Main] Failed to auto-enable base-example plugin:', err);
+  }
+
   // 预先实例化窗口管理器以供 IPC 处理程序使用（窗口创建仍在 app ready 后）
   const windowManager = new WindowManager(); // This will need refactoring
 
@@ -123,6 +134,12 @@ async function main() {
   roomManager.on('roomStatusChange', (roomId: string, status: string) => {
     try {
       wsHub.broadcastRoomStatus(roomId, status);
+      // 同步活动事件（直播开始/结束）
+      if (status === 'open') {
+        wsHub.broadcastActivity('live.start', { roomId, status });
+      } else if (status === 'closed') {
+        wsHub.broadcastActivity('live.stop', { roomId, status });
+      }
     } catch (err) {
       console.error('[Main] Failed to broadcast room status via WsHub:', err);
     }
@@ -131,6 +148,7 @@ async function main() {
   roomManager.on('roomAdded', (roomId: string) => {
     try {
       wsHub.broadcastRoomStatus(roomId, 'connecting');
+      wsHub.broadcastActivity('room.added', { roomId });
     } catch (err) {
       console.error('[Main] Failed to broadcast room added via WsHub:', err);
     }
@@ -139,8 +157,70 @@ async function main() {
   roomManager.on('roomRemoved', (roomId: string) => {
     try {
       wsHub.broadcastRoomStatus(roomId, 'closed');
+      wsHub.broadcastActivity('room.removed', { roomId });
     } catch (err) {
       console.error('[Main] Failed to broadcast room removed via WsHub:', err);
+    }
+  });
+
+  // Wire TokenManager -> WsHub broadcasting for auth lifecycle
+  const sanitizeTokenInfo = (ti: any) => ({
+    userId: ti?.userID || '',
+    expiresAt: ti?.expiresAt || null,
+    isValid: ti?.isValid !== false
+  });
+
+  tokenManager.on('tokenStateChanged', ({ isAuthenticated, tokenInfo }: any) => {
+    try {
+      wsHub.broadcastActivity('auth.stateChanged', {
+        isAuthenticated,
+        userId: tokenInfo?.userID
+      });
+    } catch (err) {
+      console.error('[Main] Failed to broadcast auth.stateChanged:', err);
+    }
+  });
+
+  tokenManager.on('tokenExpiring', (data: any) => {
+    try {
+      wsHub.broadcastActivity('auth.tokenExpiring', {
+        expiresAt: data?.expiresAt || null,
+        timeRemaining: data?.timeRemaining
+      });
+    } catch (err) {
+      console.error('[Main] Failed to broadcast auth.tokenExpiring:', err);
+    }
+  });
+
+  tokenManager.on('tokenExpired', (_data: any) => {
+    try {
+      wsHub.broadcastActivity('auth.tokenExpired', {});
+    } catch (err) {
+      console.error('[Main] Failed to broadcast auth.tokenExpired:', err);
+    }
+  });
+
+  tokenManager.on('loginSuccess', ({ tokenInfo }: any) => {
+    try {
+      wsHub.broadcastActivity('auth.login', sanitizeTokenInfo(tokenInfo));
+    } catch (err) {
+      console.error('[Main] Failed to broadcast auth.login:', err);
+    }
+  });
+
+  tokenManager.on('loginFailed', ({ error }: any) => {
+    try {
+      wsHub.broadcastActivity('auth.loginFailed', { error: String(error || 'unknown') });
+    } catch (err) {
+      console.error('[Main] Failed to broadcast auth.loginFailed:', err);
+    }
+  });
+
+  tokenManager.on('logout', () => {
+    try {
+      wsHub.broadcastActivity('auth.logout', {});
+    } catch (err) {
+      console.error('[Main] Failed to broadcast auth.logout:', err);
     }
   });
 
@@ -158,6 +238,43 @@ async function main() {
   }
 
   windowManager.createWindow(); // Placeholder for creating the main UI
+
+  // Wire OverlayManager -> Renderer (UI/Window → Overlay messaging downlink)
+  try {
+    overlayManager.on('overlay-message', (payload: { overlayId: string; event: string; payload?: any }) => {
+      const win = windowManager.getMainWindow();
+      if (win) {
+        try {
+          win.webContents.send('overlay-message', payload.overlayId, { event: payload.event, payload: payload.payload });
+        } catch (err) {
+          console.error('[Main] Failed to forward overlay-message to renderer:', err);
+        }
+      }
+    });
+  } catch (err) {
+    console.error('[Main] Failed to attach overlay-message forwarder:', err);
+  }
+
+  // Wire PopupManager -> Renderer (forward popup lifecycle updates)
+  try {
+    const popupManager = pluginManager.getPopupManager();
+    const forward = (data: any) => {
+      const win = windowManager.getMainWindow();
+      if (win) {
+        try {
+          win.webContents.send('plugin-popup-event', data);
+        } catch (err) {
+          console.error('[Main] Failed to forward plugin-popup-event to renderer:', err);
+        }
+      }
+    };
+
+    popupManager.on('popup.created', ({ popup }) => forward({ type: 'popup-created', popup }));
+    popupManager.on('popup.closed', ({ popupId, pluginId }) => forward({ type: 'popup-closed', popupId, pluginId }));
+    popupManager.on('popup.updated', ({ popup }) => forward({ type: 'popup-updated', popup }));
+  } catch (err) {
+    console.error('[Main] Failed to attach plugin popup forwarders:', err);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

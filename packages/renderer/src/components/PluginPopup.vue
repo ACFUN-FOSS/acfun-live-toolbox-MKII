@@ -15,33 +15,53 @@
     @confirm="handleConfirm"
     @cancel="handleCancel"
   >
-    <!-- 自定义内容渲染 -->
-    <div
-      v-if="popup.content"
-      class="popup-content"
-    >
-      <!-- HTML内容 -->
-      <div 
-        v-if="popup.contentType === 'html'" 
-        class="html-content"
-        v-html="popup.content"
+    <!-- 弹窗内容渲染（支持 Wujie Window） -->
+    <div class="popup-content">
+      <!-- Wujie Window 子应用渲染：当声明 window 托管且未提供自定义内容时 -->
+      <WujieVue
+        v-if="isWujieWindow"
+        class="wujie-window-content"
+        :key="wujieKey"
+        :name="wujieName"
+        :url="wujieUrl"
+        :sync="false"
+        :alive="true"
+        :fetch="customFetch"
+        :props="wujieProps"
+        :attrs="wujieAttrs"
+        @beforeLoad="onWindowBeforeLoad"
+        @beforeMount="onWindowBeforeMount"
+        @afterMount="onWindowAfterMount"
+        @beforeUnmount="onWindowBeforeUnmount"
+        @afterUnmount="onWindowAfterUnmount"
+        @loadError="onWindowLoadError"
       />
-      
-      <!-- 组件内容 -->
-      <component 
-        :is="popup.content" 
-        v-else-if="popup.contentType === 'component'"
-        v-bind="popup.props || {}"
-        @action="handleAction"
-      />
-      
-      <!-- 文本内容 -->
-      <div
-        v-else
-        class="text-content"
-      >
-        {{ popup.content }}
-      </div>
+
+      <!-- 自定义内容渲染（若存在 content 则优先渲染自定义） -->
+      <template v-else>
+        <!-- HTML内容 -->
+        <div 
+          v-if="popup.content && popup.contentType === 'html'" 
+          class="html-content"
+          v-html="popup.content"
+        />
+        
+        <!-- 组件内容 -->
+        <component 
+          :is="popup.content" 
+          v-else-if="popup.content && popup.contentType === 'component'"
+          v-bind="popup.props || {}"
+          @action="handleAction"
+        />
+        
+        <!-- 文本内容 -->
+        <div
+          v-else-if="popup.content"
+          class="text-content"
+        >
+          {{ popup.content }}
+        </div>
+      </template>
     </div>
 
     <!-- 自定义操作按钮 -->
@@ -73,7 +93,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import WujieVue from 'wujie-vue3';
 import { Dialog as TDialog, Button as TButton, Icon as TIcon } from 'tdesign-vue-next';
+import { getPluginHostingConfig, buildPluginPageUrl } from '../utils/hosting';
+import { useRoleStore } from '../stores/role';
+import { useRoomStore } from '../stores/room';
+import { useDanmuStore } from '../stores/danmu';
 
 export interface PopupAction {
   id: string;
@@ -206,11 +231,170 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   document.addEventListener('keydown', handleKeydown);
+  resolveWujieWindowConfig();
 });
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown);
 });
+
+// --------------------------
+// Wujie Window 托管与只读仓库注入
+// --------------------------
+
+const isWujieWindow = ref(false);
+const wujieUrl = ref('');
+const wujieName = ref('');
+const wujieKey = ref('');
+const wujieProps = ref<Record<string, any>>({});
+const wujieAttrs = ref<Record<string, any>>({ style: 'width:100%;height:100%;display:block;' });
+
+function customFetch(url: string, options?: RequestInit) {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options?.headers,
+    },
+  });
+}
+
+function toPlain<T>(value: T): any {
+  try { return JSON.parse(JSON.stringify(value)); } catch { return value as any; }
+}
+
+function deepFreeze(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  Object.getOwnPropertyNames(obj).forEach((prop) => {
+    const value = (obj as any)[prop];
+    if (value && typeof value === 'object') deepFreeze(value);
+  });
+  return Object.freeze(obj);
+}
+
+function buildReadonlySnapshotForWindow() {
+  const role = useRoleStore();
+  const rooms = useRoomStore();
+  const danmu = useDanmuStore();
+  const roomSummary = rooms.rooms.map((r) => ({
+    id: r.id,
+    title: r.title,
+    status: r.status,
+    isLive: r.isLive,
+    viewerCount: r.viewerCount,
+    lastUpdate: r.lastUpdate,
+  }));
+  const snapshot = {
+    role: { current: role.current, statsScope: role.statsScope },
+    rooms: {
+      list: roomSummary,
+      liveRoomsCount: rooms.liveRooms.length,
+      totalViewers: rooms.totalViewers,
+    },
+    danmu: {
+      isConnected: danmu.isConnected,
+      stats: toPlain(danmu.stats),
+    },
+  };
+  return deepFreeze(snapshot);
+}
+
+async function resolveWujieWindowConfig() {
+  try {
+    // 若提供了自定义内容（text/html/component），保持现有渲染路径，不启用 Wujie Window
+    if (props.popup.content) {
+      isWujieWindow.value = false;
+      return;
+    }
+    // 必须有 pluginId 才尝试解析 window 托管入口
+    const pluginId = props.popup.pluginId;
+    if (!pluginId) {
+      isWujieWindow.value = false;
+      return;
+    }
+    const conf = await getPluginHostingConfig(pluginId);
+    const item = conf.window || null;
+    if (!item) {
+      isWujieWindow.value = false;
+      return;
+    }
+    const url = buildPluginPageUrl(pluginId, 'window', item || undefined);
+    isWujieWindow.value = true;
+    wujieUrl.value = url;
+    wujieName.value = `window-${pluginId}`;
+    wujieKey.value = `${pluginId}-${props.popup.id}-${Date.now()}`;
+    wujieProps.value = {
+      popupId: props.popup.id,
+      pluginId,
+      api: {
+        close: async () => {
+          try { await (window as any).electronApi?.plugin?.popup?.close?.(pluginId, props.popup.id); } catch (e) { console.warn('[PluginPopup] popup.close bridge failed:', e); }
+        },
+        action: async (actionId: string) => {
+          try { await (window as any).electronApi?.plugin?.popup?.action?.(pluginId, props.popup.id, actionId); } catch (e) { console.warn('[PluginPopup] popup.action bridge failed:', e); }
+        },
+        bringToFront: async () => {
+          try { await (window as any).electronApi?.plugin?.popup?.bringToFront?.(pluginId, props.popup.id); } catch (e) { console.warn('[PluginPopup] popup.bringToFront bridge failed:', e); }
+        },
+      },
+      shared: {
+        readonlyStore: buildReadonlySnapshotForWindow(),
+      },
+    };
+  } catch (err) {
+    console.error('[PluginPopup] resolveWujieWindowConfig error:', err);
+    isWujieWindow.value = false;
+  }
+}
+
+// 向子窗口应用转发生命周期事件（postMessage）
+function postWindowLifecycle(event: string, payload?: any) {
+  try {
+    const dialogEl = document.querySelector('.plugin-popup');
+    const iframe = dialogEl?.querySelector('iframe') as HTMLIFrameElement | null;
+    const targetWin = iframe?.contentWindow;
+    if (targetWin && isWujieWindow.value) {
+      targetWin.postMessage({
+        type: 'window-event',
+        pluginId: props.popup.pluginId,
+        popupId: props.popup.id,
+        eventType: 'lifecycle',
+        event,
+        payload
+      }, '*');
+    }
+  } catch (e) {
+    console.warn('[PluginPopup] post window lifecycle failed:', e);
+  }
+}
+
+function onWindowBeforeLoad() {
+  try { (window as any).electronApi?.plugin?.lifecycle?.emit?.('beforeWindowOpen', props.popup.pluginId, { popupId: props.popup.id }); } catch {}
+  postWindowLifecycle('beforeWindowOpen', { popupId: props.popup.id });
+}
+function onWindowBeforeMount() {
+  // 可按需扩展
+}
+function onWindowAfterMount() {
+  try { (window as any).electronApi?.plugin?.lifecycle?.emit?.('afterWindowOpen', props.popup.pluginId, { popupId: props.popup.id }); } catch {}
+  postWindowLifecycle('afterWindowOpen', { popupId: props.popup.id });
+}
+function onWindowBeforeUnmount() {
+  // 可按需扩展
+}
+function onWindowAfterUnmount() {
+  try { (window as any).electronApi?.plugin?.lifecycle?.emit?.('windowClosed', props.popup.pluginId, { popupId: props.popup.id }); } catch {}
+  postWindowLifecycle('windowClosed', { popupId: props.popup.id });
+}
+function onWindowLoadError(err: any) {
+  console.error('Wujie window load error:', err);
+}
+
+// 当弹窗属性变化时重新解析
+// 注意：不影响已有自定义内容渲染路径
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _watchKey = computed(() => [props.popup.id, props.popup.pluginId, props.popup.content, props.popup.contentType]);
+// 手动触发解析以避免引入额外 watch 复杂度
+//（现有 onMounted 已调用；父级更新时由 PluginPopupManager 重新创建组件实例触发）
 </script>
 
 <style scoped>

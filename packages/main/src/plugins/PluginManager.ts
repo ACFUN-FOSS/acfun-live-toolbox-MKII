@@ -150,6 +150,12 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
     this.connectionPoolManager = new ConnectionPoolManager();
     
     this.ensurePluginsDirectory();
+    // 安装内置示例插件（如缺失）
+    try {
+      this.installBundledExamplesIfMissing();
+    } catch (e) {
+      pluginLogger.warn('Failed to install bundled example plugins', 'system', e as Error);
+    }
     this.setupErrorHandling();
     this.setupProcessManagerEvents();
     this.setupLifecycleEvents();
@@ -398,6 +404,40 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
     if (!fs.existsSync(this.pluginsDir)) {
       fs.mkdirSync(this.pluginsDir, { recursive: true });
     }
+  }
+
+  /**
+   * 将内置示例插件复制到用户数据目录（仅当缺失时）。
+   * 示例位于打包资源或工作目录下的 buildResources/plugins/base-example。
+   */
+  private installBundledExamplesIfMissing(): void {
+    const id = 'base-example';
+    const dest = path.join(this.pluginsDir, id);
+    const manifestPath = path.join(dest, 'manifest.json');
+    if (fs.existsSync(dest) && fs.existsSync(manifestPath)) {
+      return; // 已存在，无需复制
+    }
+
+    const candidates = [
+      path.join(process.cwd(), 'buildResources', 'plugins', id),
+      path.join(process.resourcesPath || process.cwd(), 'plugins', id)
+    ];
+    const src = candidates.find(p => fs.existsSync(p));
+    if (!src) {
+      return; // 无内置示例
+    }
+
+    fs.mkdirSync(dest, { recursive: true });
+    fs.cpSync(src, dest, { recursive: true });
+
+    // 默认不启用，后续由启动流程显式启用以触发进程创建
+    const configKey = `plugins.${id}`;
+    this.configManager.set(configKey, {
+      enabled: false,
+      installedAt: Date.now()
+    });
+
+    pluginLogger.info('Bundled example plugin installed', id, { from: src, to: dest });
   }
 
   private loadInstalledPlugins(): void {
@@ -1049,6 +1089,13 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
       tokenManager: this.tokenManager,
       onPluginFault: (reason: string) => this.emit('plugin.suspended', { id: pluginId, reason })
     });
+  }
+
+  /**
+   * 暴露 PopupManager 以便主进程转发弹窗事件到渲染层。
+   */
+  public getPopupManager(): PopupManager {
+    return this.popupManager;
   }
 
   /**

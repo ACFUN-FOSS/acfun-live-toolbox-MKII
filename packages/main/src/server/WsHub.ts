@@ -7,7 +7,7 @@ import { NormalizedEvent } from '../types/contracts';
  * WebSocket 消息类型
  */
 export interface WsMessage {
-  op: 'event' | 'room_status' | 'ping' | 'pong';
+  op: 'event' | 'room_status' | 'activity' | 'ping' | 'pong';
   d?: any;
 }
 
@@ -28,6 +28,18 @@ export interface RoomStatusMessage extends WsMessage {
     room_id: string;
     status: string;
     timestamp: number;
+  };
+}
+
+/**
+ * 活动/业务状态消息（认证、房间、直播等高层事件）
+ */
+export interface ActivityMessage extends WsMessage {
+  op: 'activity';
+  d: {
+    type: string; // e.g. 'auth.login', 'auth.logout', 'auth.tokenExpiring', 'room.added', 'room.removed', 'live.start', 'live.stop'
+    payload: any;
+    ts?: number;
   };
 }
 
@@ -138,6 +150,21 @@ export class WsHub {
         room_id: roomId,
         status,
         timestamp: Date.now()
+      }
+    };
+    this.broadcast(message);
+  }
+
+  /**
+   * 广播高层活动事件（不含敏感信息）
+   */
+  public broadcastActivity(type: string, payload: any, ts?: number): void {
+    const message: ActivityMessage = {
+      op: 'activity',
+      d: {
+        type,
+        payload,
+        ts: ts ?? Date.now()
       }
     };
     this.broadcast(message);

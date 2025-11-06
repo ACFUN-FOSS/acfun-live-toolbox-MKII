@@ -1,6 +1,7 @@
 import { TypedEventEmitter } from '../utils/TypedEventEmitter';
 import { BrowserWindow } from 'electron';
 import { pluginLogger } from './PluginLogger';
+import { pluginLifecycleManager } from './PluginLifecycle';
 
 export interface PopupOptions {
   title?: string;
@@ -85,6 +86,18 @@ export class PopupManager extends TypedEventEmitter<PopupManagerEvents> {
    * 创建弹窗
    */
   public createPopup(pluginId: string, options: PopupOptions): string {
+    // 在创建前触发生命周期钩子（beforeWindowOpen）
+    pluginLifecycleManager
+      .executeHook('beforeWindowOpen', {
+        pluginId,
+        context: { pageType: 'window' }
+      })
+      .catch((e) => {
+        pluginLogger.warn(
+          '[PopupManager] beforeWindowOpen hook error',
+          e instanceof Error ? e.message : String(e)
+        );
+      });
     // 检查弹窗数量限制
     const pluginPopups = Array.from(this.popups.values()).filter(p => p.pluginId === pluginId);
     if (pluginPopups.length >= 3) {
@@ -127,6 +140,19 @@ export class PopupManager extends TypedEventEmitter<PopupManagerEvents> {
     });
 
     this.emit('popup.created', { popup });
+
+    // 在创建后触发生命周期钩子（afterWindowOpen）
+    pluginLifecycleManager
+      .executeHook('afterWindowOpen', {
+        pluginId,
+        context: { pageType: 'window', popupId }
+      })
+      .catch((e) => {
+        pluginLogger.warn(
+          '[PopupManager] afterWindowOpen hook error',
+          e instanceof Error ? e.message : String(e)
+        );
+      });
     return popupId;
   }
 
@@ -228,6 +254,19 @@ export class PopupManager extends TypedEventEmitter<PopupManagerEvents> {
 
     pluginLogger.info(`Closed popup ${popupId}`, popup.pluginId);
     this.emit('popup.closed', { popupId, pluginId: popup.pluginId });
+
+    // 触发生命周期钩子（windowClosed）
+    pluginLifecycleManager
+      .executeHook('windowClosed', {
+        pluginId: popup.pluginId,
+        context: { pageType: 'window', popupId }
+      })
+      .catch((e) => {
+        pluginLogger.warn(
+          '[PopupManager] windowClosed hook error',
+          e instanceof Error ? e.message : String(e)
+        );
+      });
 
     return true;
   }

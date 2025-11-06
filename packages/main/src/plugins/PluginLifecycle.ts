@@ -17,7 +17,17 @@ export type LifecycleHook =
   | 'beforeUpdate'
   | 'afterUpdate'
   | 'onError'
-  | 'onRecover';
+  | 'onRecover'
+  // 页面动作钩子（UI/Window/Overlay）
+  | 'beforeUiOpen'
+  | 'afterUiOpen'
+  | 'uiClosed'
+  | 'beforeWindowOpen'
+  | 'afterWindowOpen'
+  | 'windowClosed'
+  | 'beforeOverlayOpen'
+  | 'afterOverlayOpen'
+  | 'overlayClosed';
 
 /**
  * 生命周期事件数据
@@ -115,14 +125,18 @@ export class PluginLifecycleManager extends EventEmitter {
    * 取消注册生命周期钩子
    */
   public unregisterHook(hookId: string): boolean {
-    for (const [hook, registrations] of Array.from(this.hooks.entries())) {
+    let removed = false;
+    for (const [hook, registrations] of this.hooks.entries()) {
       const index = registrations.findIndex(reg => reg.id === hookId);
       if (index !== -1) {
         registrations.splice(index, 1);
-        return true;
+        this.hooks.set(hook, registrations);
+        removed = true;
+        pluginLogger.debug(`取消生命周期钩子: ${hook} (ID: ${hookId})`);
+        break;
       }
     }
-    return false;
+    return removed;
   }
 
   /**

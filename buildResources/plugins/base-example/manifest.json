@@ -1,0 +1,22 @@
+{
+  "id": "base-example",
+  "name": "Base Example Plugin",
+  "version": "0.1.0",
+  "description": "Minimal example plugin to validate worker/runtime, UI, window and overlay hosting.",
+  "author": "ACLiveFrame Team",
+  "main": "index.js",
+  "icon": "icon.svg",
+  "ui": {
+    "spa": false,
+    "html": "ui/index.html"
+  },
+  "window": {
+    "spa": false,
+    "html": "window/index.html"
+  },
+  "overlay": {
+    "spa": false,
+    "html": "overlay/index.html"
+  }
+}
+

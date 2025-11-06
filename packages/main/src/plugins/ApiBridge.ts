@@ -5,6 +5,7 @@ import { ConfigManager } from '../config/ConfigManager';
 import { PopupManager, PopupOptions, PopupInstance } from './PopupManager';
 import type { NormalizedEvent, NormalizedEventType } from '../types';
 import { TokenManager } from '../server/TokenManager';
+import { pluginLifecycleManager } from './PluginLifecycle';
 import { rateLimitManager, RateLimitManager } from './PluginRateLimitManager';
 import { EventFilter, DEFAULT_FILTERS, applyFilters, getEventQualityScore } from '../events/normalize';
 // Removed ApiRetryManager in favor of direct TokenManager usage
@@ -52,7 +53,79 @@ export interface PluginAPI {
     onHide(callback: (popupId: string) => void): () => void;
   };
 
+  // 生命周期钩子 API（插件可注册/取消注册）
+  lifecycle: {
+    on(
+      hookName: string,
+      handler: (data: any) => Promise<void> | void,
+      options?: { priority?: number }
+    ): string;
+    off(hookId: string): boolean;
+  };
+
   readonly pluginId: string;
+
+  acfun: {
+    user: {
+      getUserInfo(userId: string): Promise<any>;
+      getWalletInfo(): Promise<any>;
+    };
+    danmu: {
+      startDanmu(liverUID: string, callback?: (event: any) => void): Promise<any>;
+      stopDanmu(sessionId: string): Promise<any>;
+      getLiveRoomInfo(liverUID: string): Promise<any>;
+    };
+    live: {
+      checkLivePermission(): Promise<any>;
+      getStreamUrl(liveId: string): Promise<any>;
+      getStreamSettings(): Promise<any>;
+      getLiveStreamStatus(): Promise<any>;
+      startLiveStream(
+        title: string,
+        coverFile: string,
+        streamName: string,
+        portrait?: boolean,
+        panoramic?: boolean,
+        categoryID?: number,
+        subCategoryID?: number
+      ): Promise<any>;
+      stopLiveStream(liveId: string): Promise<any>;
+      updateLiveRoom(title: string, coverFile: string, liveId: string): Promise<any>;
+      getLiveStatistics(liveId: string): Promise<any>;
+      getSummary(liveId: string): Promise<any>;
+      getHotLives(category?: string, page?: number, size?: number): Promise<any>;
+      getLiveCategories(): Promise<any>;
+      getUserLiveInfo(userID: number): Promise<any>;
+      checkLiveClipPermission(): Promise<any>;
+      setLiveClipPermission(canCut: boolean): Promise<any>;
+    };
+    gift: {
+      getAllGiftList(): Promise<any>;
+      getLiveGiftList(liveID: string): Promise<any>;
+    };
+    manager: {
+      getManagerList(): Promise<any>;
+      addManager(managerUID: string): Promise<any>;
+      deleteManager(managerUID: string): Promise<any>;
+      getAuthorKickRecords(liveId: string, count?: number, page?: number): Promise<any>;
+      authorKick(liveID: string, kickedUID: string): Promise<any>;
+      managerKick(liveID: string, kickedUID: string): Promise<any>;
+    };
+    replay: {
+      getLiveReplay(liveId: string): Promise<any>;
+    };
+    livePreview: {
+      getLivePreviewList(): Promise<any>;
+    };
+    badge: {
+      getBadgeDetail(uperID: number): Promise<any>;
+      getBadgeList(): Promise<any>;
+      getBadgeRank(uperID: number): Promise<any>;
+      getWornBadge(userID: number): Promise<any>;
+      wearBadge(uperID: number): Promise<any>;
+      unwearBadge(): Promise<any>;
+    };
+  };
 }
 
 /**
@@ -110,6 +183,32 @@ export class ApiBridge implements PluginAPI {
     } catch (error) {
       console.warn('[ApiBridge] Failed to initialize authentication:', error);
     }
+  }
+
+  /**
+   * 规范化钩子名称，支持别名映射
+   */
+  private normalizeHookName(hookName: string): import('./PluginLifecycle').LifecycleHook {
+    const map: Record<string, import('./PluginLifecycle').LifecycleHook> = {
+      // 别名 → 实际钩子
+      'plugin.beforeLoad': 'beforeInstall',
+      'plugin.afterLoad': 'afterInstall',
+      'plugin.beforeStart': 'beforeEnable',
+      'plugin.afterStart': 'afterEnable',
+      'plugin.beforeClose': 'beforeDisable',
+      'plugin.afterClose': 'afterDisable',
+      // 页面钩子直接透传
+      'beforeUiOpen': 'beforeUiOpen',
+      'afterUiOpen': 'afterUiOpen',
+      'uiClosed': 'uiClosed',
+      'beforeWindowOpen': 'beforeWindowOpen',
+      'afterWindowOpen': 'afterWindowOpen',
+      'windowClosed': 'windowClosed',
+      'beforeOverlayOpen': 'beforeOverlayOpen',
+      'afterOverlayOpen': 'afterOverlayOpen',
+      'overlayClosed': 'overlayClosed'
+    } as const;
+    return (map[hookName] || hookName) as import('./PluginLifecycle').LifecycleHook;
   }
 
   /**
@@ -208,6 +307,27 @@ export class ApiBridge implements PluginAPI {
     this.roomManager.on('event', listener as any);
     return () => this.roomManager.off('event', listener as any);
   }
+
+  /**
+   * 生命周期钩子 API 暴露给插件
+   */
+  public lifecycle = {
+    on: (
+      hookName: string,
+      handler: (data: any) => Promise<void> | void,
+      options?: { priority?: number }
+    ): string => {
+      const normalized = this.normalizeHookName(hookName);
+      return pluginLifecycleManager.registerHook(normalized, async (payload) => {
+        // 限定只触发对应插件的钩子（若注册自插件）
+        if (payload.pluginId && payload.pluginId !== this.pluginId) return;
+        await handler(payload);
+      }, { priority: options?.priority, pluginId: this.pluginId });
+    },
+    off: (hookId: string): boolean => {
+      return pluginLifecycleManager.unregisterHook(hookId);
+    }
+  };
 
   /**
    * 验证事件数据的完整性和有效性
@@ -396,6 +516,37 @@ export class ApiBridge implements PluginAPI {
       console.error('[ApiBridge] Authentication validation failed:', error);
       throw error;
     }
+  }
+
+  private async invokeAcfun<T>(call: () => Promise<any>): Promise<T> {
+    const rateLimitCheck = await rateLimitManager.canMakeRequest();
+    if (!rateLimitCheck.allowed) {
+      const error = new Error(`RATE_LIMIT_EXCEEDED: ${rateLimitCheck.reason}`);
+      (error as any).waitTime = rateLimitCheck.waitTime;
+      this.onPluginFault('rate-limit-exceeded');
+      throw error;
+    }
+
+    await this.ensureValidAuthentication();
+    rateLimitManager.recordRequest();
+
+    const result = await call();
+    if (!result?.success) {
+      const statusCode = (result?.error?.includes?.('429') ? 429 : result?.error?.includes?.('503') ? 503 : undefined) as number | undefined;
+      if (statusCode) rateLimitManager.recordError(statusCode);
+
+      if (result?.error && (result.error.includes('401') || result.error.includes('unauthorized'))) {
+        await this.tokenManager.logout();
+        const err = new Error('ACFUN_TOKEN_EXPIRED');
+        this.onPluginFault('token-expired');
+        throw err;
+      }
+
+      const err = new Error(`ACFUN_API_ERROR: ${result?.error || 'Unknown error'}`);
+      this.onPluginFault('acfun-api-error');
+      throw err;
+    }
+    return result?.data as T;
   }
 
   /**
@@ -623,6 +774,149 @@ export class ApiBridge implements PluginAPI {
       };
       this.popupManager.on('popup.hidden', listener);
       return () => this.popupManager.off('popup.hidden', listener);
+    }
+  };
+
+  public acfun = {
+    user: {
+      getUserInfo: async (userId: string) => {
+        return this.invokeAcfun(() => this.acfunApi.user.getUserInfo(userId));
+      },
+      getWalletInfo: async () => {
+        return this.invokeAcfun(() => this.acfunApi.user.getWalletInfo());
+      }
+    },
+    danmu: {
+      startDanmu: async (liverUID: string, callback?: (event: any) => void) => {
+        const cb = callback || (() => {});
+        return this.invokeAcfun(() => this.acfunApi.danmu.startDanmu(liverUID, cb));
+      },
+      stopDanmu: async (sessionId: string) => {
+        return this.invokeAcfun(() => this.acfunApi.danmu.stopDanmu(sessionId));
+      },
+      getLiveRoomInfo: async (liverUID: string) => {
+        return this.invokeAcfun(() => this.acfunApi.danmu.getLiveRoomInfo(liverUID));
+      }
+    },
+    live: {
+      checkLivePermission: async () => {
+        return this.invokeAcfun(() => this.acfunApi.live.checkLivePermission());
+      },
+      getStreamUrl: async (liveId: string) => {
+        return this.invokeAcfun(() => this.acfunApi.live.getStreamUrl(liveId));
+      },
+      getStreamSettings: async () => {
+        return this.invokeAcfun(() => this.acfunApi.live.getStreamSettings());
+      },
+      getLiveStreamStatus: async () => {
+        return this.invokeAcfun(() => this.acfunApi.live.getLiveStreamStatus());
+      },
+      startLiveStream: async (
+        title: string,
+        coverFile: string,
+        streamName: string,
+        portrait?: boolean,
+        panoramic?: boolean,
+        categoryID?: number,
+        subCategoryID?: number
+      ) => {
+        return this.invokeAcfun(() =>
+          this.acfunApi.live.startLiveStream(
+            title,
+            coverFile || '',
+            streamName,
+            !!portrait,
+            !!panoramic,
+            categoryID as number,
+            subCategoryID as number
+          )
+        );
+      },
+      stopLiveStream: async (liveId: string) => {
+        return this.invokeAcfun(() => this.acfunApi.live.stopLiveStream(liveId));
+      },
+      updateLiveRoom: async (title: string, coverFile: string, liveId: string) => {
+        return this.invokeAcfun(() => this.acfunApi.live.updateLiveRoom(title, coverFile || '', liveId));
+      },
+      getLiveStatistics: async (liveId: string) => {
+        return this.invokeAcfun(() => this.acfunApi.live.getLiveStatistics(liveId));
+      },
+      getSummary: async (liveId: string) => {
+        return this.invokeAcfun(() => this.acfunApi.live.getSummary(liveId));
+      },
+      getHotLives: async (category?: string, page?: number, size?: number) => {
+        return this.invokeAcfun(() => this.acfunApi.live.getHotLives(category, page || 1, size || 20));
+      },
+      getLiveCategories: async () => {
+        return this.invokeAcfun(() => this.acfunApi.live.getLiveCategories());
+      },
+      getUserLiveInfo: async (userID: number) => {
+        return this.invokeAcfun(() => this.acfunApi.live.getUserLiveInfo(userID));
+      },
+      checkLiveClipPermission: async () => {
+        return this.invokeAcfun(() => this.acfunApi.live.checkLiveClipPermission());
+      },
+      setLiveClipPermission: async (canCut: boolean) => {
+        return this.invokeAcfun(() => this.acfunApi.live.setLiveClipPermission(!!canCut));
+      }
+    },
+    gift: {
+      getAllGiftList: async () => {
+        return this.invokeAcfun(() => this.acfunApi.gift.getAllGiftList());
+      },
+      getLiveGiftList: async (liveID: string) => {
+        return this.invokeAcfun(() => this.acfunApi.gift.getLiveGiftList(liveID));
+      }
+    },
+    manager: {
+      getManagerList: async () => {
+        return this.invokeAcfun(() => this.acfunApi.manager.getManagerList());
+      },
+      addManager: async (managerUID: string) => {
+        return this.invokeAcfun(() => this.acfunApi.manager.addManager(managerUID));
+      },
+      deleteManager: async (managerUID: string) => {
+        return this.invokeAcfun(() => this.acfunApi.manager.deleteManager(managerUID));
+      },
+      getAuthorKickRecords: async (liveId: string, count?: number, page?: number) => {
+        return this.invokeAcfun(() => this.acfunApi.manager.getAuthorKickRecords(liveId, count || 20, page || 1));
+      },
+      authorKick: async (liveID: string, kickedUID: string) => {
+        return this.invokeAcfun(() => this.acfunApi.manager.authorKick(liveID, kickedUID));
+      },
+      managerKick: async (liveID: string, kickedUID: string) => {
+        return this.invokeAcfun(() => this.acfunApi.manager.managerKick(liveID, kickedUID));
+      }
+    },
+    replay: {
+      getLiveReplay: async (liveId: string) => {
+        return this.invokeAcfun(() => this.acfunApi.replay.getLiveReplay(liveId));
+      }
+    },
+    livePreview: {
+      getLivePreviewList: async () => {
+        return this.invokeAcfun(() => this.acfunApi.livePreview.getLivePreviewList());
+      }
+    },
+    badge: {
+      getBadgeDetail: async (uperID: number) => {
+        return this.invokeAcfun(() => this.acfunApi.badge.getBadgeDetail(uperID));
+      },
+      getBadgeList: async () => {
+        return this.invokeAcfun(() => this.acfunApi.badge.getBadgeList());
+      },
+      getBadgeRank: async (uperID: number) => {
+        return this.invokeAcfun(() => this.acfunApi.badge.getBadgeRank(uperID));
+      },
+      getWornBadge: async (userID: number) => {
+        return this.invokeAcfun(() => this.acfunApi.badge.getWornBadge(userID));
+      },
+      wearBadge: async (uperID: number) => {
+        return this.invokeAcfun(() => this.acfunApi.badge.wearBadge(uperID));
+      },
+      unwearBadge: async () => {
+        return this.invokeAcfun(() => this.acfunApi.badge.unwearBadge());
+      }
     }
   };
 }

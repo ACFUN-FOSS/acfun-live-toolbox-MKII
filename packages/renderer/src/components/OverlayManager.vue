@@ -7,6 +7,7 @@
       :overlay="overlay"
       :visible="overlay.visible !== false"
       :z-index="getOverlayZIndex(overlay.id)"
+      :ref="(el:any) => setOverlayRef(overlay.id, el)"
       @close="closeOverlay"
       @action="handleOverlayAction"
       @click="handleOverlayClick"
@@ -35,6 +36,12 @@ const emit = defineEmits<Emits>()
 
 // 存储所有overlay的状态
 const overlays = ref<Map<string, OverlayState>>(new Map())
+// 保持 OverlayRenderer 实例引用以便消息转发
+const overlayRefs = ref<Map<string, any>>(new Map())
+const setOverlayRef = (overlayId: string, el: any) => {
+  if (el) overlayRefs.value.set(overlayId, el)
+  else overlayRefs.value.delete(overlayId)
+}
 
 // 管理z-index的基础值和递增
 const baseZIndex = ref(1000)
@@ -186,6 +193,22 @@ const handleOverlayBringToFront = (_event: any, overlayId: string) => {
   bringToFront(overlayId)
 }
 
+// 处理来自主进程的 UI/Window -> Overlay 消息，并转发到具体 OverlayRenderer
+const handleOverlayMessage = (_event: any, overlayId: string, message: { event: string; payload?: any }) => {
+  try {
+    const ref = overlayRefs.value.get(overlayId)
+    if (ref && typeof ref.receiveMessage === 'function') {
+      ref.receiveMessage(message.event, message.payload)
+    } else {
+      // 无法找到对应实例或不支持消息接收
+      // 静默失败但记录日志以便调试
+      console.warn('[OverlayManager] No renderer ref or receiveMessage not found for overlay:', overlayId)
+    }
+  } catch (err) {
+    console.error('[OverlayManager] Failed to handle overlay-message:', err)
+  }
+}
+
 // 暴露方法给父组件
 defineExpose({
   createOverlay,
@@ -208,6 +231,7 @@ onMounted(() => {
     window.electronApi.on('overlay-show', handleOverlayShow)
     window.electronApi.on('overlay-hide', handleOverlayHide)
     window.electronApi.on('overlay-bring-to-front', handleOverlayBringToFront)
+    window.electronApi.on('overlay-message', handleOverlayMessage)
   }
 })
 
@@ -220,6 +244,7 @@ onUnmounted(() => {
     window.electronApi.off('overlay-show', handleOverlayShow)
     window.electronApi.off('overlay-hide', handleOverlayHide)
     window.electronApi.off('overlay-bring-to-front', handleOverlayBringToFront)
+    window.electronApi.off('overlay-message', handleOverlayMessage)
   }
   
   // 清理所有overlay

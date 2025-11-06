@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { app } from 'electron';
 import { pluginLogger } from './PluginLogger';
+import { pluginLifecycleManager } from './PluginLifecycle';
 
 export interface OverlayPosition {
   x?: number | string;
@@ -73,6 +74,12 @@ export interface OverlayActionResult {
   error?: string;
 }
 
+export interface OverlayMessagePayload {
+  overlayId: string;
+  event: string;
+  payload?: any;
+}
+
 export interface OverlayListResult {
   overlays: Array<{
     id: string;
@@ -113,6 +120,21 @@ export class OverlayManager extends EventEmitter {
         };
       }
 
+      // 在创建前触发生命周期钩子（beforeOverlayOpen）
+      try {
+        if (options.pluginId) {
+          await pluginLifecycleManager.executeHook('beforeOverlayOpen', {
+            pluginId: options.pluginId,
+            context: { pageType: 'overlay', overlayId, route: options?.type === 'html' ? 'overlay.html' : undefined }
+          });
+        }
+      } catch (e) {
+        pluginLogger.warn(
+          '[OverlayManager] beforeOverlayOpen hook error',
+          e instanceof Error ? e.message : String(e)
+        );
+      }
+
       // 创建overlay状态
       const now = Date.now();
       const overlayState: OverlayState = {
@@ -129,6 +151,21 @@ export class OverlayManager extends EventEmitter {
 
       // 发送事件到渲染进程
       this.emit('overlay-created', overlayState);
+
+      // 在创建后触发生命周期钩子（afterOverlayOpen）
+      try {
+        if (overlayState.pluginId) {
+          await pluginLifecycleManager.executeHook('afterOverlayOpen', {
+            pluginId: overlayState.pluginId,
+            context: { pageType: 'overlay', overlayId }
+          });
+        }
+      } catch (e) {
+        pluginLogger.warn(
+          '[OverlayManager] afterOverlayOpen hook error',
+          e instanceof Error ? e.message : String(e)
+        );
+      }
 
       return {
         success: true,
@@ -196,6 +233,21 @@ export class OverlayManager extends EventEmitter {
       // 发送事件到渲染进程
       this.emit('overlay-closed', overlayId);
 
+      // 触发生命周期钩子（overlayClosed）
+      try {
+        if (overlay.pluginId) {
+          await pluginLifecycleManager.executeHook('overlayClosed', {
+            pluginId: overlay.pluginId,
+            context: { pageType: 'overlay', overlayId }
+          });
+        }
+      } catch (e) {
+        pluginLogger.warn(
+          '[OverlayManager] overlayClosed hook error',
+          e instanceof Error ? e.message : String(e)
+        );
+      }
+
       return { success: true };
     } catch (error: any) {
       return {
@@ -235,7 +287,7 @@ export class OverlayManager extends EventEmitter {
       const newZIndex = this.baseZIndex + (++this.zIndexCounter);
       return this.updateOverlay(overlayId, {
         style: {
-          ...overlay.style,
+          ...(overlay.style || {}),
           zIndex: newZIndex
         }
       });
@@ -261,6 +313,30 @@ export class OverlayManager extends EventEmitter {
     }));
 
     return { overlays };
+  }
+
+  /**
+   * 发送消息到指定 overlay（UI/Window -> Overlay）
+   */
+  async sendMessage(overlayId: string, event: string, payload?: any): Promise<OverlayActionResult> {
+    try {
+      const overlay = this.overlays.get(overlayId);
+      if (!overlay) {
+        return {
+          success: false,
+          error: `Overlay with ID '${overlayId}' not found`
+        };
+      }
+
+      const message: OverlayMessagePayload = { overlayId, event, payload };
+      this.emit('overlay-message', message);
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
+    }
   }
 
   /**
