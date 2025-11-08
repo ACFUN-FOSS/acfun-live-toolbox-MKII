@@ -180,8 +180,12 @@ export class ProcessManager extends TypedEventEmitter<ProcessManagerEvents> {
       throw new Error(`Plugin process ${pluginId} not found`);
     }
 
+    // Allow executing 'init' during the 'starting' phase
     if (processInfo.status !== 'running') {
-      throw new Error(`Plugin process ${pluginId} is not running (status: ${processInfo.status})`);
+      const allowDuringStarting = processInfo.status === 'starting' && method === 'init';
+      if (!allowDuringStarting) {
+        throw new Error(`Plugin process ${pluginId} is not running (status: ${processInfo.status})`);
+      }
     }
 
     try {

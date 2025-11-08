@@ -23,7 +23,21 @@ function summarizeReadonlyStore(store) {
 
 try {
   const props = window.__WUJIE_PROPS__ || {};
-  const overlayId = props.overlayId || 'unknown';
+  const qsOverlayId = (function(){
+    try { return new URLSearchParams(window.location.search).get('overlayId'); } catch (_) { return null; }
+  })();
+  const refOverlayId = (function(){
+    try { return new URLSearchParams(new URL(document.referrer).search).get('overlayId'); } catch (_) { return null; }
+  })();
+  const nameOverlayId = (function(){
+    try {
+      const nm = String(window.name || '');
+      if (nm.startsWith('overlay:')) return nm.slice('overlay:'.length);
+      const m = nm.match(/overlayId=([a-f0-9\-]+)/i);
+      return m ? m[1] : null;
+    } catch (_) { return null; }
+  })();
+  let overlayId = props.overlayId || qsOverlayId || refOverlayId || nameOverlayId || 'unknown';
   status.textContent = 'overlayId=' + overlayId;
 
   // Read initial readonly store from props.shared
@@ -37,22 +51,31 @@ try {
     const data = evt?.data || {};
     if (!data || typeof data !== 'object') return;
     if (data.type !== 'overlay-event') return;
-    if (data.overlayId !== overlayId) return;
-    if (data.event === 'readonly-store-init') {
-      status.textContent = 'overlayId=' + overlayId + ' | readonly(init) ' + summarizeReadonlyStore(safe(data.payload));
-      return;
+    // 对齐 overlayId：若未知或与事件不一致，则以事件中的 overlayId 为准
+    if (data.overlayId && data.overlayId !== overlayId) {
+      overlayId = String(data.overlayId);
+      status.textContent = 'overlayId=' + overlayId;
     }
+
+    // 优先处理生命周期与只读快照事件，不受早期 overlayId 不一致影响
     if (data.eventType === 'overlay-message') {
-      // General overlay message from UI/Window
-      console.log('[Overlay] message:', data.event, safe(data.payload));
-      if (data.event === 'ui-ping') {
-        // 简单回显到状态文本
-        status.textContent = 'overlayId=' + overlayId + ' | 收到 UI 消息: ui-ping';
+      if (data.event === 'readonly-store-init') {
+        status.textContent = 'overlayId=' + overlayId + ' | readonly(init) ' + summarizeReadonlyStore(safe(data.payload));
+        return;
       }
       if (data.event === 'overlay-lifecycle') {
         const phase = data?.payload?.phase || 'unknown';
         const info = `${String(phase)} @ ${new Date().toLocaleTimeString()} (overlayId=${overlayId})`;
         if (lifecycleEl) lifecycleEl.textContent = info;
+        return;
+      }
+      // 其他消息严格要求 overlayId 匹配
+      if (data.overlayId !== overlayId) return;
+      // General overlay message from UI/Window
+      console.log('[Overlay] message:', data.event, safe(data.payload));
+      if (data.event === 'ui-ping') {
+        // 简单回显到状态文本
+        status.textContent = 'overlayId=' + overlayId + ' | 收到 UI 消息: ui-ping';
       }
     }
   });

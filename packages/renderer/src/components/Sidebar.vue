@@ -65,6 +65,29 @@
             </template>
             插件管理
           </t-menu-item>
+
+          <!-- 将动态插件纳入“插件管理/插件名”分类 -->
+          <t-menu-item
+            v-for="plugin in dynamicPlugins"
+            :key="plugin.id"
+            :value="`plugin-${plugin.id}`"
+            @click="openPlugin(plugin)"
+          >
+            <template #icon>
+              <img
+                v-if="plugin.icon"
+                :src="plugin.icon"
+                class="plugin-avatar"
+                @error="handleIconError(plugin)"
+              />
+              <t-icon
+                v-else
+                name="app"
+                class="plugin-default-icon"
+              />
+            </template>
+            {{ plugin.name }}
+          </t-menu-item>
         </t-submenu>
         
         <!-- 系统功能 -->
@@ -106,75 +129,14 @@
       </t-menu>
     </div>
     
-    <!-- 分隔线 -->
-    <t-divider v-if="dynamicPlugins.length > 0" />
     
-    <!-- 动态插件导航 -->
-    <div
-      v-if="dynamicPlugins.length > 0"
-      class="plugin-nav"
-    >
-      <div class="plugin-nav-header">
-        <t-icon
-          name="plugin"
-          class="plugin-icon"
-        />
-        <span
-          v-if="!collapsed"
-          class="plugin-title"
-        >插件导航</span>
-      </div>
-      
-      <div class="plugin-list">
-        <div 
-          v-for="plugin in dynamicPlugins" 
-          :key="plugin.id"
-          class="plugin-item"
-          :class="{ 'active': activePlugin === plugin.id }"
-          @click="openPlugin(plugin)"
-        >
-          <div class="plugin-info">
-            <img 
-              v-if="plugin.icon" 
-              :src="plugin.icon" 
-              :alt="plugin.name"
-              class="plugin-avatar"
-            >
-            <t-icon
-              v-else
-              name="app"
-              class="plugin-default-icon"
-            />
-            <div
-              v-if="!collapsed"
-              class="plugin-details"
-            >
-              <div class="plugin-name">
-                {{ plugin.name }}
-              </div>
-              <div class="plugin-version">
-                v{{ plugin.version }}
-              </div>
-            </div>
-          </div>
-          
-          <!-- 插件状态指示器 -->
-          <div class="plugin-status">
-            <t-badge 
-              :dot="true" 
-              :color="getPluginStatusColor(plugin.status)"
-              :title="getPluginStatusText(plugin.status)"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { resolvePrimaryHostingType } from '../utils/hosting';
 import { usePluginStore } from '../stores/plugin';
 import { useSidebarStore } from '../stores/sidebar';
 
@@ -235,10 +197,10 @@ function updateActiveMenu(path: string) {
   } else if (path.startsWith('/system/develop')) {
     activeMenu.value = 'system-develop';
     activePlugin.value = null;
-  } else if (path.startsWith('/plugins/frame/')) {
-    // 动态插件路由
-    const pluginId = path.split('/plugins/frame/')[1];
-    activeMenu.value = '';
+  } else if (path.startsWith('/plugins/') && !path.startsWith('/plugins/management')) {
+    // 动态插件路由（router.ts 使用 /plugins/:plugname）
+    const pluginId = path.split('/plugins/')[1];
+    activeMenu.value = `plugin-${pluginId}`;
     activePlugin.value = pluginId;
   } else {
     activeMenu.value = '';
@@ -254,12 +216,53 @@ function navigateTo(path: string) {
   router.push(path);
 }
 
-function openPlugin(plugin: DynamicPlugin) {
+async function openPlugin(plugin: DynamicPlugin) {
+  // 若存在自定义路由，优先使用
   if (plugin.route) {
     router.push(plugin.route);
-  } else {
-    // 默认使用插件框架路由
-    router.push(`/plugins/frame/${plugin.id}`);
+    return;
+  }
+
+  try {
+    const primary = await resolvePrimaryHostingType(plugin.id);
+    if (primary.type === 'ui') {
+      // 直接进入 UI 页框架路由（router.ts: /plugins/:plugname）
+      router.push(`/plugins/${plugin.id}`);
+      return;
+    }
+    if (primary.type === 'window') {
+      // 创建新窗口加载 window 页
+      const popupId = `${plugin.id}-${Date.now()}`;
+      try {
+        await (window as any)?.electronApi?.plugin?.popup?.create?.(plugin.id, {
+          id: popupId,
+          pluginId: plugin.id,
+          title: plugin.name,
+          width: '640px',
+          height: '480px',
+          mode: 'modeless',
+          closeOnOverlayClick: true,
+          closeOnEscKeydown: true,
+          showOverlay: true,
+        });
+      } catch (ipcErr) {
+        console.error('[sidebar] 创建插件窗口失败:', ipcErr);
+      }
+      return;
+    }
+  } catch (err) {
+    console.warn('[sidebar] 解析插件托管类型失败，回退至框架路由:', err);
+  }
+
+  // 默认回退：进入框架路由（router.ts: /plugins/:plugname）
+  router.push(`/plugins/${plugin.id}`);
+}
+
+function handleIconError(plugin: DynamicPlugin) {
+  try {
+    plugin.icon = '';
+  } catch (e) {
+    console.warn('[Sidebar] 图标加载失败，使用默认图标:', e);
   }
 }
 

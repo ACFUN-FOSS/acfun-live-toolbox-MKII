@@ -12,7 +12,7 @@ interface HostingConfig {
   overlay: HostingConfigItem | null;
 }
 
-function getApiBase(): string {
+export function getApiBase(): string {
   // Prefer Electron-preload configured env, fallback to default
   const port = (process?.env?.ACFRAME_API_PORT as string) || '18299';
   return `http://127.0.0.1:${port}`;
@@ -24,6 +24,29 @@ export async function getPluginHostingConfig(pluginId: string): Promise<HostingC
     return res.data as HostingConfig;
   }
   throw new Error((res as any)?.error || 'Failed to get hosting config');
+}
+
+/**
+ * Choose a primary hosting type between UI and Window.
+ * Policy: prefer `ui` when both are present; fallback to `window`.
+ * Overlay is independent and may coexist.
+ */
+export function resolvePrimaryHostingFromConfig(conf: HostingConfig): {
+  type: 'ui' | 'window' | null;
+  item?: HostingConfigItem;
+} {
+  // Prefer UI if declared; else use Window; else none
+  if (conf.ui) return { type: 'ui', item: conf.ui };
+  if (conf.window) return { type: 'window', item: conf.window };
+  return { type: null };
+}
+
+export async function resolvePrimaryHostingType(pluginId: string): Promise<{
+  type: 'ui' | 'window' | null;
+  item?: HostingConfigItem;
+}> {
+  const conf = await getPluginHostingConfig(pluginId);
+  return resolvePrimaryHostingFromConfig(conf);
 }
 
 export function buildPluginPageUrl(
@@ -63,4 +86,28 @@ export async function resolveOverlayWujieUrl(pluginId: string): Promise<{
     name: `overlay-${pluginId}`,
     props: { pluginId },
   };
+}
+
+/**
+ * Build external wrapper base URL for overlay.
+ * The server will resolve manifest settings (spa/route/html) internally.
+ */
+export function buildOverlayWrapperBase(pluginId: string): string {
+  const base = getApiBase();
+  const url = new URL('/overlay-wrapper', base);
+  url.searchParams.set('plugin', pluginId);
+  url.searchParams.set('type', 'overlay');
+  return url.toString();
+}
+
+/**
+ * Build external wrapper URL with overlayId.
+ */
+export function buildOverlayWrapperUrl(pluginId: string, overlayId: string): string {
+  const base = getApiBase();
+  const url = new URL('/overlay-wrapper', base);
+  url.searchParams.set('plugin', pluginId);
+  url.searchParams.set('type', 'overlay');
+  url.searchParams.set('overlayId', overlayId);
+  return url.toString();
 }

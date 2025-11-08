@@ -81,6 +81,7 @@
               v-if="plugin.icon"
               :src="plugin.icon"
               :alt="plugin.name"
+              @error="handleIconError(plugin)"
             >
             <t-icon
               v-else
@@ -248,14 +249,36 @@ async function loadPlugins() {
   loading.value = true;
   try {
     const result = await window.electronApi.plugin.list();
-    if ('plugins' in result) {
-      plugins.value = result.plugins.map(plugin => ({
-        ...plugin,
-        icon: undefined, // 暂时不支持图标
-        routes: [`/plugin/${plugin.id}`] // 默认路由
-      }));
+    if (result && 'success' in result && result.success && Array.isArray(result.data)) {
+      const mapStatus = (s: string): 'active' | 'inactive' | 'error' | 'loading' => {
+        switch ((s || '').toLowerCase()) {
+          case 'enabled':
+          case 'active':
+            return 'active';
+          case 'disabled':
+          case 'installed':
+          case 'inactive':
+            return 'inactive';
+          case 'error':
+            return 'error';
+          default:
+            return 'loading';
+        }
+      };
+      plugins.value = (result.data as any[]).map((p: any) => {
+        const status = mapStatus(p.status);
+        return {
+          ...p,
+          // 保留后端返回的图标，不再强制置为 undefined
+          icon: p.icon,
+          // 为详情展示提供启用状态布尔值
+          enabled: status === 'active',
+          // 保留基础路由信息（若主应用未使用不会产生影响）
+          routes: [`/plugin/${p.id}`],
+        } as Plugin;
+      });
     } else {
-      console.error('Failed to load plugins:', result.error);
+      console.error('Failed to load plugins:', (result as any)?.error);
     }
   } catch (error) {
     console.error('Error loading plugins:', error);
@@ -266,6 +289,11 @@ async function loadPlugins() {
 
 function selectPlugin(pluginId: string) {
   activePluginId.value = pluginId;
+  const plugin = plugins.value.find(p => p.id === pluginId);
+  if (plugin) {
+    // 通知主布局进行插件切换
+    emit('pluginSelected', plugin);
+  }
 }
 
 // 查看插件详情
@@ -288,6 +316,15 @@ function handlePluginUpdated(updatedPlugin: Plugin) {
   }
 }
 
+
+function handleIconError(plugin: Plugin) {
+  try {
+    // 清空图标以回退到默认占位
+    plugin.icon = '';
+  } catch (e) {
+    console.warn('[LeftPluginNav] 图标加载失败，使用默认图标:', e);
+  }
+}
 
 
 function navigateToSystem(route: string) {

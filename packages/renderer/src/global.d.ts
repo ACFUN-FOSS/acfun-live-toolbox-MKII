@@ -140,6 +140,15 @@ declare global {
         resetErrorCount: (pluginId: string, errorType?: string) => Promise<{ success: boolean; error?: string }>;
         saveDevConfig: (config: any) => Promise<{ success: boolean; error?: string }>;
         loadDevConfig: (pluginId?: string) => Promise<{ success: boolean; config?: any; error?: string }>;
+        getDebugStatus: (
+          pluginId: string
+        ) => Promise<
+          | {
+              success: true;
+              data: { pluginId: string; config?: any; hotReloadEnabled?: boolean; debugActive?: boolean; lastConnection?: any };
+            }
+          | { success: false; error: string }
+        >;
         startDebugSession: (config: any) => Promise<{ success: boolean; error?: string }>;
         stopDebugSession: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
         enableHotReload: (pluginId: string) => Promise<{ success: boolean; error?: string }>;

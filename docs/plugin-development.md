@@ -60,7 +60,7 @@ your-plugin/
 
 #### 统一静态托管（UI/Window/Overlay）
 
-为便于托管插件的前端页面和资源，`manifest.json` 需为 `ui`、`window`、`overlay` 声明统一的静态托管字段，仅使用 `spa/route/html`：
+为便于托管插件的前端页面和资源，支持在 `manifest.json` 中为 `ui`、`window`、`overlay` 声明统一的静态托管字段：
 
 ```json
 {
@@ -71,16 +71,18 @@ your-plugin/
   "ui": {
     "spa": true,
     "route": "/",
-    "html": "ui.html"
+    "html": "ui.html",
+    "wujie": { "url": "/", "spa": true, "route": "/" }
   },
   "window": {
-    "spa": false,
+    "spa": true,
+    "route": "/",
     "html": "window.html"
   },
   "overlay": {
-    "spa": true,
-    "route": "/",
-    "html": "overlay.html"
+    "spa": false,
+    "html": "overlay.html",
+    "wujie": { "url": "/overlay", "spa": false }
   }
 }
 ```
@@ -88,56 +90,13 @@ your-plugin/
 - `spa`: 是否为单页应用（SPA）。当为 `true` 时，`/plugins/:id/<type>/*` 会回退到入口 `html` 文件。
 - `route`: SPA 场景下的初始路由（未提供时默认 `/`）。
 - `html`: 入口 HTML 文件（位于插件安装目录的相对路径）。不提供时默认使用 `<type>.html`。
+- `wujie`: 兼容历史字段，用于声明 Wujie 微前端入口；`url` 可与上述 `route` 对齐。
 
 托管后的访问路由：
 - `GET /plugins/:id/ui[/*]`、`/plugins/:id/window[/*]`、`/plugins/:id/overlay[/*]`
 - 直接入口：`GET /plugins/:id/ui.html`、`/plugins/:id/window.html`、`/plugins/:id/overlay.html`
 
 若非 SPA（`spa:false`），`/plugins/:id/<type>/<path>` 将按静态资源路径映射到插件安装目录（带安全路径校验）。
-
-迁移说明（DEPRECATED）：
-- 停止使用并不再示例 `ui.wujie.url` 与 `overlay.wujie.url` 等直接 URL 字段。
-- 如需微前端隔离（Wujie），请将资源打包到插件静态目录，由主进程统一托管；使用 `spa/route` 或 `html` 指示入口。
-- 统一入口可提升加载一致性、安全边界与离线能力。
-
-OBS 使用示例（Overlay 作为浏览器来源）：
-- 在 OBS 中添加“浏览器来源”，URL 参考以下格式：
-  - SPA 入口：`http://127.0.0.1:<port>/plugins/<pluginId>/overlay?overlayId=<overlayId>`
-  - 直接 HTML：`http://127.0.0.1:<port>/plugins/<pluginId>/overlay.html?overlayId=<overlayId>`
-- 建议在插件页面内通过 `location.search` 读取 `overlayId` 与参数；容器负责通过 SSE 下行与 POST 上行桥接数据与消息。
-
-### Overlay 浏览器容器与 API（Web-only）
-
-- 兼容目标：独立浏览器，无 Node/Electron 全局；脚本以 ESM 加载（`<script type="module">`）。
-- 参数读取：通过 `URLSearchParams(location.search)` 获取 `overlayId` 等参数；容器不再向前端暴露令牌（安全约束）。
-- 事件与消息：
-  - 下行：容器在独立浏览器中连接 `GET /api/overlay/:overlayId/stream`（SSE），并将收到的 `overlay-event` 转发为页面自定义事件。
-  - 上行：使用 `POST /api/overlay/:overlayId/message` 发送动作或消息，由主进程分发至插件 UI/Window。
-- 全局接口：页面暴露 `window.overlayApi`（web-only）：
-  - `overlayApi.on('message', handler)` / `overlayApi.off('message', handler)`：订阅/取消订阅下行消息（经 SSE 或父窗口桥接）。
-  - `overlayApi.action(event, payload)` / `overlayApi.update(updates)` / `overlayApi.close()`：通过父窗口或 HTTP 上行。
-  - `overlayApi.getParams()`：返回 `{ overlayId, ...query }`。
-  - 遥测：`overlayApi.__telemetry = { sseEvents, postMessages, errors }` 记录基础统计。
-- Wujie 注入：容器提供 `window.__WUJIE_SHARED.readonlyStore`（冻结的只读快照）与事件桥 `window.__WUJIE_SHARED.events.on('overlay-event', fn)`；首次会通过 `readonly-store-init` 事件注入初始快照。
-
-示例：
-
-```js
-// 订阅 overlay 下行消息
-overlayApi.on('message', (event, payload) => {
-  // 处理来自 UI/Window 的消息
-});
-
-// 获取只读快照（冻结对象）
-const snapshot = window.__WUJIE_SHARED?.readonlyStore;
-
-// 订阅所有 overlay 事件（包括 readonly-store-init 与 overlay-snapshot）
-const off = window.__WUJIE_SHARED?.events?.on('overlay-event', (e) => {
-  if (e.type === 'readonly-store-init') {
-    // e.snapshot 为初始只读快照
-  }
-});
-```
 
 #### 权限系统
 
@@ -241,61 +200,6 @@ this.api.events.emit('custom.event', { data: 'event data' });
 
 // 移除监听器
 this.api.events.off('room.enter', this.onRoomEnter.bind(this));
-
-#### 活动事件（WS 下行桥接）
-
-宿主通过 WebSocket 下行广播高层活动事件与标准化弹幕数据，插件可在前端页面（UI/Window/Overlay）通过 `api.events.on()` 订阅：
-
-- 认证事件：
-  - `auth.login` → `{ userId, expiresAt, isValid }`
-  - `auth.logout` → `{}`
-  - `auth.tokenExpiring` → `{ expiresAt, timeRemaining }`
-  - `auth.tokenExpired` → `{}`
-  - `auth.stateChanged` → `{ isAuthenticated, userId }`
-- 房间与直播：
-  - `room.status` → `{ room_id, status, timestamp }`
-  - `room.added` → `{ roomId }`
-  - `room.removed` → `{ roomId }`
-  - `live.start` → `{ roomId, status: 'open' }`
-  - `live.stop` → `{ roomId, status: 'closed' }`
-- 弹幕批量（节流/批处理）：
-  - `danmu.batch` → `{ events: NormalizedEvent[], ts }`
-
-示例：
-```javascript
-// 认证态变化
-this.api.events.on('auth.stateChanged', ({ isAuthenticated, userId }) => {
-  this.api.logger.info('认证状态变更', { isAuthenticated, userId });
-});
-
-// 监听直播开始/结束
-this.api.events.on('live.start', ({ roomId }) => {
-  this.api.logger.info('直播开始', { roomId });
-});
-this.api.events.on('live.stop', ({ roomId }) => {
-  this.api.logger.info('直播结束', { roomId });
-});
-
-// 房间状态
-this.api.events.on('room.status', ({ room_id, status }) => {
-  // 映射到页面展示
-});
-
-// 批量弹幕（NormalizedEvent）
-this.api.events.on('danmu.batch', ({ events }) => {
-  for (const ev of events) {
-    if (ev.event_type === 'danmaku') {
-      // 渲染评论：ev.user_name, ev.content
-    }
-  }
-});
-```
-
-最佳实践：
-- 不依赖活动事件传递敏感信息（不含原始令牌）；如需令牌信息，使用 `this.api.auth.getTokenInfo()`。
-- UI 渲染层对 `danmu.batch` 做轻量渲染（例如每批最多 50 条，250ms 刷新），避免卡顿。
-- 监听器需配合 `off` 在页面卸载时清理，避免内存泄漏。
-- 端口默认 `ACFRAME_API_PORT=18299`，WS 连接指向 `ws://127.0.0.1:18299`（宿主已统一）。
 ```
 
 #### 存储系统 (api.storage)
@@ -895,66 +799,6 @@ zip -r your-plugin-v1.0.0.zip your-plugin/
 - [插件示例集合](./examples/)
 - [常见问题解答](./faq.md)
 - [社区论坛](https://github.com/your-org/ACLiveFrame/discussions)
-
-## 内置示例插件：base-example
-
-为帮助开发者快速上手，应用在首次运行时会安装内置示例插件 `base-example`（若不存在），并在启动流程自动启用该插件。其目录与清单示例如下：
-
-```
-base-example/
-├── icon.svg
-├── index.js
-├── manifest.json
-├── overlay/
-│   ├── index.html
-│   └── main.js
-├── ui/
-│   ├── index.html
-│   └── main.js
-└── window/
-    ├── index.html
-    └── main.js
-```
-
-`index.js`（最小实现）导出生命周期方法：
-
-```js
-export async function init() {
-  // 插件启动初始化（示例不依赖宿主 API 参数）
-}
-
-export async function cleanup() {
-  // 插件停止时的清理逻辑
-}
-
-export async function handleMessage(message) {
-  // 主进程或其它页面转发的消息处理
-}
-```
-
-`manifest.json`（统一静态托管字段，仅使用 `spa/route/html`）：
-
-```json
-{
-  "id": "base-example",
-  "name": "Base Example Plugin",
-  "version": "1.0.0",
-  "description": "A minimal example plugin",
-  "author": "AcLiveFrame",
-  "main": "index.js",
-  "icon": "icon.svg",
-  "ui": { "spa": false, "html": "ui/index.html" },
-  "window": { "spa": false, "html": "window/index.html" },
-  "overlay": { "spa": false, "html": "overlay/index.html" }
-}
-```
-
-访问路由示例：
-- `http://127.0.0.1:<port>/plugins/base-example/ui.html`
-- `http://127.0.0.1:<port>/plugins/base-example/window.html`
-- `http://127.0.0.1:<port>/plugins/base-example/overlay.html?overlayId=<id>`
-
-说明：主进程会在启动时将内置示例从应用包资源或 `buildResources/plugins/base-example` 复制到 `userData/plugins`，并在服务启动后自动启用（若未启用）。
 
 ---
 

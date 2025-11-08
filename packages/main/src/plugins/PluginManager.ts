@@ -36,6 +36,8 @@ export interface PluginManifest {
   permissions?: string[];
   minAppVersion?: string;
   maxAppVersion?: string;
+  // 配置清单（用于渲染层生成配置表单）
+  config?: Record<string, any>;
   ui?: {
     name?: string;
     description?: string;
@@ -414,6 +416,7 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
     const id = 'base-example';
     const dest = path.join(this.pluginsDir, id);
     const manifestPath = path.join(dest, 'manifest.json');
+    // 已存在则不复制，不做任何就地刷新，加载阶段会进行合并
     if (fs.existsSync(dest) && fs.existsSync(manifestPath)) {
       return; // 已存在，无需复制
     }
@@ -457,24 +460,61 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
           
           if (fs.existsSync(manifestPath)) {
              const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as PluginManifest;
+             // 加载内置默认清单并与用户清单进行浅合并，增量补充新字段
+             const defaultCandidates = [
+               path.join(process.cwd(), 'buildResources', 'plugins', pluginId, 'manifest.json'),
+               path.join(process.resourcesPath || process.cwd(), 'plugins', pluginId, 'manifest.json')
+             ];
+             const defaultManifestPath = defaultCandidates.find(p => fs.existsSync(p));
+             let mergedManifest: PluginManifest = manifest;
+             try {
+               if (defaultManifestPath) {
+                 const base = JSON.parse(fs.readFileSync(defaultManifestPath, 'utf-8')) as PluginManifest;
+                 mergedManifest = Object.assign({}, base, manifest);
+                 // 合并常用嵌套对象（浅合并）
+                 if (base.config || manifest.config) {
+                   mergedManifest.config = Object.assign({}, base.config || {}, manifest.config || {});
+                 }
+                 if (base.ui || manifest.ui) {
+                   mergedManifest.ui = Object.assign({}, base.ui || {}, manifest.ui || {});
+                   const bW = (base.ui as any)?.wujie; const mW = (manifest.ui as any)?.wujie;
+                   if (bW || mW) {
+                     (mergedManifest.ui as any).wujie = Object.assign({}, bW || {}, mW || {});
+                   }
+                 }
+                 if (base.overlay || manifest.overlay) {
+                   mergedManifest.overlay = Object.assign({}, base.overlay || {}, manifest.overlay || {});
+                   const bOW = (base.overlay as any)?.wujie; const mOW = (manifest.overlay as any)?.wujie;
+                   if (bOW || mOW) {
+                     (mergedManifest.overlay as any).wujie = Object.assign({}, bOW || {}, mOW || {});
+                   }
+                 }
+                 if (base.window || manifest.window) {
+                   mergedManifest.window = Object.assign({}, base.window || {}, manifest.window || {});
+                 }
+               }
+             } catch (mergeErr) {
+               pluginLogger.warn('Failed to merge default manifest for plugin', pluginId, mergeErr as Error);
+               mergedManifest = manifest;
+             }
              const configKey = `plugins.${pluginId}`;
              const pluginConfig = this.configManager.get(configKey, { enabled: false, installedAt: Date.now() });
              
              const pluginInfo: PluginInfo = {
                id: pluginId,
-               name: manifest.name,
-               version: manifest.version,
-               description: manifest.description,
-               author: manifest.author,
+               name: mergedManifest.name,
+               version: mergedManifest.version,
+               description: mergedManifest.description,
+               author: mergedManifest.author,
                enabled: pluginConfig.enabled,
                status: pluginConfig.enabled ? 'enabled' : 'disabled',
                installPath: pluginPath,
-               manifest,
+               manifest: mergedManifest,
                installedAt: pluginConfig.installedAt || Date.now()
              };
             
             this.plugins.set(pluginId, pluginInfo);
-            pluginLogger.info(`Loaded plugin: ${manifest.name} v${manifest.version}`, pluginId);
+            pluginLogger.info(`Loaded plugin: ${mergedManifest.name} v${mergedManifest.version}`, pluginId);
           } else {
             pluginLogger.warn(`Plugin directory missing manifest.json`, pluginId, { pluginPath });
           }
@@ -774,6 +814,34 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
       return; // 已经启用
     }
 
+    // 幂等保护：如果进程已存在（启动中/运行中），直接视为启用完成
+    const existingProcess = this.processManager.getProcessInfo(pluginId);
+    if (existingProcess) {
+      // 启动性能监控（幂等）
+      pluginPerformanceMonitor.startMonitoringPlugin(pluginId);
+      // 注册懒加载（幂等）
+      pluginLazyLoader.registerPlugin(
+        pluginId,
+        plugin.manifest.permissions || [],
+        0
+      );
+
+      // 更新状态
+      plugin.enabled = true;
+      plugin.status = 'enabled';
+      plugin.lastError = undefined;
+
+      // 保存配置
+      const configKey = `plugins.${pluginId}`;
+      this.configManager.set(configKey, {
+        enabled: true,
+        installedAt: plugin.installedAt
+      });
+
+      pluginLogger.info('启用跳过：检测到插件进程已存在，直接标记为启用', pluginId);
+      return;
+    }
+
     try {
       plugin.status = 'loading';
       
@@ -873,7 +941,33 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
     }
 
     if (!plugin.enabled) {
-      return; // 已经禁用
+      // 若插件标记为未启用但仍有残留进程，确保停止并做清理
+      const residual = this.processManager.getProcessInfo(pluginId);
+      if (residual) {
+        try {
+          await this.processManager.stopPluginProcess(pluginId);
+          pluginLogger.info(`残留插件进程已停止: ${pluginId}`);
+        } catch (processError) {
+          const processErrorMessage = processError instanceof Error ? processError.message : '未知进程错误';
+          pluginLogger.warn(`停止残留插件进程时出错: ${pluginId} - ${processErrorMessage}`);
+          await pluginErrorHandler.handleError(pluginId, ErrorType.RUNTIME_ERROR, processErrorMessage, new Error(processErrorMessage));
+        }
+
+        // 幂等清理：停止监控、卸载懒加载、清理缓存
+        pluginPerformanceMonitor.stopMonitoringPlugin(pluginId);
+        await pluginLazyLoader.unloadPlugin(pluginId);
+        this.clearPluginCache(pluginId);
+      }
+
+      // 同步状态与配置
+      plugin.status = 'disabled';
+      plugin.lastError = undefined;
+      const configKey = `plugins.${pluginId}`;
+      this.configManager.set(configKey, {
+        enabled: false,
+        installedAt: plugin.installedAt
+      });
+      return; // 已经禁用（或残留已清理）
     }
 
     try {

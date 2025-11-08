@@ -1,7 +1,19 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { UserInfo } from 'acfunlive-http-api';
-import { DanmuSessionState } from 'acfunlive-http-api';
+
+// 为避免在渲染进程打包引入 acfunlive-http-api 的运行时代码（导致动态 require 'crypto'），
+// 这里本地定义与 acfunlive-http-api/types 中一致的枚举，仅用于渲染层状态标识。
+export enum DanmuSessionState {
+  Idle = 'IDLE',
+  Connecting = 'CONNECTING',
+  Authenticating = 'AUTHENTICATING',
+  Registering = 'REGISTERING',
+  EnteringRoom = 'ENTERING_ROOM',
+  Active = 'ACTIVE',
+  Disconnecting = 'DISCONNECTING',
+  Error = 'ERROR',
+}
 
 export interface DanmuItem {
   id: string;

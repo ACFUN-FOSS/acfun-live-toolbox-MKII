@@ -15,10 +15,9 @@
       :name="wujieName"
       :url="wujieUrl"
       :sync="false"
-      :alive="true"
+      :alive="false"
       :fetch="customFetch"
       :props="wujieProps"
-      :attrs="wujieAttrs"
       @beforeLoad="onOverlayBeforeLoad"
       @beforeMount="onOverlayBeforeMount"
       @afterMount="onOverlayAfterMount"
@@ -190,7 +189,6 @@ const wujieUrl = ref('')
 const wujieName = ref('')
 const pluginKey = ref('')
 const wujieProps = ref<Record<string, any>>({})
-const wujieAttrs = ref<Record<string, any>>({ style: 'width:100%;height:100%;display:block;' })
 
 // 简单转发遥测计数
 const telemetry = {

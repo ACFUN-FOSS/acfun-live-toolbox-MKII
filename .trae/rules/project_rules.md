@@ -7,6 +7,6 @@
 
 禁止自行启动渲染进程开发服务器
 
-完成任务后务必更新tasks.md
+完成任务后请检查对应change目录下的tasks.md的完成情况，并更新完成状态框
 
 所有行为需要遵循openspec\AGENTS.md

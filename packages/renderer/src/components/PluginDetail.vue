@@ -21,6 +21,7 @@
             v-if="plugin.icon"
             :src="plugin.icon"
             :alt="plugin.name"
+            @error="handleIconError()"
           >
           <t-icon
             v-else
@@ -128,14 +129,44 @@
             label="设置"
           >
             <div class="settings-section">
-              <t-alert
-                theme="info"
-                message="插件设置功能正在开发中..."
-              />
+              <template v-if="plugin && plugin.config && Object.keys(plugin.config).length">
+                <t-form
+                  :data="pluginConfig"
+                  layout="vertical"
+                >
+                  <t-form-item
+                    v-for="(configItem, key) in plugin.config"
+                    :key="key"
+                    :label="configItem.label || key"
+                  >
+                    <component
+                      :is="getConfigComponent(configItem.type)"
+                      v-model="pluginConfig[key]"
+                      v-bind="getConfigProps(configItem)"
+                    />
+                    <template v-if="configItem.description" #help>
+                      <span>{{ configItem.description }}</span>
+                    </template>
+                  </t-form-item>
+                </t-form>
+                <div class="settings-actions" style="margin-top: 12px;">
+                  <t-button
+                    theme="primary"
+                    :disabled="!plugin"
+                    @click="savePluginConfig"
+                  >
+                    保存设置
+                  </t-button>
+                </div>
+              </template>
+              <template v-else>
+                <t-alert theme="info" message="该插件未提供可配置项" />
+              </template>
             </div>
           </t-tab-panel>
           
           <t-tab-panel
+            v-if="isDebugPlugin"
             value="devtools"
             label="开发工具"
           >
@@ -213,117 +244,36 @@
                 >
                   <div 
                     v-for="(log, index) in filteredLogs" 
-                    :key="index"
-                    :class="['log-item', `log-${log.level}`]"
+                    :key="(log.timestamp ?? index) + '-' + (log.message?.length ?? 0)"
+                    :class="['log-item', 'log-' + normalizeLogLevel(log.level), 'log-row']"
                   >
-                    <div class="log-header">
+                    <div class="log-row-left">
                       <t-tag 
                         :theme="getLogLevelTheme(log.level)" 
                         size="small"
                       >
-                        {{ log.level.toUpperCase() }}
+                        {{ getLogLevelLabel(log.level) }}
                       </t-tag>
-                      <span class="log-time">{{ formatTime(log.timestamp) }}</span>
                     </div>
-                    <div class="log-message">
-                      {{ log.message }}
-                    </div>
-                    <div
-                      v-if="log.context"
-                      class="log-context"
-                    >
-                      <pre>{{ JSON.stringify(log.context, null, 2) }}</pre>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </t-tab-panel>
-          
-          <t-tab-panel
-            value="errors"
-            label="错误管理"
-          >
-            <div class="errors-section">
-              <div class="errors-header">
-                <t-button
-                  size="small"
-                  :loading="errorsLoading"
-                  @click="loadErrorHistory"
-                >
-                  刷新错误历史
-                </t-button>
-                <t-button 
-                  size="small" 
-                  theme="warning"
-                  :disabled="!errorHistory.length"
-                  @click="resetErrorCount"
-                >
-                  重置错误计数
-                </t-button>
-              </div>
-              
-              <div class="errors-content">
-                <div
-                  v-if="errorsLoading"
-                  class="errors-loading"
-                >
-                  <t-loading
-                    size="small"
-                    text="加载错误历史中..."
-                  />
-                </div>
-                <div
-                  v-else-if="errorHistory.length === 0"
-                  class="errors-empty"
-                >
-                  <t-empty description="暂无错误记录" />
-                </div>
-                <div
-                  v-else
-                  class="errors-list"
-                >
-                  <div 
-                    v-for="(error, index) in errorHistory" 
-                    :key="index"
-                    class="error-item"
-                  >
-                    <div class="error-header">
-                      <t-tag
-                        theme="danger"
-                        size="small"
-                      >
-                        {{ error.type }}
-                      </t-tag>
-                      <span class="error-time">{{ formatTime(error.timestamp) }}</span>
+                    <div class="log-row-middle">
+                      <span class="log-message single-line">{{ log.message }}</span>
                       <t-button 
-                        v-if="error.recoveryAction" 
+                        v-if="shouldShowMore(log)"
                         size="small"
-                        theme="primary"
                         variant="text"
-                        @click="executeRecovery(error)"
+                        @click="openLogDetail(log)"
                       >
-                        恢复操作
+                        更多
                       </t-button>
                     </div>
-                    <div class="error-message">
-                      {{ error.message }}
-                    </div>
-                    <div
-                      v-if="error.context"
-                      class="error-context"
-                    >
-                      <t-collapse>
-                        <t-collapse-panel header="详细信息">
-                          <pre>{{ JSON.stringify(error.context, null, 2) }}</pre>
-                        </t-collapse-panel>
-                      </t-collapse>
+                    <div class="log-row-right">
+                      <span class="log-time">{{ formatTime(log.timestamp) }}</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </t-tab-panel>
+          </div>
+        </t-tab-panel>
         </t-tabs>
       </div>
     </div>
@@ -332,17 +282,15 @@
       v-else
       class="error-state"
     >
-      <t-result
-        theme="error"
-        title="插件不存在"
-        description="请检查插件ID是否正确"
-      >
-        <template #extra>
-          <t-button @click="$emit('back')">
-            返回插件列表
-          </t-button>
-        </template>
-      </t-result>
+      <t-alert 
+        theme="error" 
+        message="插件不存在：请检查插件ID是否正确"
+      />
+      <div style="margin-top: 12px;">
+        <t-button @click="$emit('back')">
+          返回插件列表
+        </t-button>
+      </div>
     </div>
 
     <!-- 卸载确认对话框 -->
@@ -350,33 +298,58 @@
       v-model:visible="showUninstallDialog"
       header="确认卸载"
       :confirm-btn="{ loading: uninstalling }"
+      :destroy-on-close="true"
       @confirm="uninstallPlugin"
+      @close="onUninstallDialogClosed"
     >
       <p>确定要卸载插件 <strong>{{ plugin?.name }}</strong> 吗？</p>
       <p class="warning-text">
         此操作不可撤销，插件的所有数据将被删除。
       </p>
     </t-dialog>
+
+    <!-- 日志详情对话框 -->
+    <t-dialog
+      v-model:visible="showLogDetailDialog"
+      header="日志详情"
+      width="700px"
+      :confirm-btn="false"
+      :cancel-btn="{ content: '关闭' }"
+      @cancel="closeLogDetail"
+      :destroy-on-close="true"
+    >
+      <div class="log-detail">
+        <div style="margin-bottom: 8px; display:flex; align-items:center; gap:8px;">
+          <t-tag :theme="logDetail ? getLogLevelTheme(logDetail.level) : 'default'" size="small">
+            {{ logDetail ? getLogLevelLabel(logDetail.level) : '' }}
+          </t-tag>
+          <span class="log-time">{{ logDetail ? formatTime(logDetail.timestamp) : '' }}</span>
+        </div>
+        <div class="log-message-full" style="white-space: pre-wrap; word-break: break-word;">
+          {{ logDetail?.message }}
+        </div>
+        <div v-if="logDetail?.context" class="log-context-full" style="margin-top:12px;">
+          <t-collapse>
+            <t-collapse-panel header="上下文">
+              <pre style="background: var(--td-bg-color-component); padding:8px; border-radius:4px; overflow:auto;">
+{{ JSON.stringify(logDetail?.context, null, 2) }}
+              </pre>
+            </t-collapse-panel>
+          </t-collapse>
+        </div>
+      </div>
+    </t-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import PluginDevTools from './PluginDevTools.vue';
-
-interface Plugin {
-  id: string;
-  name: string;
-  version: string;
-  description?: string;
-  icon?: string;
-  enabled: boolean;
-  author?: string;
-  homepage?: string;
-}
+import { usePluginStore } from '../stores/plugin';
+import type { PluginInfo } from '../stores/plugin';
 
 interface LogEntry {
-  level: string;
+  level: string | number;
   message: string;
   timestamp: number;
   context?: Record<string, any>;
@@ -398,38 +371,39 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
   back: [];
-  pluginUpdated: [plugin: Plugin];
+  pluginUpdated: [plugin: PluginInfo];
 }>();
-
-const plugin = ref<Plugin | null>(null);
+const pluginStore = usePluginStore();
+const plugin = ref<PluginInfo | null>(null);
 const loading = ref(true);
 const toggling = ref(false);
 const uninstalling = ref(false);
 const showUninstallDialog = ref(false);
 const activeTab = ref('info');
+const isDebugPlugin = ref(false);
+const pluginConfig = ref<Record<string, any>>({});
 
 // 日志相关
 const logs = ref<LogEntry[]>([]);
 const filteredLogs = ref<LogEntry[]>([]);
 const logsLoading = ref(false);
 const logLevel = ref('all');
+const showLogDetailDialog = ref(false);
+const logDetail = ref<LogEntry | null>(null);
 
-// 错误管理相关
-const errorHistory = ref<ErrorEntry[]>([]);
-const errorsLoading = ref(false);
 
 async function loadPlugin() {
   if (!props.pluginId) return;
-  
   loading.value = true;
   try {
-    const result = await window.electronApi.plugin.get(props.pluginId);
-    if (result && result.success) {
-      plugin.value = result.data;
-    } else {
-      console.error('Failed to load plugin:', result && (result as any).error);
-      plugin.value = null;
+    let p = pluginStore.getPluginById(props.pluginId);
+    if (!p) {
+      await pluginStore.refreshPlugins();
+      p = pluginStore.getPluginById(props.pluginId);
     }
+    plugin.value = p || null;
+    // 加载调试状态：优先使用 getDebugStatus；回退到 loadDevConfig
+    await updateDebugStatus();
   } catch (error) {
     console.error('Error loading plugin:', error);
     plugin.value = null;
@@ -440,18 +414,14 @@ async function loadPlugin() {
 
 async function togglePlugin() {
   if (!plugin.value) return;
-  
   toggling.value = true;
   try {
-    const result = plugin.value.enabled 
-      ? await window.electronApi.plugin.disable(plugin.value.id)
-      : await window.electronApi.plugin.enable(plugin.value.id);
-    
-    if ('success' in result && result.success) {
-      plugin.value.enabled = !plugin.value.enabled;
-      emit('pluginUpdated', plugin.value);
-    } else {
-      console.error(`Failed to toggle plugin:`, result.error);
+    await pluginStore.togglePlugin(plugin.value.id, !plugin.value.enabled);
+    await pluginStore.refreshPlugins();
+    const p = pluginStore.getPluginById(plugin.value.id);
+    if (p) {
+      plugin.value = p;
+      emit('pluginUpdated', p);
     }
   } catch (error) {
     console.error('Error toggling plugin:', error);
@@ -462,20 +432,33 @@ async function togglePlugin() {
 
 async function uninstallPlugin() {
   if (!plugin.value) return;
-  
   uninstalling.value = true;
   try {
-    const result = await window.electronApi.plugin.uninstall(plugin.value.id);
-    if ('success' in result && result.success) {
-      showUninstallDialog.value = false;
+    await pluginStore.uninstallPlugin(plugin.value.id);
+    showUninstallDialog.value = false;
+    // 等待对话框关闭动画与销毁，避免与父级卸载竞争造成 vnode 空指针
+    await nextTick();
+    setTimeout(() => {
       emit('back');
-    } else {
-      console.error('Failed to uninstall plugin:', result.error);
-    }
+    }, 0);
   } catch (error) {
     console.error('Error uninstalling plugin:', error);
   } finally {
     uninstalling.value = false;
+  }
+}
+
+function onUninstallDialogClosed() {
+  showUninstallDialog.value = false;
+}
+
+function handleIconError() {
+  if (plugin.value) {
+    try {
+      plugin.value.icon = '' as any;
+    } catch (e) {
+      console.warn('[PluginDetail] 图标加载失败，使用默认图标:', e);
+    }
   }
 }
 
@@ -500,15 +483,39 @@ async function loadLogs() {
 }
 
 function filterLogs() {
+  const sorted = [...logs.value].sort((a: any, b: any) => {
+    const ta = typeof a.timestamp === 'number' ? a.timestamp : new Date(a.timestamp).getTime();
+    const tb = typeof b.timestamp === 'number' ? b.timestamp : new Date(b.timestamp).getTime();
+    return tb - ta; // 倒序：最新在前
+  });
   if (logLevel.value === 'all') {
-    filteredLogs.value = logs.value;
+    filteredLogs.value = sorted;
   } else {
-    filteredLogs.value = logs.value.filter(log => log.level === logLevel.value);
+    filteredLogs.value = sorted.filter(log => normalizeLogLevel(log.level) === logLevel.value);
   }
 }
 
-function getLogLevelTheme(level: string) {
-  switch (level) {
+function normalizeLogLevel(level: any): 'error' | 'warn' | 'info' | 'debug' {
+  if (typeof level === 'string') {
+    const l = level.trim().toLowerCase();
+    if (l === 'error' || l === 'err' || l === 'e') return 'error';
+    if (l === 'warn' || l === 'warning' || l === 'w') return 'warn';
+    if (l === 'info' || l === 'log' || l === 'i') return 'info';
+    if (l === 'debug' || l === 'trace' || l === 'd') return 'debug';
+    return 'info';
+  }
+  if (typeof level === 'number') {
+    // Common numeric mapping: 40+=error, 30+=warn, 20+=info, else debug
+    if (level >= 40) return 'error';
+    if (level >= 30) return 'warn';
+    if (level >= 20) return 'info';
+    return 'debug';
+  }
+  return 'info';
+}
+
+function getLogLevelTheme(level: any) {
+  switch (normalizeLogLevel(level)) {
     case 'error': return 'danger';
     case 'warn': return 'warning';
     case 'info': return 'primary';
@@ -517,72 +524,72 @@ function getLogLevelTheme(level: string) {
   }
 }
 
+function getLogLevelLabel(level: any) {
+  switch (normalizeLogLevel(level)) {
+    case 'error': return 'ERROR';
+    case 'warn': return 'WARN';
+    case 'info': return 'INFO';
+    case 'debug': return 'DEBUG';
+    default: return 'INFO';
+  }
+}
+
 function formatTime(timestamp: number) {
   return new Date(timestamp).toLocaleString();
 }
 
-// 错误管理相关方法
-async function loadErrorHistory() {
-  if (!props.pluginId) return;
-  
-  errorsLoading.value = true;
-  try {
-    const result = await window.electronApi.plugin.errorHistory(props.pluginId);
-    if (result && result.success) {
-      errorHistory.value = (result.data as any[]) || [];
-    } else {
-      console.error('Failed to load error history:', result && (result as any).error);
-    }
-  } catch (error) {
-    console.error('Error loading error history:', error);
-  } finally {
-    errorsLoading.value = false;
-  }
+function shouldShowMore(log: LogEntry) {
+  const len = (log.message || '').length;
+  return len > 120 || !!log.context;
 }
 
-async function resetErrorCount() {
-  if (!props.pluginId) return;
-  
-  try {
-    const result = await window.electronApi.plugin.resetErrorCount(props.pluginId);
-    if ('success' in result && result.success) {
-      await loadErrorHistory(); // 重新加载错误历史
-    } else {
-      console.error('Failed to reset error count:', result.error);
-    }
-  } catch (error) {
-    console.error('Error resetting error count:', error);
-  }
+function openLogDetail(log: LogEntry) {
+  logDetail.value = log;
+  showLogDetailDialog.value = true;
 }
 
-async function executeRecovery(error: ErrorEntry) {
-  if (!error.recoveryAction) return;
-  
-  try {
-    const result = await window.electronApi.plugin.recovery(props.pluginId, error.recoveryAction);
-    if ('success' in result && result.success) {
-      await loadErrorHistory(); // 重新加载错误历史
-      await loadPlugin(); // 重新加载插件信息
-    } else {
-      console.error('Failed to execute recovery:', result.error);
-    }
-  } catch (error) {
-    console.error('Error executing recovery:', error);
-  }
+function closeLogDetail() {
+  showLogDetailDialog.value = false;
+  logDetail.value = null;
 }
 
 // 监听标签页切换，自动加载相应数据
 watch(activeTab, (newTab) => {
   if (newTab === 'logs' && logs.value.length === 0) {
     loadLogs();
-  } else if (newTab === 'errors' && errorHistory.value.length === 0) {
-    loadErrorHistory();
   }
 });
 
 watch(() => props.pluginId, () => {
   loadPlugin();
 }, { immediate: true });
+
+// 当调试状态变为非调试时，如果当前在“开发工具”页，则回退到“基本信息”
+watch(isDebugPlugin, (val) => {
+  if (!val && activeTab.value === 'devtools') {
+    activeTab.value = 'info';
+  }
+});
+
+// 调试状态检测函数
+async function updateDebugStatus() {
+  try {
+    const id = props.pluginId;
+    // 优先使用 getDebugStatus（若已在 preload 暴露）
+    const hasGetDebug = !!(window as any)?.electronApi?.plugin?.getDebugStatus;
+    if (hasGetDebug) {
+      const res = await (window as any).electronApi.plugin.getDebugStatus(id);
+      isDebugPlugin.value = !!(res && 'success' in res && res.success && res.data && (res.data.debugActive || res.data.hotReloadEnabled || res.data.config));
+      return;
+    }
+    // 回退方案：读取单个插件的 devtools 配置
+    const res = await (window as any).electronApi.plugin.loadDevConfig(id);
+    isDebugPlugin.value = !!(res && 'success' in res && res.success && res.data);
+  } catch (e) {
+    console.warn('[devtools] updateDebugStatus failed:', e);
+    isDebugPlugin.value = false;
+  }
+}
 
 // 开发工具相关方法
 function handleDevConfigSaved() {
@@ -595,19 +602,107 @@ function handleDebugStarted() {
   if (activeTab.value === 'logs') {
     loadLogs();
   }
-}
-
-function handleDebugStopped() {
-  console.log('Debug stopped for plugin:', props.pluginId);
-  // 刷新日志
-  if (activeTab.value === 'logs') {
-    loadLogs();
   }
-}
 
-onMounted(() => {
-  loadPlugin();
-});
+  function handleDebugStopped() {
+    console.log('Debug stopped for plugin:', props.pluginId);
+    // 刷新日志
+    if (activeTab.value === 'logs') {
+      loadLogs();
+    }
+  }
+
+  // 设置表单：根据 schema 提取初始值
+  function derivePluginConfigFromSchema(source: Record<string, any> | undefined) {
+    const cfg: Record<string, any> = {};
+    const schema = source || {};
+    for (const key in schema) {
+      const item = (schema as any)[key];
+      if (item && typeof item === 'object') {
+        if ('value' in item) cfg[key] = item.value;
+        else if ('default' in item) cfg[key] = item.default;
+        else if (item.type === 'boolean') cfg[key] = false;
+        else if (item.type === 'number') cfg[key] = 0;
+        else cfg[key] = '';
+      } else {
+        cfg[key] = item as any;
+      }
+    }
+    return cfg;
+  }
+
+  // 详情加载后或插件变化时，初始化设置表单（融合已保存配置）
+  async function initPluginConfigFromSchemaWithSaved(newVal: any) {
+    const base = derivePluginConfigFromSchema(newVal?.config);
+    const id = newVal?.id || props.pluginId;
+    if (!id || !window.electronApi?.plugin?.getConfig) {
+      pluginConfig.value = base;
+      return;
+    }
+    try {
+      const res = await window.electronApi.plugin.getConfig(id);
+      if (res && res.success) {
+        pluginConfig.value = { ...base, ...(res.data || {}) };
+      } else {
+        pluginConfig.value = base;
+        if (res && (res as any).error) {
+          console.warn('[plugin] 获取已保存配置失败:', (res as any).error);
+        }
+      }
+    } catch (err) {
+      console.error('[plugin] 获取已保存配置异常:', err);
+      pluginConfig.value = base;
+    }
+  }
+
+  watch(plugin, (newVal) => {
+    if (newVal) {
+      initPluginConfigFromSchemaWithSaved(newVal);
+    } else {
+      pluginConfig.value = {};
+    }
+  });
+
+  // 设置页控件类型映射与属性提取（与管理页保持一致）
+  function getConfigComponent(type: string) {
+    switch (type) {
+      case 'boolean': return 't-switch';
+      case 'number': return 't-input-number';
+      case 'select': return 't-select';
+      case 'textarea': return 't-textarea';
+      case 'text': return 't-input';
+      default: return 't-input';
+    }
+  }
+
+  function getConfigProps(config: any) {
+    const props: any = {};
+    if (config?.type === 'select' && config.options) {
+      props.options = config.options;
+    }
+    if (config?.type === 'number') {
+      props.min = config.min;
+      props.max = config.max;
+      props.step = config.step;
+    }
+    if (config?.placeholder) {
+      props.placeholder = config.placeholder;
+    }
+    return props;
+  }
+
+  async function savePluginConfig() {
+    if (!plugin.value) return;
+    try {
+      await pluginStore.updatePluginConfig(plugin.value.id, pluginConfig.value);
+    } catch (error) {
+      console.error('保存插件配置失败:', error);
+    }
+  }
+
+  onMounted(() => {
+    loadPlugin();
+  });
 </script>
 
 <style scoped>
@@ -802,6 +897,25 @@ onMounted(() => {
 
 .log-debug {
   border-left: 3px solid var(--td-text-color-placeholder);
+}
+
+/* 单行日志布局 */
+.log-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.log-row-left { display: flex; align-items: center; }
+.log-row-middle { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.log-row-right { display: flex; align-items: center; justify-content: flex-end; }
+
+.single-line {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .logs-loading,

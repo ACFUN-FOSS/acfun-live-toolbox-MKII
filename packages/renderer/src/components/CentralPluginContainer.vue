@@ -44,10 +44,9 @@
           :name="currentPlugin.id"
           :url="pluginUrl"
           :sync="false"
-          :alive="true"
+          :alive="false"
           :fetch="customFetch"
           :props="pluginProps"
-          :attrs="{ style: 'width:100%;height:100%;display:block;' }"
           @beforeLoad="onPluginBeforeLoad"
           @beforeMount="onPluginBeforeMount"
           @afterMount="onPluginAfterMount"
@@ -132,7 +131,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, defineAsyncComponent } from 'vue';
 import WujieVue from 'wujie-vue3';
-import { getPluginHostingConfig, buildPluginPageUrl } from '../utils/hosting';
+import { getPluginHostingConfig, buildPluginPageUrl, resolvePrimaryHostingType } from '../utils/hosting';
 import { useRoleStore } from '../stores/role';
 import { useRoomStore } from '../stores/room';
 import { useDanmuStore } from '../stores/danmu';
@@ -185,10 +184,12 @@ const systemComponent = computed(() => {
 });
 
 const resolvedEntryUrl = ref('');
+const primaryHosting = ref<'ui' | 'window' | null>(null);
 
 const pluginUrl = computed(() => {
   if (!props.currentPlugin) return '';
-  // 优先使用统一托管解析结果，其次使用插件提供的 entryUrl，最后回退到开发服务器默认路径
+  // UI/Window 互斥：仅当 primary 为 UI 时才提供 URL；否则不在中央容器加载
+  if (primaryHosting.value !== 'ui') return '';
   const fallbackBase = `http://localhost:3000/plugins/${props.currentPlugin.id}`;
   return resolvedEntryUrl.value || props.currentPlugin.entryUrl || `${fallbackBase}/index.html`;
 });
@@ -610,12 +611,15 @@ function teardownReadonlyStoreSync() {
 // 当插件切换时解析统一托管URL
 watch(() => props.currentPlugin?.id, async (pluginId) => {
   resolvedEntryUrl.value = '';
+  primaryHosting.value = null;
   if (!pluginId) return;
   try {
-    const conf = await getPluginHostingConfig(pluginId);
-    const uiConf = conf.ui || undefined;
-    const url = buildPluginPageUrl(pluginId, 'ui', uiConf || undefined);
-    resolvedEntryUrl.value = url;
+    const r = await resolvePrimaryHostingType(pluginId);
+    primaryHosting.value = r.type;
+    if (r.type === 'ui') {
+      const url = buildPluginPageUrl(pluginId, 'ui', r.item || undefined);
+      resolvedEntryUrl.value = url;
+    }
   } catch (err) {
     console.warn('[CentralPluginContainer] 解析统一托管URL失败:', err);
   }

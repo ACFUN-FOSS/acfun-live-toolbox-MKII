@@ -87,15 +87,15 @@ const routes: RouteRecordRaw[] = [
               parent: 'Plugins'
             }
           },
-          {
-            path: 'frame',
-            name: 'PluginFrame',
-            component: PluginFramePage,
-            meta: {
-              title: '插件框架',
-              parent: 'Plugins'
-            }
-          }
+      {
+        path: 'frame/:id',
+        name: 'PluginFrame',
+        component: PluginFramePage,
+        meta: {
+          title: '插件框架',
+          parent: 'Plugins'
+        }
+      }
         ]
       },
       {

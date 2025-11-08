@@ -10,9 +10,8 @@
       :name="wujieName"
       :url="wujieUrl"
       :props="wujieProps"
-      :attrs="wujieAttrs"
       :sync="true"
-      :alive="true"
+      :alive="false"
       :width="'100%'"
       :height="'100%'"
       @beforeLoad="onBeforeLoad"
@@ -149,11 +148,18 @@ const wujieUrl = ref('')
 const wujieName = ref('')
 const pluginKey = ref('')
 const wujieProps = ref<Record<string, any>>({})
-const wujieAttrs = ref<Record<string, any>>({ style: 'width:100%;height:100%;display:block;' })
 
 const fetchOverlayData = async () => {
   try {
-    const overlayId = route.params.overlayId as string
+    const overlayId = (route.params.overlayId as string) || (route.query.overlayId as string)
+    if (!overlayId) {
+      error.value = {
+        title: '参数错误',
+        message: '缺少 overlayId 参数',
+        details: '请在路径或查询参数中提供 overlayId'
+      }
+      return
+    }
     const room = route.query.room as string
     const token = route.query.token as string
     
@@ -217,20 +223,21 @@ const resolveWujieConfig = async () => {
         isWujieOverlay.value = true
         wujieUrl.value = w.url
         wujieName.value = `overlay-${pluginId}`
-        pluginKey.value = `${pluginId}-${route.params.overlayId}-${Date.now()}`
+        const oid = String((route.params.overlayId as string) || (route.query.overlayId as string) || '')
+        pluginKey.value = `${pluginId}-${oid}-${Date.now()}`
 
         // 传递给子应用的属性
         wujieProps.value = {
-          overlayId: route.params.overlayId,
+          overlayId: oid,
           pluginId,
           version: info.version,
           room: overlayData.value?.room,
           token: overlayData.value?.token,
           api: {
             // 透传必要能力，可视需要扩展
-            close: () => window.electronApi.overlay.close(String(route.params.overlayId)),
-            action: (action: string, data?: any) => window.electronApi.overlay.action(String(route.params.overlayId), action, data),
-            update: (updates: any) => window.electronApi.overlay.update(String(route.params.overlayId), updates)
+            close: () => window.electronApi.overlay.close(String(oid)),
+            action: (action: string, data?: any) => window.electronApi.overlay.action(String(oid), action, data),
+            update: (updates: any) => window.electronApi.overlay.update(String(oid), updates)
           },
           // SPA 初始路由支持
           initialRoute: w.spa ? (w.route || '/') : undefined

@@ -25,10 +25,9 @@
         :name="wujieName"
         :url="wujieUrl"
         :sync="false"
-        :alive="true"
+        :alive="false"
         :fetch="customFetch"
         :props="wujieProps"
-        :attrs="wujieAttrs"
         @beforeLoad="onWindowBeforeLoad"
         @beforeMount="onWindowBeforeMount"
         @afterMount="onWindowAfterMount"
@@ -95,7 +94,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import WujieVue from 'wujie-vue3';
 import { Dialog as TDialog, Button as TButton, Icon as TIcon } from 'tdesign-vue-next';
-import { getPluginHostingConfig, buildPluginPageUrl } from '../utils/hosting';
+import { getPluginHostingConfig, buildPluginPageUrl, resolvePrimaryHostingType } from '../utils/hosting';
 import { useRoleStore } from '../stores/role';
 import { useRoomStore } from '../stores/room';
 import { useDanmuStore } from '../stores/danmu';
@@ -247,7 +246,6 @@ const wujieUrl = ref('');
 const wujieName = ref('');
 const wujieKey = ref('');
 const wujieProps = ref<Record<string, any>>({});
-const wujieAttrs = ref<Record<string, any>>({ style: 'width:100%;height:100%;display:block;' });
 
 function customFetch(url: string, options?: RequestInit) {
   return fetch(url, {
@@ -311,13 +309,13 @@ async function resolveWujieWindowConfig() {
       isWujieWindow.value = false;
       return;
     }
-    const conf = await getPluginHostingConfig(pluginId);
-    const item = conf.window || null;
-    if (!item) {
+    const primary = await resolvePrimaryHostingType(pluginId);
+    // UI/Window 互斥：仅当 primary 为 Window 时渲染 Wujie Window
+    if (primary.type !== 'window') {
       isWujieWindow.value = false;
       return;
     }
-    const url = buildPluginPageUrl(pluginId, 'window', item || undefined);
+    const url = buildPluginPageUrl(pluginId, 'window', primary.item || undefined);
     isWujieWindow.value = true;
     wujieUrl.value = url;
     wujieName.value = `window-${pluginId}`;

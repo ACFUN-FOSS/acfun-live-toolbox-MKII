@@ -1,6 +1,9 @@
 <template>
-  <div class="plugin-frame-page">
-    <div class="page-header">
+  <div class="plugin-frame-page" :class="{ 'base-example-full': isBaseExample }">
+    <div
+      class="page-header"
+      v-if="!isBaseExample"
+    >
       <h2>插件框架</h2>
       <div class="header-actions">
         <t-button
@@ -27,8 +30,38 @@
       </div>
     </div>
 
+    <!-- base-example 全屏 iframe 容器 -->
+    <div
+      v-if="isBaseExample"
+      class="base-example-container"
+    >
+      <iframe
+        id="base-example"
+        ref="baseIframe"
+        :src="pageUrl"
+        title="Base Example"
+        frameborder="0"
+        scrolling="auto"
+      />
+    </div>
+
+    <!-- 插件UI容器（根据路由参数:id加载对应插件的UI） -->
+    <t-card
+      v-if="!isBaseExample"
+      class="plugin-ui-card"
+      hover-shadow
+      title="插件内容"
+    >
+      <CentralPluginContainer
+        :current-plugin="currentPlugin"
+      />
+    </t-card>
+
     <!-- 框架状态概览 -->
-    <div class="frame-overview">
+    <div
+      v-if="!isBaseExample"
+      class="frame-overview"
+    >
       <t-card
         class="status-card"
         hover-shadow
@@ -94,6 +127,7 @@
 
     <!-- 插件运行状态 -->
     <t-card
+      v-if="!isBaseExample"
       class="plugin-runtime-card"
       title="插件运行状态"
       hover-shadow
@@ -244,6 +278,7 @@
 
     <!-- 系统资源监控 -->
     <t-card
+      v-if="!isBaseExample"
       class="resource-monitor-card"
       title="系统资源监控"
       hover-shadow
@@ -389,6 +424,7 @@
 
     <!-- 插件日志对话框 -->
     <t-dialog 
+      v-if="!isBaseExample"
       v-model:visible="showLogDialog" 
       :title="`插件日志 - ${selectedPlugin?.name}`"
       width="800px"
@@ -454,10 +490,79 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { usePluginStore } from '../stores/plugin';
 import type { PluginInfo } from '../stores/plugin';
+import CentralPluginContainer from '../components/CentralPluginContainer.vue';
+import { buildPluginPageUrl } from '../utils/hosting';
 
 const pluginStore = usePluginStore();
+const route = useRoute();
+
+// base-example iframe 支撑：路由解析、URL 构造与向子页传值
+const baseIframe = ref<HTMLIFrameElement | null>(null);
+const pluginId = computed(() => String((route.params as any).plugname || '').trim());
+const isBaseExample = computed(() => pluginId.value === 'base-example');
+const pageUrl = computed(() => {
+  const id = pluginId.value;
+  if (!id) return '';
+  try {
+    return buildPluginPageUrl(id, 'ui');
+  } catch (err) {
+    console.warn('[PluginFramePage] buildPluginPageUrl failed:', err);
+    return '';
+  }
+});
+
+const initialPayload = computed(() => {
+  const plugin = pluginStore.plugins.find(p => p.id === pluginId.value);
+  return {
+    type: 'plugin-init',
+    pluginId: pluginId.value,
+    manifest: plugin?.manifest,
+    config: plugin?.config,
+    routeQuery: route.query,
+  } as Record<string, any>;
+});
+
+function postInitMessage() {
+  const target = baseIframe.value?.contentWindow;
+  if (!target) return;
+  try {
+    target.postMessage(initialPayload.value, '*');
+  } catch (err) {
+    console.warn('[PluginFramePage] postMessage failed:', err);
+  }
+}
+
+function handleMessage(event: MessageEvent) {
+  const data = event?.data;
+  if (!data || typeof data !== 'object') return;
+  if ((data as any).type === 'plugin-ready') {
+    postInitMessage();
+  }
+}
+
+onMounted(() => {
+  if (isBaseExample.value) {
+    const el = baseIframe.value;
+    if (el) {
+      const onLoad = () => postInitMessage();
+      el.addEventListener('load', onLoad);
+      (el as any).__onLoad = onLoad;
+    }
+    window.addEventListener('message', handleMessage);
+  }
+});
+
+onUnmounted(() => {
+  const el = baseIframe.value as any;
+  if (el?.__onLoad) {
+    el.removeEventListener('load', el.__onLoad);
+    delete el.__onLoad;
+  }
+  window.removeEventListener('message', handleMessage);
+});
 
 // 响应式状态
 const frameStatus = ref<'active' | 'inactive' | 'error'>('inactive');
@@ -517,6 +622,13 @@ const filteredRuntimePlugins = computed(() => {
 const filteredLogs = computed(() => {
   if (logLevel.value === 'all') return systemLogs.value;
   return systemLogs.value.filter(log => log.level === logLevel.value);
+});
+
+// 当前路由选择的插件
+const currentPlugin = computed<PluginInfo | null>(() => {
+  const id = String((route.params as any).plugname || '').trim();
+  if (!id) return null;
+  return pluginStore.plugins.find(p => p.id === id) || null;
 });
 
 const filteredPluginLogs = computed(() => {
@@ -816,6 +928,27 @@ watch([autoRefresh, refreshInterval], watchAutoRefresh);
   overflow: hidden;
 }
 
+.plugin-frame-page.base-example-full {
+  padding: 0;
+}
+
+.base-example-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.base-example-container iframe#base-example {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  background: transparent;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -830,6 +963,10 @@ watch([autoRefresh, refreshInterval], watchAutoRefresh);
 .header-actions {
   display: flex;
   gap: 8px;
+}
+
+.plugin-ui-card {
+  min-height: 300px;
 }
 
 .frame-overview {

@@ -6,6 +6,29 @@
   "author": "ACLiveFrame Team",
   "main": "index.js",
   "icon": "icon.svg",
+  "config": {
+    "enableFeature": {
+      "type": "boolean",
+      "label": "启用示例功能",
+      "description": "控制是否启用基本示例功能",
+      "default": false
+    },
+    "refreshInterval": {
+      "type": "number",
+      "label": "刷新间隔（秒）",
+      "description": "用于 UI 演示的刷新周期",
+      "min": 1,
+      "max": 120,
+      "step": 1,
+      "default": 30
+    },
+    "token": {
+      "type": "text",
+      "label": "访问令牌",
+      "description": "敏感字段，前端展示时做去敏处理",
+      "placeholder": "不在前端透传敏感令牌"
+    }
+  },
   "ui": {
     "spa": false,
     "html": "ui/index.html"
@@ -19,4 +42,3 @@
     "html": "overlay/index.html"
   }
 }
-

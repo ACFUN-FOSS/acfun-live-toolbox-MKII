@@ -41,7 +41,7 @@
         @click="handleRoleMenu"
       >
         <t-popup
-          v-model="showAccountCard"
+          v-model:visible="showAccountCard"
           placement="bottom-left"
           :attach="getAttachElement"
           trigger="click"
@@ -50,7 +50,6 @@
           <div
             ref="accountArea"
             class="account-area"
-            @click="toggleAccountCard"
           >
             <t-avatar
               :image="userInfo?.avatar"
@@ -187,6 +186,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAccountStore } from '../stores/account';
 import { useRoomStore } from '../stores/room';
 import type { Room } from '../stores/room';
@@ -195,6 +195,7 @@ import { useRoleStore } from '../stores/role';
 const accountStore = useAccountStore();
 const roomStore = useRoomStore();
 const roleStore = useRoleStore();
+const router = useRouter();
 
 const showAccountCard = ref(false);
 const showRoomDrawer = ref(false);
@@ -249,8 +250,14 @@ function formatViewerCount(count: number): string {
 }
 
 function openRoom(room: Room) {
-  // 打开房间页面或外部链接
-  console.log('Opening room:', room);
+  // 导航到房间管理页面，并携带房间ID用于定位
+  try {
+    router.push({ path: '/live/room', query: { roomId: String(room.liveId || room.id) } });
+    // 进入页面后关闭抽屉，避免遮挡
+    showRoomDrawer.value = false;
+  } catch (err) {
+    console.error('[Topbar] 打开房间页面失败:', err);
+  }
 }
 
 function getAttachElement(): HTMLElement | null {
@@ -318,6 +325,8 @@ onMounted(() => {
 .app-icon {
   font-size: 16px;
   color: var(--td-brand-color);
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .title-text {
@@ -359,6 +368,8 @@ onMounted(() => {
 .dropdown-icon {
   font-size: 12px;
   color: var(--td-text-color-placeholder);
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .room-status {
@@ -370,6 +381,11 @@ onMounted(() => {
   cursor: pointer;
   transition: background-color 0.2s;
   -webkit-app-region: no-drag; /* 禁用拖拽，允许点击 */
+}
+
+.room-icon {
+  line-height: 1;
+  vertical-align: middle;
 }
 
 .room-status:hover {
