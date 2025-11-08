@@ -99,6 +99,14 @@
 ### 2025-11-08 Updates
 
 - [x] Base Example 页面承载简化：`PluginFramePage.vue` 在 `plugname=base-example` 时仅渲染全屏 `iframe#base-example`，移除页面 padding（通过 `base-example-full` 样式类），并以 `v-if` 隐藏其他组件（头部、插件内容、运行状态、资源监控、日志对话框）。保留最小桥接逻辑：在 `load`/`plugin-ready` 时向子页 `postMessage` 注入初始化 payload（`manifest/config/routeQuery`）。静态代码走查与类型检查通过。
+ - [x] 初始化事件修复：示例 UI 在启动时发送 `ui-ready`，宿主在 `PluginFramePage.vue` 收到后执行 `postInitMessage` 并派发只读仓库与生命周期事件，解决“显示：等待初始化事件…”卡住问题。
+ - [x] 删除配置写入演示：移除 `base-example/ui/index.html` 中“配置写入演示”卡片与相关控件；在 `base-example/ui/main.js` 去除 `setConfig` 及保存/重置逻辑，配置仅做只读展示并移除敏感字段（如 `token`）。
+ - [x] 修复 Overlay 发送消息：将宿主桥接中的 `'send'` 映射改为 `electronApi.overlay.send(overlayId,event,payload)`（`PluginFramePage.vue`），确保触发 `overlay-message` 事件（而非 `overlay-action`），使“发送消息”按钮可用。
+- [x] Overlay 已存在时启用操作：创建失败但检测到同名 Overlay 已存在时，仍启用关闭/显示/隐藏/置顶/更新样式/发送消息按钮（`base-example/ui/main.js`），提升演示可用性。
+ - [x] 只读仓库完整结构输出：在 Base Example 页面新增“只读仓库数据结构”卡片，并将宿主派发的只读仓库（init/update）完整 JSON 打印到页面，便于调试与观察。
+- [x] 只读仓库动态刷新：在 `PluginFramePage.vue` 中每 10 秒拉取 `room.list()` 并通过 `postMessage` 派发 `readonly-store-update`，使 UI 中的只读仓库 JSON 实时刷新（遵循仅静态走查与 typecheck，不运行预览）。
+ - [x] 只读仓库事件驱动刷新：移除每 10 秒轮询，订阅 Pinia 仓库（room/ui/role/account）变更，按 250ms 节流批量派发 `readonly-store-update`，并在初始化事件中扩展只读快照（含 ui/role/account，去敏）。静态代码走查与类型检查通过。
+ - [x] Overlay 控件简化：移除示例 UI 中“关闭/显示/隐藏/置顶”按钮，统一以 `pluginId` 作为 `overlayId`，保留“创建/更新样式/列举/发送消息”。强调“发送消息/更新样式”为跨源广播行为，其余管理动作不用于外部浏览器源场景。
 
 ### 2025-11-08 Notes
 

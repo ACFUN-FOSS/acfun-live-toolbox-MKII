@@ -39,7 +39,11 @@ jobs:
         name: Setup boilerplate
         with:
           renderer-template: ${{inputs.renderer-template}}
-      - run: npm run typecheck --if-present
+      - name: Enable PNPM via Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+      - run: pnpm -r run typecheck
 
   compile:
     strategy:

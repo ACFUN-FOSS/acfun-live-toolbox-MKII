@@ -8,7 +8,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "acfunlive-http-api": ["../main/node_modules/acfunlive-http-api/dist/index.d.ts"],
+      "acfunlive-http-api/*": ["../main/node_modules/acfunlive-http-api/dist/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/global.d.ts", "src/env.d.ts", "src/types/global.d.ts"]
 }

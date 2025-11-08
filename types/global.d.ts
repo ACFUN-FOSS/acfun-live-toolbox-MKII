@@ -24,31 +24,6 @@ interface Window {
 
 export {};
 
-// Ambient module declarations for dynamic imports in AuthManager
-declare module 'acfunlive-http-api/dist/services/AuthService' {
-  export class AuthService {
-    constructor(httpClient: any);
-    qrLogin(...args: any[]): Promise<any>;
-    checkQrLoginStatus(...args: any[]): Promise<any>;
-  }
-}
-
-declare module 'acfunlive-http-api/dist/core/HttpClient' {
-  export class HttpClient {
-    constructor(options: any);
-  }
-}
-
-declare module 'acfunlive-http-api/src/services/AuthService' {
-  export class AuthService {
-    constructor(httpClient: any);
-    qrLogin(...args: any[]): Promise<any>;
-    checkQrLoginStatus(...args: any[]): Promise<any>;
-  }
-}
-
-declare module 'acfunlive-http-api/src/core/HttpClient' {
-  export class HttpClient {
-    constructor(options: any);
-  }
-}
+// 注意：为避免覆盖第三方库的真实类型，这里不再声明 acfunlive-http-api 的模块。
+// 通过 renderer 的 tsconfig.paths 指向 `../main/node_modules/acfunlive-http-api/dist/*`，
+// 让 TypeScript 使用库内的 `*.d.ts` 进行严格类型检查。

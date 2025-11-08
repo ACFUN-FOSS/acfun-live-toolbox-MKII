@@ -85,7 +85,8 @@ export class ApiServer {
     if (this.config.enableHelmet) {
       this.app.use(helmet({
         contentSecurityPolicy: false, // 允许内联脚本，适用于 Electron 应用
-        crossOriginEmbedderPolicy: false
+        crossOriginEmbedderPolicy: false,
+        frameguard: false // 允许被 iframe 嵌入，避免 X-Frame-Options: SAMEORIGIN 拒载
       }));
     }
 

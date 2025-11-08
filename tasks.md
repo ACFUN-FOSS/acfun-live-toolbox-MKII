@@ -1,5 +1,16 @@
 # Workspace Tasks Log
 
+## 2025-11-08
+- Base Example UI：只读仓库动态刷新与展示
+  - Change: 在 `PluginFramePage.vue` 周期性（10 秒）获取 `room.list()` 并派发 `readonly-store-update`；在 `ui/index.html/main.js` 展示完整 JSON，不再输出摘要文本（移除 `Readonly store (init event): ...`）。
+  - Validation: `pnpm -C packages/renderer typecheck ; pnpm -C packages/main typecheck` 通过；未启动渲染进程预览；遵循仅静态走查与类型检查。
+  - Files: `packages/renderer/src/pages/PluginFramePage.vue`、`buildResources/plugins/base-example/ui/index.html`、`buildResources/plugins/base-example/ui/main.js`。
+- Overlay 演示控件简化
+  - Change: 移除“关闭/显示/隐藏/置顶”按钮；统一以 `pluginId` 作为 `overlayId`；保留“创建/更新样式/列举/发送消息”，并启用“已存在”时的操作按钮。
+  - Validation: 类型检查通过；UI 预览遵循工作区规则暂不启动。
+  - Files: `buildResources/plugins/base-example/ui/index.html`、`buildResources/plugins/base-example/ui/main.js`。
+- Change tracking: 更新 `openspec/changes/archive/2025-11-06-update-overlay-and-plugin-wujie-loading/tasks.md`，新增“只读仓库动态刷新”与“Overlay 控件简化”两项并标记完成。
+
 ## 2025-11-07
 - UI: 插件管理页添加“添加调试插件”按钮与开发工具对话框
   - Files: `packages/renderer/src/pages/PluginManagementPage.vue`; `packages/renderer/src/components/PluginDevTools.vue`

@@ -109,3 +109,16 @@
 
 ## 11. 清理与兼容性（2025-11-08）
 - [x] 移除未引用的 `MainLayout.vue`（保留 `LayoutShell` 标准路由布局；插件承载迁移至路由页面，避免冗余旧模式）
+- [x] 移除未引用的组件：`TopDanmuBar.vue`、`LeftPluginNav.vue`
+- [x] 移除未引用的叠加层旧组件：`OverlayManager.vue`、`OverlayRenderer.vue`、`overlay/TestOverlayComponent.vue`
+- [x] 移除未引用的插件弹窗旧组件：`PluginPopupManager.vue`、`PluginPopup.vue`
+- [x] 移除未引用的事件过滤组件：`EventFilterBar.vue`
+- [x] 移除未引用的页面：`pages/Events.vue`
+- [x] 移除未引用的示例资源：`assets/vue.svg`
+ - [x] 移除 `src/router/index.ts`，统一使用 `src/router.ts` 路由入口
+- [x] 更新：`pages/PluginFramePage.vue` 已移除对 `components/CentralPluginContainer.vue` 的使用，改为以右侧主显示区域全屏 `iframe` 统一承载插件 UI，并追加最小 `postMessage` 桥接（`overlay.action/close/update/send`）到真实 `preload` API。
+ - [x] 已删除：`components/CentralPluginContainer.vue`（全仓代码确认不再引用）
+ - [x] 移除未引用文件：`components/Console/ConsoleView.vue`、`pages/LivePage.vue`、`pages/PluginsPage.vue`、`pages/SystemPage.vue`、`components/overlay/`（空目录）
+ - [x] 类型检查修复：移除 `types/global.d.ts` 中对 `acfunlive-http-api/dist/...` 与 `acfunlive-http-api/src/...` 的 `any` 模块声明；在 `packages/renderer/tsconfig.app.json` 新增 `paths` 映射到 `../main/node_modules/acfunlive-http-api/dist/*`，让 TypeScript 使用真实声明文件进行检查。
+ - [x] 允许 iframe 承载插件 UI：在 `packages/main/src/server/ApiServer.ts` 的 `helmet` 配置中禁用 `frameguard`，移除全局 `X-Frame-Options`，确保 `http://127.0.0.1:<port>/plugins/:id/...` 可在渲染进程 iframe 中加载。
+ - [x] 修复 postMessage DataCloneError：`PluginFramePage.vue` 中对初始化消息负载进行深度清理为结构化克隆安全的纯数据（移除函数/代理/循环引用），避免 `postMessage` 报错。

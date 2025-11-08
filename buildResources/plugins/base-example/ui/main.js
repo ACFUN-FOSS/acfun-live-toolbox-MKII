@@ -1,5 +1,4 @@
 // UI page script (ESM)
-const el = document.getElementById('status');
 const lifecycleEl = document.getElementById('lifecycle');
 const configEl = document.getElementById('config');
 const cfgEnableEl = document.getElementById('cfg-enable');
@@ -10,13 +9,11 @@ const btnResetCfg = document.getElementById('btn-reset-config');
 const cfgWriteStatusEl = document.getElementById('config-write-status');
 const cfgCurrentEl = document.getElementById('config-current');
 const btnCreate = document.getElementById('btn-create');
-const btnClose = document.getElementById('btn-close');
-const btnShow = document.getElementById('btn-show');
-const btnHide = document.getElementById('btn-hide');
-const btnFront = document.getElementById('btn-front');
 const btnUpdate = document.getElementById('btn-update');
 const btnList = document.getElementById('btn-list');
 const overlayStatusEl = document.getElementById('overlay-status');
+const storeJsonEl = document.getElementById('store-json');
+const btnSendMsg = document.getElementById('btn-send-msg');
 
 function safe(obj) {
   if (!obj || typeof obj !== 'object') return obj;
@@ -36,13 +33,74 @@ function summarizeReadonlyStore(store) {
 
 try {
   const props = window.__WUJIE_PROPS__ || {};
-  const shared = props.shared || {};
-  const initial = shared.readonlyStore;
-  if (initial) {
-    el.textContent = `Readonly store (init): ${summarizeReadonlyStore(initial)}`;
-  } else {
-    el.textContent = 'Readonly store not available in props.shared';
-  }
+  // 建立基于 postMessage 的桥接 API，当未注入原生 props.api 时自动启用
+  (function ensureBridgeApi() {
+    // 推断 pluginId
+    let pid = props.pluginId;
+    try {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const idx = parts.indexOf('plugins');
+      if (idx !== -1 && parts.length > idx + 1) {
+        pid = pid || parts[idx + 1];
+      }
+    } catch (_) {}
+    props.pluginId = pid;
+
+    // 若已有原生 API，则不覆盖
+    const api = props.api || {};
+    if (typeof api.getConfig === 'function') {
+      return;
+    }
+
+    const pending = new Map();
+    function request(command, payload) {
+      return new Promise((resolve, reject) => {
+        const requestId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        pending.set(requestId, { resolve, reject });
+        window.parent.postMessage({ type: 'bridge-request', requestId, command, pluginId: pid, payload }, '*');
+        setTimeout(() => {
+          const p = pending.get(requestId);
+          if (p) {
+            pending.delete(requestId);
+            reject(new Error('bridge timeout'));
+          }
+        }, 10000);
+      });
+    }
+
+    window.addEventListener('message', (evt) => {
+      const msg = evt?.data;
+      if (!msg || typeof msg !== 'object') return;
+      if (msg.type === 'bridge-response' && msg.requestId && pending.has(msg.requestId)) {
+        const p = pending.get(msg.requestId);
+        pending.delete(msg.requestId);
+        if (msg.success) {
+          p.resolve(msg.data);
+        } else {
+          p.reject(new Error(String(msg.error || 'bridge error')));
+        }
+      }
+    });
+
+    const overlay = {
+      create: (options) => request('overlay', { action: 'create', args: [options] }),
+      close: (overlayId) => request('overlay', { action: 'close', args: [overlayId] }),
+      show: (overlayId) => request('overlay', { action: 'show', args: [overlayId] }),
+      hide: (overlayId) => request('overlay', { action: 'hide', args: [overlayId] }),
+      bringToFront: (overlayId) => request('overlay', { action: 'bringToFront', args: [overlayId] }),
+      update: (overlayId, updates) => request('overlay', { action: 'update', args: [overlayId, updates] }),
+      list: () => request('overlay', { action: 'list', args: [] }),
+      send: (overlayId, event, payload) => request('overlay', { action: 'send', args: [overlayId, event, payload] })
+    };
+
+    props.api = {
+      getConfig: () => request('get-config', {}),
+      overlay
+    };
+    // 通知宿主：UI 已就绪，触发初始化消息与事件派发
+    try { window.parent.postMessage({ type: 'ui-ready', pluginId: props.pluginId }, '*'); } catch (_) {}
+  })();
+  // 读取只读仓库不再依赖 props.shared，等待宿主派发事件
 
   // 读取配置
   (async () => {
@@ -52,15 +110,9 @@ try {
         const cfg = await api.getConfig();
         // 初始化显示与表单默认值
         configEl.textContent = `配置: ${JSON.stringify(safe(cfg))}`;
-        const enable = !!cfg?.enableFeature;
-        const interval = Number.isFinite(cfg?.refreshInterval) ? Number(cfg.refreshInterval) : 30;
-        const token = typeof cfg?.token === 'string' ? cfg.token : '';
-        if (cfgEnableEl) cfgEnableEl.checked = enable;
-        if (cfgIntervalEl) cfgIntervalEl.value = String(interval);
-        if (cfgTokenEl) cfgTokenEl.value = token;
-        // 去敏后展示当前配置
-        const masked = maskConfig(cfg);
-        if (cfgCurrentEl) cfgCurrentEl.textContent = `当前配置：${JSON.stringify(masked)}`;
+        // 展示当前配置（不包含敏感字段，如 token）
+        const stripped = stripSensitive(cfg);
+        configEl.textContent = `配置: ${JSON.stringify(stripped)}`;
       } else {
         configEl.textContent = 'api.getConfig 不可用';
       }
@@ -77,12 +129,9 @@ try {
   if (!overlayBridgeAvailable) {
     // 独立静态预览场景：禁用所有 Overlay 操作按钮并给出说明
     btnCreate && btnCreate.setAttribute('disabled', 'true');
-    btnClose && btnClose.setAttribute('disabled', 'true');
-    btnShow && btnShow.setAttribute('disabled', 'true');
-    btnHide && btnHide.setAttribute('disabled', 'true');
-    btnFront && btnFront.setAttribute('disabled', 'true');
     btnUpdate && btnUpdate.setAttribute('disabled', 'true');
     btnList && btnList.setAttribute('disabled', 'true');
+    btnSendMsg && btnSendMsg.setAttribute('disabled', 'true');
     if (overlayStatusEl) {
       overlayStatusEl.textContent = 'Overlay API 未注入（仅在应用内可用）';
     }
@@ -95,7 +144,8 @@ try {
           overlayStatusEl.textContent = 'overlay.create 不可用';
           return;
         }
-        const overlayId = 'base-example-demo-overlay';
+        // 使用插件ID作为 Overlay 唯一标识，统一跨源实例
+        const overlayId = String(props.pluginId || 'base-example');
         const res = await api.overlay.create({
           id: overlayId,
           type: 'default',
@@ -108,91 +158,31 @@ try {
         });
         if (res && res.success) {
           createdOverlayId = overlayId;
-          btnClose.removeAttribute('disabled');
-          btnShow?.removeAttribute('disabled');
-          btnHide?.removeAttribute('disabled');
-          btnFront?.removeAttribute('disabled');
           btnUpdate?.removeAttribute('disabled');
-          const btnSendMsg = document.getElementById('btn-send-msg');
           btnSendMsg?.removeAttribute('disabled');
           overlayStatusEl.textContent = `已创建: ${overlayId}`;
         } else {
-          overlayStatusEl.textContent = '创建失败: ' + (res?.error || 'unknown');
+          // 若已存在，则启用操作按钮以便后续操作
+          try {
+            const listRes = await api.overlay.list();
+            const exists = listRes && listRes.success && Array.isArray(listRes.data) && listRes.data.some((o) => {
+              const id = o?.id || o?.overlayId;
+              return String(id) === String(overlayId);
+            });
+            if (exists) {
+              createdOverlayId = overlayId;
+              btnUpdate?.removeAttribute('disabled');
+              btnSendMsg?.removeAttribute('disabled');
+              overlayStatusEl.textContent = `已存在: ${overlayId}，可操作`;
+            } else {
+              overlayStatusEl.textContent = '创建失败: ' + (res?.error || 'unknown');
+            }
+          } catch (_) {
+            overlayStatusEl.textContent = '创建失败: ' + (res?.error || 'unknown');
+          }
         }
       } catch (e) {
         overlayStatusEl.textContent = '创建异常: ' + (e?.message || String(e));
-      }
-    });
-  }
-
-  if (btnClose) {
-    btnClose.addEventListener('click', async () => {
-      try {
-        const api = props.api || {};
-        if (!createdOverlayId) {
-          overlayStatusEl.textContent = '尚未创建 Overlay';
-          return;
-        }
-        if (!api.overlay || typeof api.overlay.close !== 'function') {
-          overlayStatusEl.textContent = 'overlay.close 不可用';
-          return;
-        }
-        const res = await api.overlay.close(createdOverlayId);
-        if (res && res.success) {
-          overlayStatusEl.textContent = `已关闭: ${createdOverlayId}`;
-          createdOverlayId = null;
-          btnClose.setAttribute('disabled', 'true');
-          btnShow?.setAttribute('disabled', 'true');
-          btnHide?.setAttribute('disabled', 'true');
-          btnFront?.setAttribute('disabled', 'true');
-          btnUpdate?.setAttribute('disabled', 'true');
-        } else {
-          overlayStatusEl.textContent = '关闭失败: ' + (res?.error || 'unknown');
-        }
-      } catch (e) {
-        overlayStatusEl.textContent = '关闭异常: ' + (e?.message || String(e));
-      }
-    });
-  }
-
-  if (btnShow) {
-    btnShow.addEventListener('click', async () => {
-      try {
-        const api = props.api || {};
-        if (!createdOverlayId) return (overlayStatusEl.textContent = '尚未创建 Overlay');
-        if (!api.overlay || typeof api.overlay.show !== 'function') return (overlayStatusEl.textContent = 'overlay.show 不可用');
-        const r = await api.overlay.show(createdOverlayId);
-        overlayStatusEl.textContent = r && r.success ? `已显示: ${createdOverlayId}` : '显示失败: ' + (r?.error || 'unknown');
-      } catch (e) {
-        overlayStatusEl.textContent = '显示异常: ' + (e?.message || String(e));
-      }
-    });
-  }
-
-  if (btnHide) {
-    btnHide.addEventListener('click', async () => {
-      try {
-        const api = props.api || {};
-        if (!createdOverlayId) return (overlayStatusEl.textContent = '尚未创建 Overlay');
-        if (!api.overlay || typeof api.overlay.hide !== 'function') return (overlayStatusEl.textContent = 'overlay.hide 不可用');
-        const r = await api.overlay.hide(createdOverlayId);
-        overlayStatusEl.textContent = r && r.success ? `已隐藏: ${createdOverlayId}` : '隐藏失败: ' + (r?.error || 'unknown');
-      } catch (e) {
-        overlayStatusEl.textContent = '隐藏异常: ' + (e?.message || String(e));
-      }
-    });
-  }
-
-  if (btnFront) {
-    btnFront.addEventListener('click', async () => {
-      try {
-        const api = props.api || {};
-        if (!createdOverlayId) return (overlayStatusEl.textContent = '尚未创建 Overlay');
-        if (!api.overlay || typeof api.overlay.bringToFront !== 'function') return (overlayStatusEl.textContent = 'overlay.bringToFront 不可用');
-        const r = await api.overlay.bringToFront(createdOverlayId);
-        overlayStatusEl.textContent = r && r.success ? `已置顶: ${createdOverlayId}` : '置顶失败: ' + (r?.error || 'unknown');
-      } catch (e) {
-        overlayStatusEl.textContent = '置顶异常: ' + (e?.message || String(e));
       }
     });
   }
@@ -228,7 +218,6 @@ try {
   }
 
   // UI → Overlay 下行消息演示
-  const btnSendMsg = document.getElementById('btn-send-msg');
   if (btnSendMsg) {
     btnSendMsg.addEventListener('click', async () => {
       try {
@@ -250,10 +239,11 @@ try {
     if (!data || typeof data !== 'object') return;
     if (data.type === 'plugin-event' && data.eventType === 'readonly-store') {
       const payload = safe(data.payload);
+      const text = JSON.stringify(payload, null, 2);
       if (data.event === 'readonly-store-init') {
-        el.textContent = `Readonly store (init event): ${summarizeReadonlyStore(payload)}`;
+        if (storeJsonEl) storeJsonEl.textContent = text;
       } else if (data.event === 'readonly-store-update') {
-        el.textContent = `Readonly store (update): ${summarizeReadonlyStore(payload)}`;
+        if (storeJsonEl) storeJsonEl.textContent = text;
       }
     }
 
@@ -264,67 +254,16 @@ try {
     }
   });
 
-  // 配置写入与热更新演示
-  if (btnSaveCfg) {
-    btnSaveCfg.addEventListener('click', async () => {
-      try {
-        const api = props.api || {};
-        if (typeof api.setConfig !== 'function') {
-          cfgWriteStatusEl.textContent = 'api.setConfig 不可用';
-          return;
-        }
-        const nextCfg = {
-          enableFeature: !!cfgEnableEl?.checked,
-          refreshInterval: Number(cfgIntervalEl?.value || 30),
-          token: String(cfgTokenEl?.value || '')
-        };
-        const res = await api.setConfig(nextCfg);
-        if (!res?.success) {
-          cfgWriteStatusEl.textContent = '保存失败: ' + (res?.error || 'unknown');
-        } else {
-          cfgWriteStatusEl.textContent = '保存成功，已热更新配置';
-          const fresh = await api.getConfig();
-          const masked = maskConfig(fresh);
-          cfgCurrentEl.textContent = `当前配置：${JSON.stringify(masked)}`;
-        }
-      } catch (e) {
-        cfgWriteStatusEl.textContent = '保存异常: ' + (e?.message || String(e));
-      }
-    });
-  }
-
-  if (btnResetCfg) {
-    btnResetCfg.addEventListener('click', async () => {
-      try {
-        const api = props.api || {};
-        if (typeof api.getConfig !== 'function') return;
-        const cfg = await api.getConfig();
-        const enable = !!cfg?.enableFeature;
-        const interval = Number.isFinite(cfg?.refreshInterval) ? Number(cfg.refreshInterval) : 30;
-        const token = typeof cfg?.token === 'string' ? cfg.token : '';
-        if (cfgEnableEl) cfgEnableEl.checked = enable;
-        if (cfgIntervalEl) cfgIntervalEl.value = String(interval);
-        if (cfgTokenEl) cfgTokenEl.value = token;
-        cfgWriteStatusEl.textContent = '已重置为当前配置';
-        const masked = maskConfig(cfg);
-        cfgCurrentEl.textContent = `当前配置：${JSON.stringify(masked)}`;
-      } catch (e) {
-        cfgWriteStatusEl.textContent = '重置异常: ' + (e?.message || String(e));
-      }
-    });
-  }
+  // 已移除：配置写入与热更新演示（按用户要求删除）
 } catch (err) {
-  el.textContent = 'Runtime error: ' + (err && err.message ? err.message : String(err));
 }
 
-// 工具：配置去敏
-function maskConfig(cfg) {
+// 工具：移除敏感字段（例如 token），不向插件展示
+function stripSensitive(cfg) {
   try {
     const copy = safe(cfg || {});
-    if (typeof copy.token === 'string' && copy.token.length > 0) {
-      const len = copy.token.length;
-      const tail = copy.token.slice(Math.max(0, len - 4));
-      copy.token = `***${tail}`;
+    if (copy && typeof copy === 'object' && 'token' in copy) {
+      delete copy.token;
     }
     return copy;
   } catch (_) {

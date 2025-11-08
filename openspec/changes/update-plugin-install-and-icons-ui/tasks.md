@@ -45,3 +45,5 @@
 - [x] 4.4 对齐右上角按钮图标：统一 `Topbar.vue` 中按钮的 `t-icon` 尺寸与文本垂直对齐（行高/对齐方式/间距），消除“图标比文字高”的问题。
 - [x] 4.5 “在侧边栏显示”改为复选框：将列表卡片“三点”菜单的“在侧边栏显示”调整为 checkbox 项，显示选中状态并支持再次取消。
 - [x] 4.6 侧边栏分类位置调整：勾选“在侧边栏显示”后，在“插件管理”一级分类下新增以插件名命名的二级分类，而非底部新建一行；调整分组与排序逻辑。
+ - [x] 4.7 修复插件 UI 桥接：为 `base-example` 注入基于 `postMessage` 的 `props.api`（`getConfig`/`setConfig`/`overlay`）；在 `PluginFramePage.vue` 实现 `bridge-request` 处理并派发 `lifecycle` 与 `readonly-store` 事件；静态走查确认无残留。
+ - [x] 4.8 过滤配置中的 token 字段并修复 overlay 响应：在 `PluginFramePage.vue` 的 `get-config` 分支不向 UI 传递 `token` 字段；`overlay` 操作返回完整结果对象供 UI 判断；同步更新 `base-example` 的演示逻辑，展示配置时移除敏感字段；去除只读仓库的初始缺失提示。

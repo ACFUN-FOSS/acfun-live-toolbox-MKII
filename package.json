@@ -21,7 +21,7 @@
     "compile": "npm run build && electron-builder build --config electron-builder.mjs",
     "test": "npx --yes @playwright/test test",
     "start": "node packages/dev-mode.js",
-    "typecheck": "npm run typecheck -ws --if-present",
+    "typecheck": "pnpm -r run typecheck",
     "typecheck:all": "pnpm -r run typecheck",
     "create-renderer": "cd packages && npm create vite@latest renderer",
     "integrate-renderer": "npm start --workspace @app/integrate-renderer",

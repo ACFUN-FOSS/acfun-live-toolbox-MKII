@@ -1,33 +1,15 @@
 <template>
   <div class="plugin-frame-page" :class="{ 'base-example-full': isBaseExample }">
-    <div
-      class="page-header"
-      v-if="!isBaseExample"
-    >
-      <h2>插件框架</h2>
-      <div class="header-actions">
-        <t-button
-          theme="primary"
-          @click="startAllPlugins"
-        >
-          <t-icon name="play" />
-          启动全部
-        </t-button>
-        <t-button
-          variant="outline"
-          @click="stopAllPlugins"
-        >
-          <t-icon name="stop" />
-          停止全部
-        </t-button>
-        <t-button
-          variant="outline"
-          @click="refreshFrameStatus"
-        >
-          <t-icon name="refresh" />
-          刷新状态
-        </t-button>
-      </div>
+    <!-- 移除中央容器使用；非 base-example 统一以右侧主显示区域全屏 iframe 承载插件 UI -->
+    <div v-if="!isBaseExample" class="plugin-ui-full-container">
+      <iframe
+        id="plugin-ui"
+        ref="uiIframe"
+        :src="pageUrl"
+        title="Plugin UI"
+        frameborder="0"
+        scrolling="auto"
+      />
     </div>
 
     <!-- base-example 全屏 iframe 容器 -->
@@ -46,473 +28,49 @@
     </div>
 
     <!-- 插件UI容器（根据路由参数:id加载对应插件的UI） -->
-    <t-card
-      v-if="!isBaseExample"
-      class="plugin-ui-card"
-      hover-shadow
-      title="插件内容"
-    >
-      <CentralPluginContainer
-        :current-plugin="currentPlugin"
-      />
-    </t-card>
-
-    <!-- 框架状态概览 -->
-    <div
-      v-if="!isBaseExample"
-      class="frame-overview"
-    >
-      <t-card
-        class="status-card"
-        hover-shadow
-      >
-        <div class="status-content">
-          <div
-            class="status-indicator"
-            :class="frameStatus"
-          >
-            <t-icon :name="getFrameStatusIcon()" />
-          </div>
-          <div class="status-info">
-            <div class="status-title">
-              框架状态
-            </div>
-            <div class="status-text">
-              {{ getFrameStatusText() }}
-            </div>
-          </div>
-        </div>
-      </t-card>
-
-      <t-card
-        class="stats-card"
-        hover-shadow
-      >
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-value">
-              {{ runningPlugins.length }}
-            </div>
-            <div class="stat-label">
-              运行中
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">
-              {{ totalMemoryUsage }}MB
-            </div>
-            <div class="stat-label">
-              内存使用
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">
-              {{ totalCpuUsage }}%
-            </div>
-            <div class="stat-label">
-              CPU使用
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">
-              {{ uptime }}
-            </div>
-            <div class="stat-label">
-              运行时间
-            </div>
-          </div>
-        </div>
-      </t-card>
-    </div>
-
-    <!-- 插件运行状态 -->
-    <t-card
-      v-if="!isBaseExample"
-      class="plugin-runtime-card"
-      title="插件运行状态"
-      hover-shadow
-    >
-      <div class="runtime-controls">
-        <div class="control-group">
-          <label>过滤状态:</label>
-          <t-radio-group v-model="runtimeFilter">
-            <t-radio value="all">
-              全部
-            </t-radio>
-            <t-radio value="running">
-              运行中
-            </t-radio>
-            <t-radio value="stopped">
-              已停止
-            </t-radio>
-            <t-radio value="error">
-              错误
-            </t-radio>
-          </t-radio-group>
-        </div>
-        
-        <div class="control-group">
-          <t-checkbox v-model="autoRefresh">
-            自动刷新
-          </t-checkbox>
-          <t-select
-            v-model="refreshInterval"
-            style="width: 120px;"
-            :disabled="!autoRefresh"
-          >
-            <t-option
-              value="1000"
-              label="1秒"
-            />
-            <t-option
-              value="3000"
-              label="3秒"
-            />
-            <t-option
-              value="5000"
-              label="5秒"
-            />
-            <t-option
-              value="10000"
-              label="10秒"
-            />
-          </t-select>
-        </div>
-      </div>
-
-      <div class="plugin-runtime-list">
-        <div 
-          v-for="plugin in filteredRuntimePlugins" 
-          :key="plugin.id"
-          class="runtime-plugin-item"
-          :class="{ 
-            running: plugin.status === 'active',
-            stopped: plugin.status === 'inactive',
-            error: plugin.status === 'error'
-          }"
-        >
-          <div class="plugin-basic-info">
-            <div class="plugin-icon">
-              <img
-                v-if="plugin.icon"
-                :src="plugin.icon"
-                :alt="plugin.name"
-              >
-              <t-icon
-                v-else
-                name="plugin"
-                size="24px"
-              />
-            </div>
-            <div class="plugin-details">
-              <div class="plugin-name">
-                {{ plugin.name }}
-              </div>
-              <div class="plugin-id">
-                {{ plugin.id }}
-              </div>
-            </div>
-            <div class="plugin-status">
-              <t-tag 
-                :theme="getRuntimeStatusTheme(plugin.status)"
-                :icon="getRuntimeStatusIcon(plugin.status)"
-              >
-                {{ getRuntimeStatusText(plugin.status) }}
-              </t-tag>
-            </div>
-          </div>
-
-          <div class="plugin-metrics">
-            <div class="metric-item">
-              <span class="metric-label">内存:</span>
-              <span class="metric-value">{{ plugin.memoryUsage || 0 }}MB</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">CPU:</span>
-              <span class="metric-value">{{ plugin.cpuUsage || 0 }}%</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">运行时间:</span>
-              <span class="metric-value">{{ formatRuntime(plugin.runtime) }}</span>
-            </div>
-            <div class="metric-item">
-              <span class="metric-label">事件数:</span>
-              <span class="metric-value">{{ plugin.eventCount || 0 }}</span>
-            </div>
-          </div>
-
-          <div class="plugin-actions">
-            <t-button 
-              size="small" 
-              :theme="plugin.status === 'active' ? 'danger' : 'primary'"
-              @click="togglePluginRuntime(plugin)"
-            >
-              {{ plugin.status === 'active' ? '停止' : '启动' }}
-            </t-button>
-            <t-button
-              size="small"
-              variant="outline"
-              @click="restartPlugin(plugin)"
-            >
-              重启
-            </t-button>
-            <t-button
-              size="small"
-              variant="outline"
-              @click="viewPluginLogs(plugin)"
-            >
-              日志
-            </t-button>
-            <t-dropdown :options="getRuntimeMenuOptions(plugin)">
-              <t-button
-                size="small"
-                variant="text"
-              >
-                <t-icon name="more" />
-              </t-button>
-            </t-dropdown>
-          </div>
-        </div>
-      </div>
-    </t-card>
-
-    <!-- 系统资源监控 -->
-    <t-card
-      v-if="!isBaseExample"
-      class="resource-monitor-card"
-      title="系统资源监控"
-      hover-shadow
-    >
-      <div class="monitor-tabs">
-        <t-tabs v-model="monitorTab">
-          <t-tab-panel
-            value="performance"
-            label="性能监控"
-          >
-            <div class="performance-charts">
-              <div class="chart-container">
-                <h4>内存使用趋势</h4>
-                <div class="chart-placeholder">
-                  <t-icon
-                    name="chart-line"
-                    size="48px"
-                  />
-                  <p>内存使用图表</p>
-                </div>
-              </div>
-              <div class="chart-container">
-                <h4>CPU使用趋势</h4>
-                <div class="chart-placeholder">
-                  <t-icon
-                    name="chart-area"
-                    size="48px"
-                  />
-                  <p>CPU使用图表</p>
-                </div>
-              </div>
-            </div>
-          </t-tab-panel>
-          
-          <t-tab-panel
-            value="events"
-            label="事件统计"
-          >
-            <div class="event-stats">
-              <div class="event-summary">
-                <div class="summary-item">
-                  <div class="summary-number">
-                    {{ totalEvents }}
-                  </div>
-                  <div class="summary-label">
-                    总事件数
-                  </div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-number">
-                    {{ eventsPerSecond }}
-                  </div>
-                  <div class="summary-label">
-                    每秒事件
-                  </div>
-                </div>
-                <div class="summary-item">
-                  <div class="summary-number">
-                    {{ errorEvents }}
-                  </div>
-                  <div class="summary-label">
-                    错误事件
-                  </div>
-                </div>
-              </div>
-              
-              <div class="event-chart">
-                <h4>事件类型分布</h4>
-                <div class="chart-placeholder">
-                  <t-icon
-                    name="chart-pie"
-                    size="48px"
-                  />
-                  <p>事件分布图表</p>
-                </div>
-              </div>
-            </div>
-          </t-tab-panel>
-          
-          <t-tab-panel
-            value="logs"
-            label="系统日志"
-          >
-            <div class="system-logs">
-              <div class="log-controls">
-                <t-select
-                  v-model="logLevel"
-                  style="width: 120px;"
-                >
-                  <t-option
-                    value="all"
-                    label="全部"
-                  />
-                  <t-option
-                    value="error"
-                    label="错误"
-                  />
-                  <t-option
-                    value="warn"
-                    label="警告"
-                  />
-                  <t-option
-                    value="info"
-                    label="信息"
-                  />
-                  <t-option
-                    value="debug"
-                    label="调试"
-                  />
-                </t-select>
-                <t-button
-                  variant="outline"
-                  @click="clearLogs"
-                >
-                  清空日志
-                </t-button>
-                <t-button
-                  variant="outline"
-                  @click="exportLogs"
-                >
-                  导出日志
-                </t-button>
-              </div>
-              
-              <div class="log-viewer">
-                <div 
-                  v-for="(log, index) in filteredLogs" 
-                  :key="index"
-                  class="log-entry"
-                  :class="log.level"
-                >
-                  <span class="log-time">{{ formatLogTime(log.timestamp) }}</span>
-                  <span class="log-level">{{ log.level.toUpperCase() }}</span>
-                  <span class="log-source">{{ log.source }}</span>
-                  <span class="log-message">{{ log.message }}</span>
-                </div>
-              </div>
-            </div>
-          </t-tab-panel>
-        </t-tabs>
-      </div>
-    </t-card>
-
-    <!-- 插件日志对话框 -->
-    <t-dialog 
-      v-if="!isBaseExample"
-      v-model:visible="showLogDialog" 
-      :title="`插件日志 - ${selectedPlugin?.name}`"
-      width="800px"
-      :footer="false"
-    >
-      <div class="plugin-log-viewer">
-        <div class="log-header">
-          <t-select
-            v-model="pluginLogLevel"
-            style="width: 120px;"
-          >
-            <t-option
-              value="all"
-              label="全部"
-            />
-            <t-option
-              value="error"
-              label="错误"
-            />
-            <t-option
-              value="warn"
-              label="警告"
-            />
-            <t-option
-              value="info"
-              label="信息"
-            />
-            <t-option
-              value="debug"
-              label="调试"
-            />
-          </t-select>
-          <t-button
-            variant="outline"
-            @click="clearPluginLogs"
-          >
-            清空
-          </t-button>
-          <t-button
-            variant="outline"
-            @click="exportPluginLogs"
-          >
-            导出
-          </t-button>
-        </div>
-        
-        <div class="plugin-logs">
-          <div 
-            v-for="(log, index) in filteredPluginLogs" 
-            :key="index"
-            class="log-entry"
-            :class="log.level"
-          >
-            <span class="log-time">{{ formatLogTime(log.timestamp) }}</span>
-            <span class="log-level">{{ log.level.toUpperCase() }}</span>
-            <span class="log-message">{{ log.message }}</span>
-          </div>
-        </div>
-      </div>
-    </t-dialog>
+    <!-- 原中央容器承载已移除，保留管理视图相关卡片（状态、运行、监控）在后续需要时可恢复显示 -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { usePluginStore } from '../stores/plugin';
 import type { PluginInfo } from '../stores/plugin';
-import CentralPluginContainer from '../components/CentralPluginContainer.vue';
-import { buildPluginPageUrl } from '../utils/hosting';
+import { useRoomStore } from '../stores/room';
+import { useUiStore } from '../stores/ui';
+import { useRoleStore } from '../stores/role';
+import { useAccountStore } from '../stores/account';
 
 const pluginStore = usePluginStore();
 const route = useRoute();
+const roomStore = useRoomStore();
+const uiStore = useUiStore();
+const roleStore = useRoleStore();
+const accountStore = useAccountStore();
 
-// base-example iframe 支撑：路由解析、URL 构造与向子页传值
+// iframe 支撑：路由解析、URL 构造与向子页传值（统一承载）
 const baseIframe = ref<HTMLIFrameElement | null>(null);
+const uiIframe = ref<HTMLIFrameElement | null>(null);
 const pluginId = computed(() => String((route.params as any).plugname || '').trim());
 const isBaseExample = computed(() => pluginId.value === 'base-example');
-const pageUrl = computed(() => {
-  const id = pluginId.value;
-  if (!id) return '';
-  try {
-    return buildPluginPageUrl(id, 'ui');
-  } catch (err) {
-    console.warn('[PluginFramePage] buildPluginPageUrl failed:', err);
-    return '';
+// 管理视图已移除，统一以 iframe 全屏承载插件 UI
+// 页面URL：根据插件 manifest 的托管配置生成，优先使用 store 的解析逻辑
+const pageUrl = ref('');
+async function resolvePageUrl(id: string) {
+  if (!id) {
+    pageUrl.value = '';
+    return;
   }
-});
+  try {
+    const url = await pluginStore.getPluginUIUrl(id);
+    pageUrl.value = url || '';
+  } catch (err) {
+    console.warn('[PluginFramePage] getPluginUIUrl failed:', err);
+    pageUrl.value = '';
+  }
+}
+watch(pluginId, (id) => { resolvePageUrl(id); }, { immediate: true });
 
 const initialPayload = computed(() => {
   const plugin = pluginStore.plugins.find(p => p.id === pluginId.value);
@@ -526,10 +84,34 @@ const initialPayload = computed(() => {
 });
 
 function postInitMessage() {
-  const target = baseIframe.value?.contentWindow;
+  const target = uiIframe.value?.contentWindow || baseIframe.value?.contentWindow;
   if (!target) return;
   try {
-    target.postMessage(initialPayload.value, '*');
+    // 保证 postMessage 负载为可结构化克隆数据，避免 Vue/Pinia 代理与函数导致 DataCloneError
+    const safe = (() => {
+      const seen = new WeakSet();
+      const clone = (value: any): any => {
+        if (value == null) return value;
+        const t = typeof value;
+        if (t === 'function' || t === 'symbol' || t === 'bigint') return undefined;
+        if (t !== 'object') return value;
+        if (value instanceof Date) return value.toISOString();
+        if (Array.isArray(value)) return value.map(clone);
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+        if (value instanceof Map) {
+          const obj: Record<string, any> = {};
+          for (const [k, v] of value.entries()) obj[String(k)] = clone(v);
+          return obj;
+        }
+        if (value instanceof Set) return Array.from(value).map(clone);
+        const out: Record<string, any> = {};
+        for (const key of Object.keys(value)) out[key] = clone((value as any)[key]);
+        return out;
+      };
+      return clone(initialPayload.value);
+    })();
+    target.postMessage(safe, '*');
   } catch (err) {
     console.warn('[PluginFramePage] postMessage failed:', err);
   }
@@ -538,384 +120,258 @@ function postInitMessage() {
 function handleMessage(event: MessageEvent) {
   const data = event?.data;
   if (!data || typeof data !== 'object') return;
-  if ((data as any).type === 'plugin-ready') {
+  const type = (data as any).type;
+  if (type === 'plugin-ready' || type === 'ui-ready') {
     postInitMessage();
+    // 初始化后发送生命周期与只读仓库事件
+    sendLifecycleEvent('ready');
+    void sendReadonlyStoreInit();
+    return;
+  }
+  // 最小桥接：将来自插件 UI 的 Overlay 相关事件转发到真实 preload API
+  try {
+    if (type === 'overlay-action') {
+      const { overlayId, action, payload } = data as any;
+      window.electronApi?.overlay?.action?.(String(overlayId), String(action), payload);
+      return;
+    }
+    if (type === 'overlay-close') {
+      const { overlayId } = data as any;
+      window.electronApi?.overlay?.close?.(String(overlayId));
+      return;
+    }
+    if (type === 'overlay-update') {
+      const { overlayId, updates } = data as any;
+      window.electronApi?.overlay?.update?.(String(overlayId), updates);
+      return;
+    }
+    if (type === 'overlay-send') {
+      const { overlayId, event: ev, payload } = data as any;
+      window.electronApi?.overlay?.send?.(String(overlayId), String(ev), payload);
+      return;
+    }
+  } catch (bridgeErr) {
+    console.warn('[PluginFramePage] overlay bridge failed:', bridgeErr);
+  }
+
+  // 桥接请求：配置与 Overlay 操作统一处理
+  if (type === 'bridge-request') {
+    const { requestId, command } = data as any;
+    const respond = (success: boolean, respData?: any, error?: any) => {
+      const target = uiIframe.value?.contentWindow || baseIframe.value?.contentWindow;
+      if (!target) return;
+      const payload: Record<string, any> = { type: 'bridge-response', requestId, command, success };
+      if (success) payload.data = respData;
+      if (!success) payload.error = error;
+      try { target.postMessage(payload, '*'); } catch (e) { /* noop */ }
+    };
+    (async () => {
+      try {
+        if (command === 'get-config') {
+          const res = await window.electronApi.plugin.getConfig(pluginId.value);
+          if (res && 'success' in res && res.success) {
+            // 从返回的配置中删除敏感字段（例如 token），不向插件 UI 传递
+            const cfg = (res.data ? { ...res.data } : {});
+            if (cfg && typeof cfg === 'object' && 'token' in cfg) {
+              try { delete (cfg as any).token; } catch (_) {}
+            }
+            respond(true, cfg);
+          } else {
+            respond(false, null, (res as any)?.error || 'Failed to get config');
+          }
+          return;
+        }
+        if (command === 'set-config') {
+          const nextCfg = (data as any)?.payload?.config || {};
+          try {
+            await pluginStore.updatePluginConfig(pluginId.value, nextCfg);
+            respond(true, { success: true });
+            sendLifecycleEvent('config-updated');
+          } catch (e) {
+            respond(false, null, (e as Error).message);
+          }
+          return;
+        }
+        if (command === 'overlay') {
+          const act = (data as any)?.payload?.action;
+          const args = (data as any)?.payload?.args || [];
+          let result: any = null;
+          try {
+            const api = window.electronApi.overlay;
+            if (act === 'create') result = await api.create(args[0]);
+            else if (act === 'close') result = await api.close(args[0]);
+            else if (act === 'show') result = await api.show(args[0]);
+            else if (act === 'hide') result = await api.hide(args[0]);
+            else if (act === 'bringToFront') result = await api.bringToFront(args[0]);
+            else if (act === 'update') result = await api.update(args[0], args[1]);
+            else if (act === 'list') result = await api.list();
+            else if (act === 'send') result = await api.send(args[0], args[1], args[2]);
+            else result = await api.action(args[0], act, args[1]);
+            const ok = !!(result && 'success' in result ? result.success : true);
+            // 返回完整结果对象，供插件 UI 判断 result.success
+            respond(ok, result, result?.error);
+          } catch (e) {
+            respond(false, null, (e as Error).message);
+          }
+          return;
+        }
+      } catch (e) {
+        respond(false, null, (e as Error).message);
+      }
+    })();
+    return;
   }
 }
 
 onMounted(() => {
-  if (isBaseExample.value) {
-    const el = baseIframe.value;
-    if (el) {
-      const onLoad = () => postInitMessage();
-      el.addEventListener('load', onLoad);
-      (el as any).__onLoad = onLoad;
-    }
-    window.addEventListener('message', handleMessage);
+  const el = isBaseExample.value ? baseIframe.value : uiIframe.value;
+  if (el) {
+    const onLoad = () => postInitMessage();
+    el.addEventListener('load', onLoad);
+    (el as any).__onLoad = onLoad;
   }
+  window.addEventListener('message', handleMessage);
+  // 动态刷新只读仓库：事件驱动订阅 + 节流批量派发
+  try {
+    // 构建房间只读切片
+    const buildRoomsSlice = () => {
+      const list = safeClone(roomStore.rooms);
+      const liveRoomsCount = roomStore.liveRooms.length;
+      const totalViewers = roomStore.totalViewers;
+      return { rooms: { list, liveRoomsCount, totalViewers } } as Record<string, any>;
+    };
+
+    // 构建 UI 只读切片
+    const buildUiSlice = () => {
+      return {
+        ui: {
+          theme: uiStore.theme,
+          sidebarCollapsed: uiStore.sidebarCollapsed,
+          isFullscreen: uiStore.isFullscreen,
+          windowSize: uiStore.windowSize,
+        }
+      } as Record<string, any>;
+    };
+
+    // 构建角色只读切片
+    const buildRoleSlice = () => {
+      return {
+        role: {
+          current: roleStore.current,
+          statsScope: roleStore.statsScope,
+        }
+      } as Record<string, any>;
+    };
+
+    // 构建账户只读切片（去敏，仅最小Profile）
+    const buildAccountSlice = () => {
+      const logged = accountStore.isLoggedIn;
+      const profile = accountStore.userInfo ? {
+        userID: accountStore.userInfo.userID,
+        nickname: accountStore.userInfo.nickname,
+        avatar: accountStore.userInfo.avatar,
+      } : null;
+      return { account: { isLoggedIn: logged, profile } } as Record<string, any>;
+    };
+
+    let pending: Record<string, any> = {};
+    let updateTimer: number | null = null;
+    const getTarget = () => (uiIframe.value?.contentWindow || baseIframe.value?.contentWindow);
+    const queueReadonlyUpdate = (slice: Record<string, any>) => {
+      for (const k of Object.keys(slice)) {
+        pending[k] = { ...(pending[k] || {}), ...(slice[k] || {}) };
+      }
+      if (updateTimer == null) {
+        updateTimer = window.setTimeout(() => {
+          const target = getTarget();
+          if (target) {
+            const payload = { type: 'plugin-event', eventType: 'readonly-store', event: 'readonly-store-update', payload: safeClone(pending) };
+            try { target.postMessage(payload, '*'); } catch { /* noop */ }
+          }
+          pending = {};
+          updateTimer = null;
+        }, 250);
+      }
+    };
+
+    // 订阅房间列表变化
+    const stopRooms = watch(() => roomStore.rooms, () => {
+      queueReadonlyUpdate(buildRoomsSlice());
+    }, { deep: true });
+
+    // 订阅 UI 变化
+    const stopUi = watch(() => [uiStore.theme, uiStore.sidebarCollapsed, uiStore.isFullscreen, uiStore.windowSize], () => {
+      queueReadonlyUpdate(buildUiSlice());
+    }, { deep: true });
+
+    // 订阅角色变化
+    const stopRole = watch(() => [roleStore.current, roleStore.statsScope], () => {
+      queueReadonlyUpdate(buildRoleSlice());
+    });
+
+    // 订阅账户变化
+    const stopAccount = watch(() => [accountStore.isLoggedIn, accountStore.userInfo], () => {
+      queueReadonlyUpdate(buildAccountSlice());
+    }, { deep: true });
+
+    // 保存停止函数以便卸载清理
+    (window as any).__readonlyStoreStops = [stopRooms, stopUi, stopRole, stopAccount];
+  } catch {/* noop */}
 });
 
 onUnmounted(() => {
-  const el = baseIframe.value as any;
+  const el = (isBaseExample.value ? baseIframe.value : uiIframe.value) as any;
   if (el?.__onLoad) {
     el.removeEventListener('load', el.__onLoad);
     delete el.__onLoad;
   }
   window.removeEventListener('message', handleMessage);
+  // 清理订阅
+  try {
+    const stops: any[] = (window as any).__readonlyStoreStops || [];
+    for (const stop of stops) { try { typeof stop === 'function' && stop(); } catch {} }
+    delete (window as any).__readonlyStoreStops;
+  } catch {/* noop */}
 });
 
-// 响应式状态
-const frameStatus = ref<'active' | 'inactive' | 'error'>('inactive');
-const runtimeFilter = ref('all');
-const autoRefresh = ref(true);
-const refreshInterval = ref('3000');
-const monitorTab = ref('performance');
-const logLevel = ref('all');
-const pluginLogLevel = ref('all');
-const showLogDialog = ref(false);
-const selectedPlugin = ref<PluginInfo | null>(null);
+// 管理视图相关脚本与定时刷新已移除
 
-// 性能数据
-const totalMemoryUsage = ref(0);
-const totalCpuUsage = ref(0);
-const uptime = ref('00:00:00');
-const totalEvents = ref(0);
-const eventsPerSecond = ref(0);
-const errorEvents = ref(0);
+function safeClone(obj: any) {
+  if (!obj || typeof obj !== 'object') return obj;
+  try { return JSON.parse(JSON.stringify(obj)); } catch { return obj; }
+}
 
-// 运行时插件数据
-const runtimePlugins = ref<Array<PluginInfo & {
-  status: 'active' | 'inactive' | 'error';
-  memoryUsage?: number;
-  cpuUsage?: number;
-  runtime?: number;
-  eventCount?: number;
-}>>([]);
+function sendLifecycleEvent(event: string) {
+  const target = uiIframe.value?.contentWindow || baseIframe.value?.contentWindow;
+  if (!target) return;
+  const payload = { type: 'plugin-event', eventType: 'lifecycle', event };
+  try { target.postMessage(payload, '*'); } catch { /* noop */ }
+}
 
-// 日志数据
-const systemLogs = ref<Array<{
-  timestamp: number;
-  level: 'error' | 'warn' | 'info' | 'debug';
-  source: string;
-  message: string;
-}>>([]);
-
-const pluginLogs = ref<Array<{
-  timestamp: number;
-  level: 'error' | 'warn' | 'info' | 'debug';
-  message: string;
-}>>([]);
-
-// 定时器
-let refreshTimer: NodeJS.Timeout | null = null;
-
-// 计算属性
-const runningPlugins = computed(() => 
-  runtimePlugins.value.filter(plugin => plugin.status === 'active')
-);
-
-const filteredRuntimePlugins = computed(() => {
-  if (runtimeFilter.value === 'all') return runtimePlugins.value;
-  return runtimePlugins.value.filter(plugin => plugin.status === runtimeFilter.value);
-});
-
-const filteredLogs = computed(() => {
-  if (logLevel.value === 'all') return systemLogs.value;
-  return systemLogs.value.filter(log => log.level === logLevel.value);
-});
-
-// 当前路由选择的插件
-const currentPlugin = computed<PluginInfo | null>(() => {
-  const id = String((route.params as any).plugname || '').trim();
-  if (!id) return null;
-  return pluginStore.plugins.find(p => p.id === id) || null;
-});
-
-const filteredPluginLogs = computed(() => {
-  if (pluginLogLevel.value === 'all') return pluginLogs.value;
-  return pluginLogs.value.filter(log => log.level === pluginLogLevel.value);
-});
-
-// 方法
-const getFrameStatusIcon = () => {
-  switch (frameStatus.value) {
-    case 'active': return 'check-circle';
-    case 'inactive': return 'stop-circle';
-    case 'error': return 'error-circle';
-    default: return 'help-circle';
-  }
-};
-
-const getFrameStatusText = () => {
-  switch (frameStatus.value) {
-    case 'active': return '运行中';
-    case 'inactive': return '已停止';
-    case 'error': return '错误状态';
-    default: return '未知状态';
-  }
-};
-
-const getRuntimeStatusTheme = (status: string) => {
-  switch (status) {
-    case 'active': return 'success';
-    case 'inactive': return 'default';
-    case 'error': return 'danger';
-    default: return 'default';
-  }
-};
-
-const getRuntimeStatusIcon = (status: string) => {
-  switch (status) {
-    case 'active': return 'play-circle';
-    case 'inactive': return 'stop-circle';
-    case 'error': return 'error-circle';
-    default: return 'help-circle';
-  }
-};
-
-const getRuntimeStatusText = (status: string) => {
-  switch (status) {
-    case 'active': return '运行中';
-    case 'inactive': return '已停止';
-    case 'error': return '错误';
-    default: return '未知';
-  }
-};
-
-const formatRuntime = (runtime: number | undefined) => {
-  if (!runtime) return '00:00:00';
-  
-  const hours = Math.floor(runtime / 3600000);
-  const minutes = Math.floor((runtime % 3600000) / 60000);
-  const seconds = Math.floor((runtime % 60000) / 1000);
-  
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
-
-const formatLogTime = (timestamp: number) => {
-  return new Date(timestamp).toLocaleTimeString();
-};
-
-const startAllPlugins = async () => {
+async function sendReadonlyStoreInit() {
+  const target = uiIframe.value?.contentWindow || baseIframe.value?.contentWindow;
+  if (!target) return;
   try {
-    await pluginStore.startAllPlugins();
-    frameStatus.value = 'active';
-    await refreshFrameStatus();
-  } catch (error) {
-    console.error('启动所有插件失败:', error);
-    frameStatus.value = 'error';
+    const res = await window.electronApi.room.list();
+    const rooms = Array.isArray((res as any)?.data) ? (res as any).data : [];
+    const liveRoomsCount = rooms.filter((r: any) => r?.status === 'live' || r?.isLive === true).length;
+    const totalViewers = rooms.reduce((s: number, r: any) => s + Number(r?.viewers || r?.viewerCount || 0), 0);
+    // 组合初始只读快照：rooms + ui + role + account（去敏）
+    const uiSlice = { ui: { theme: uiStore.theme, sidebarCollapsed: uiStore.sidebarCollapsed, isFullscreen: uiStore.isFullscreen, windowSize: uiStore.windowSize } };
+    const roleSlice = { role: { current: roleStore.current, statsScope: roleStore.statsScope } };
+    const accountSlice = { account: { isLoggedIn: accountStore.isLoggedIn, profile: accountStore.userInfo ? { userID: accountStore.userInfo.userID, nickname: accountStore.userInfo.nickname, avatar: accountStore.userInfo.avatar } : null } };
+    const store = { rooms: { list: rooms, liveRoomsCount, totalViewers }, ...uiSlice, ...roleSlice, ...accountSlice };
+    const payload = { type: 'plugin-event', eventType: 'readonly-store', event: 'readonly-store-init', payload: safeClone(store) };
+    target.postMessage(payload, '*');
+  } catch {
+    const uiSlice = { ui: { theme: uiStore.theme, sidebarCollapsed: uiStore.sidebarCollapsed, isFullscreen: uiStore.isFullscreen, windowSize: uiStore.windowSize } };
+    const roleSlice = { role: { current: roleStore.current, statsScope: roleStore.statsScope } };
+    const accountSlice = { account: { isLoggedIn: accountStore.isLoggedIn, profile: accountStore.userInfo ? { userID: accountStore.userInfo.userID, nickname: accountStore.userInfo.nickname, avatar: accountStore.userInfo.avatar } : null } };
+    const store = { rooms: { list: [], liveRoomsCount: 0, totalViewers: 0 }, ...uiSlice, ...roleSlice, ...accountSlice };
+    const payload = { type: 'plugin-event', eventType: 'readonly-store', event: 'readonly-store-init', payload: safeClone(store) };
+    try { target.postMessage(payload, '*'); } catch { /* noop */ }
   }
-};
-
-const stopAllPlugins = async () => {
-  try {
-    await pluginStore.stopAllPlugins();
-    frameStatus.value = 'inactive';
-    await refreshFrameStatus();
-  } catch (error) {
-    console.error('停止所有插件失败:', error);
-  }
-};
-
-const refreshFrameStatus = async () => {
-  try {
-    // 更新运行时插件状态
-    const plugins = await pluginStore.getRuntimePlugins();
-    // 过滤掉loading状态的插件，因为运行时插件不应该有loading状态，并进行类型转换
-    runtimePlugins.value = plugins.filter(p => p.status !== 'loading') as any;
-    
-    // 更新性能数据
-    const performance = await pluginStore.getPerformanceData();
-    if (performance && typeof performance === 'object') {
-      totalMemoryUsage.value = (performance as any).memory || 0;
-      totalCpuUsage.value = (performance as any).cpu || 0;
-      uptime.value = formatRuntime((performance as any).uptime || 0);
-    } else {
-      totalMemoryUsage.value = 0;
-      totalCpuUsage.value = 0;
-      uptime.value = formatRuntime(0);
-    }
-    
-    // 更新事件统计
-    const eventStats = await pluginStore.getEventStats();
-    if ('totalErrors' in eventStats) {
-      // 这是错误统计
-      errorEvents.value = eventStats.totalErrors || 0;
-      totalEvents.value = 0; // 暂时设为0，因为API不提供总事件数
-      eventsPerSecond.value = 0; // 暂时设为0，因为API不提供每秒事件数
-    } else if ('totalEvents' in eventStats) {
-      // 这是事件统计
-      totalEvents.value = eventStats.totalEvents || 0;
-      eventsPerSecond.value = eventStats.eventsPerSecond || 0;
-      errorEvents.value = eventStats.errorRate || 0;
-    } else {
-      // 空对象或错误情况
-      totalEvents.value = 0;
-      eventsPerSecond.value = 0;
-      errorEvents.value = 0;
-    }
-    
-    // 更新系统日志
-    const logs = await pluginStore.getSystemLogs();
-    systemLogs.value = logs;
-    
-  } catch (error) {
-    console.error('刷新框架状态失败:', error);
-  }
-};
-
-const togglePluginRuntime = async (plugin: PluginInfo) => {
-  try {
-    if (plugin.status === 'active') {
-      await pluginStore.stopPlugin(plugin.id);
-    } else {
-      await pluginStore.startPlugin(plugin.id);
-    }
-    await refreshFrameStatus();
-  } catch (error) {
-    console.error('切换插件运行状态失败:', error);
-  }
-};
-
-const restartPlugin = async (plugin: PluginInfo) => {
-  try {
-    await pluginStore.restartPlugin(plugin.id);
-    await refreshFrameStatus();
-  } catch (error) {
-    console.error('重启插件失败:', error);
-  }
-};
-
-const viewPluginLogs = async (plugin: PluginInfo) => {
-  selectedPlugin.value = plugin;
-  try {
-    const logs = await pluginStore.getPluginLogs(plugin.id);
-    pluginLogs.value = logs;
-    showLogDialog.value = true;
-  } catch (error) {
-    console.error('获取插件日志失败:', error);
-  }
-};
-
-const getRuntimeMenuOptions = (plugin: PluginInfo) => [
-  {
-    content: '查看详情',
-    value: 'details',
-    onClick: () => viewPluginDetails(plugin)
-  },
-  {
-    content: '性能分析',
-    value: 'performance',
-    onClick: () => analyzePluginPerformance(plugin)
-  },
-  {
-    content: '调试模式',
-    value: 'debug',
-    onClick: () => toggleDebugMode(plugin)
-  },
-  {
-    content: '强制停止',
-    value: 'kill',
-    theme: 'error',
-    onClick: () => killPlugin(plugin)
-  }
-];
-
-const viewPluginDetails = (_plugin: PluginInfo) => {
-  // TODO: 实现插件详情查看
-};
-
-const analyzePluginPerformance = (_plugin: PluginInfo) => {
-  // TODO: 实现插件性能分析
-};
-
-const toggleDebugMode = async (plugin: PluginInfo) => {
-  try {
-    await pluginStore.toggleDebugMode(plugin.id);
-  } catch (error) {
-    console.error('切换调试模式失败:', error);
-  }
-};
-
-const killPlugin = async (plugin: PluginInfo) => {
-  try {
-    await pluginStore.killPlugin(plugin.id);
-    await refreshFrameStatus();
-  } catch (error) {
-    console.error('强制停止插件失败:', error);
-  }
-};
-
-const clearLogs = () => {
-  systemLogs.value = [];
-};
-
-const exportLogs = () => {
-  const logs = systemLogs.value.map(log => 
-    `[${formatLogTime(log.timestamp)}] ${log.level.toUpperCase()} ${log.source}: ${log.message}`
-  ).join('\n');
-  
-  const blob = new Blob([logs], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `system_logs_${new Date().toISOString().slice(0, 10)}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
-const clearPluginLogs = () => {
-  pluginLogs.value = [];
-};
-
-const exportPluginLogs = () => {
-  if (!selectedPlugin.value) return;
-  
-  const logs = pluginLogs.value.map(log => 
-    `[${formatLogTime(log.timestamp)}] ${log.level.toUpperCase()}: ${log.message}`
-  ).join('\n');
-  
-  const blob = new Blob([logs], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${selectedPlugin.value.id}_logs_${new Date().toISOString().slice(0, 10)}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
-const startAutoRefresh = () => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-  }
-  
-  if (autoRefresh.value) {
-    refreshTimer = setInterval(() => {
-      refreshFrameStatus();
-    }, parseInt(refreshInterval.value));
-  }
-};
-
-// 监听自动刷新设置变化
-const watchAutoRefresh = () => {
-  startAutoRefresh();
-};
-
-// 生命周期
-onMounted(() => {
-  refreshFrameStatus();
-  startAutoRefresh();
-});
-
-onUnmounted(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-  }
-});
-
-// 监听变化
-import { watch } from 'vue';
-watch([autoRefresh, refreshInterval], watchAutoRefresh);
+}
 </script>
 
 <style scoped>
@@ -930,6 +386,23 @@ watch([autoRefresh, refreshInterval], watchAutoRefresh);
 
 .plugin-frame-page.base-example-full {
   padding: 0;
+}
+
+.plugin-ui-full-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.plugin-ui-full-container iframe#plugin-ui {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  background: transparent;
 }
 
 .base-example-container {
@@ -947,442 +420,5 @@ watch([autoRefresh, refreshInterval], watchAutoRefresh);
   border: none;
   display: block;
   background: transparent;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.page-header h2 {
-  margin: 0;
-  color: var(--td-text-color-primary);
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.plugin-ui-card {
-  min-height: 300px;
-}
-
-.frame-overview {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 16px;
-}
-
-.status-card {
-  min-height: 120px;
-}
-
-.status-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  height: 100%;
-  padding: 16px;
-}
-
-.status-indicator {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-}
-
-.status-indicator.running {
-  background-color: var(--td-success-color-1);
-  color: var(--td-success-color);
-}
-
-.status-indicator.stopped {
-  background-color: var(--td-gray-color-1);
-  color: var(--td-gray-color-6);
-}
-
-.status-indicator.error {
-  background-color: var(--td-error-color-1);
-  color: var(--td-error-color);
-}
-
-.status-info {
-  flex: 1;
-}
-
-.status-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--td-text-color-primary);
-  margin-bottom: 4px;
-}
-
-.status-text {
-  font-size: 14px;
-  color: var(--td-text-color-secondary);
-}
-
-.stats-card {
-  min-height: 120px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  padding: 16px;
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: bold;
-  color: var(--td-brand-color);
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: var(--td-text-color-secondary);
-}
-
-.plugin-runtime-card {
-  flex: 1;
-  min-height: 0;
-}
-
-.runtime-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 0 16px;
-}
-
-.control-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.control-group label {
-  font-size: 14px;
-  color: var(--td-text-color-secondary);
-  white-space: nowrap;
-}
-
-.plugin-runtime-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.runtime-plugin-item {
-  border: 1px solid var(--td-border-level-1-color);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 12px;
-  background-color: var(--td-bg-color-container);
-  transition: all 0.2s;
-}
-
-.runtime-plugin-item:hover {
-  border-color: var(--td-brand-color);
-}
-
-.runtime-plugin-item.running {
-  border-left: 4px solid var(--td-success-color);
-}
-
-.runtime-plugin-item.error {
-  border-left: 4px solid var(--td-error-color);
-}
-
-.plugin-basic-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.plugin-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.plugin-icon img {
-  width: 100%;
-  height: 100%;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
-.plugin-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.plugin-name {
-  font-weight: 500;
-  color: var(--td-text-color-primary);
-}
-
-.plugin-id {
-  font-size: 12px;
-  color: var(--td-text-color-placeholder);
-  font-family: monospace;
-}
-
-.plugin-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 12px;
-  padding: 12px;
-  background-color: var(--td-bg-color-container-hover);
-  border-radius: 6px;
-}
-
-.metric-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.metric-label {
-  font-size: 12px;
-  color: var(--td-text-color-secondary);
-}
-
-.metric-value {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--td-text-color-primary);
-}
-
-.plugin-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.resource-monitor-card {
-  flex-shrink: 0;
-}
-
-.monitor-tabs {
-  min-height: 300px;
-}
-
-.performance-charts {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.chart-container {
-  border: 1px solid var(--td-border-level-1-color);
-  border-radius: 6px;
-  padding: 16px;
-  background-color: var(--td-bg-color-container);
-}
-
-.chart-container h4 {
-  margin: 0 0 16px 0;
-  color: var(--td-text-color-primary);
-}
-
-.chart-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: var(--td-text-color-placeholder);
-}
-
-.event-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.event-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.summary-item {
-  text-align: center;
-  padding: 16px;
-  border: 1px solid var(--td-border-level-1-color);
-  border-radius: 6px;
-  background-color: var(--td-bg-color-container);
-}
-
-.summary-number {
-  font-size: 24px;
-  font-weight: bold;
-  color: var(--td-brand-color);
-  margin-bottom: 4px;
-}
-
-.summary-label {
-  font-size: 14px;
-  color: var(--td-text-color-secondary);
-}
-
-.event-chart {
-  border: 1px solid var(--td-border-level-1-color);
-  border-radius: 6px;
-  padding: 16px;
-  background-color: var(--td-bg-color-container);
-}
-
-.event-chart h4 {
-  margin: 0 0 16px 0;
-  color: var(--td-text-color-primary);
-}
-
-.system-logs {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.log-controls {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.log-viewer {
-  max-height: 300px;
-  overflow-y: auto;
-  border: 1px solid var(--td-border-level-1-color);
-  border-radius: 6px;
-  background-color: var(--td-bg-color-container);
-}
-
-.log-entry {
-  display: flex;
-  gap: 12px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--td-border-level-1-color);
-  font-family: monospace;
-  font-size: 12px;
-}
-
-.log-entry:last-child {
-  border-bottom: none;
-}
-
-.log-entry.error {
-  background-color: var(--td-error-color-1);
-}
-
-.log-entry.warn {
-  background-color: var(--td-warning-color-1);
-}
-
-.log-entry.info {
-  background-color: var(--td-brand-color-1);
-}
-
-.log-time {
-  color: var(--td-text-color-placeholder);
-  white-space: nowrap;
-}
-
-.log-level {
-  color: var(--td-text-color-secondary);
-  font-weight: bold;
-  min-width: 50px;
-}
-
-.log-source {
-  color: var(--td-brand-color);
-  min-width: 80px;
-}
-
-.log-message {
-  color: var(--td-text-color-primary);
-  flex: 1;
-  word-break: break-all;
-}
-
-.plugin-log-viewer {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.log-header {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.plugin-logs {
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid var(--td-border-level-1-color);
-  border-radius: 6px;
-  background-color: var(--td-bg-color-container);
-}
-
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .frame-overview {
-    grid-template-columns: 1fr;
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .performance-charts {
-    grid-template-columns: 1fr;
-  }
-  
-  .event-summary {
-    grid-template-columns: 1fr;
-  }
-  
-  .plugin-metrics {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .runtime-controls {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
-  .plugin-metrics {
-    grid-template-columns: 1fr;
-  }
-  
-  .plugin-actions {
-    flex-wrap: wrap;
-  }
 }
 </style>

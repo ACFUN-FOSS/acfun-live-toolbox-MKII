@@ -159,6 +159,67 @@ async function main() {
 
   windowManager.createWindow(); // Placeholder for creating the main UI
 
+  // 将插件弹窗事件转发到渲染层
+  try {
+    const mainWindow = windowManager.getMainWindow();
+    const popupManager = pluginManager.getPopupManager();
+    if (mainWindow) {
+      popupManager.on('popup.created', ({ popup }) => {
+        try {
+          mainWindow.webContents.send('plugin.popup.created', { popup });
+        } catch (err) {
+          console.error('[Main] Failed to forward popup.created:', err);
+        }
+      });
+      popupManager.on('popup.closed', (payload) => {
+        try {
+          mainWindow.webContents.send('plugin.popup.closed', payload);
+        } catch (err) {
+          console.error('[Main] Failed to forward popup.closed:', err);
+        }
+      });
+      popupManager.on('popup.updated', ({ popup }) => {
+        try {
+          mainWindow.webContents.send('plugin.popup.updated', { popup });
+        } catch (err) {
+          console.error('[Main] Failed to forward popup.updated:', err);
+        }
+      });
+      popupManager.on('popup.shown', (payload) => {
+        try {
+          mainWindow.webContents.send('plugin.popup.shown', payload);
+        } catch (err) {
+          console.error('[Main] Failed to forward popup.shown:', err);
+        }
+      });
+      popupManager.on('popup.hidden', (payload) => {
+        try {
+          mainWindow.webContents.send('plugin.popup.hidden', payload);
+        } catch (err) {
+          console.error('[Main] Failed to forward popup.hidden:', err);
+        }
+      });
+      popupManager.on('popup.zindex.changed', (payload) => {
+        try {
+          mainWindow.webContents.send('plugin.popup.zindex.changed', payload);
+        } catch (err) {
+          console.error('[Main] Failed to forward popup.zindex.changed:', err);
+        }
+      });
+      popupManager.on('popup.action', (payload) => {
+        try {
+          mainWindow.webContents.send('plugin.popup.action', payload);
+        } catch (err) {
+          console.error('[Main] Failed to forward popup.action:', err);
+        }
+      });
+    } else {
+      console.warn('[Main] Main window not available; popup events not wired');
+    }
+  } catch (err) {
+    console.error('[Main] Failed to wire popup events to renderer:', err);
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       windowManager.createWindow();
