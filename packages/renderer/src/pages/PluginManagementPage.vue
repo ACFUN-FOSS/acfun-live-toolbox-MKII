@@ -316,7 +316,7 @@ import { usePluginStore } from '../stores/plugin';
 import type { PluginInfo } from '../stores/plugin';
 import PluginDetail from '../components/PluginDetail.vue';
 import PluginDevTools from '../components/PluginDevTools.vue';
-import { resolvePrimaryHostingType, buildOverlayWrapperUrl } from '../utils/hosting';
+import { resolvePrimaryHostingType, buildOverlayWrapperBase } from '../utils/hosting';
 import { copyText } from '../utils/format';
 
 const pluginStore = usePluginStore();
@@ -441,23 +441,8 @@ const viewPlugin = async (plugin: PluginInfo) => {
       return;
     }
     if (primary.type === 'window') {
-      // 通过 IPC 请求创建弹窗；不传自定义内容，交由 Wujie Window 自行渲染
-      const popupId = `${plugin.id}-${Date.now()}`;
-      try {
-        await window.electronApi?.plugin?.popup?.create?.(plugin.id, {
-          id: popupId,
-          pluginId: plugin.id,
-          title: plugin.name,
-          width: '640px',
-          height: '480px',
-          mode: 'modeless',
-          closeOnOverlayClick: true,
-          closeOnEscKeydown: true,
-          showOverlay: true,
-        });
-      } catch (ipcErr) {
-        console.error('[plugin-view] 创建窗口失败:', ipcErr);
-      }
+      // 弹窗能力不再实现：回退到 UI 路由
+      router.push(`/plugins/${plugin.id}`);
       return;
     }
   } catch (err) {
@@ -467,21 +452,8 @@ const viewPlugin = async (plugin: PluginInfo) => {
 
 const copyOverlayLink = async (plugin: PluginInfo) => {
   try {
-    // 1) 创建一个 overlay 获取 overlayId
-    const createRes = await window.electronApi?.overlay?.create?.({
-      type: 'default',
-      pluginId: plugin.id,
-      title: plugin.name,
-    });
-    if (!createRes || !('success' in createRes) || !createRes.success || !createRes.overlayId) {
-      console.warn('[plugin-overlay] 创建 overlay 失败，无法生成链接:', plugin.id, createRes);
-      return;
-    }
-    const overlayId = createRes.overlayId as string;
-
-    // 2) 构建统一外部包装页链接（带 overlayId）
-    const finalUrl = buildOverlayWrapperUrl(plugin.id, overlayId);
-
+    // 直接构建外部包装页基础链接（插件级消息中心）
+    const finalUrl = buildOverlayWrapperBase(plugin.id);
     await copyText(finalUrl);
   } catch (err) {
     console.error('[plugin-overlay] 复制链接失败:', err);

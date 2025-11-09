@@ -4,7 +4,6 @@ import { RoomManager } from '../rooms/RoomManager';
 import { DatabaseManager } from '../persistence/DatabaseManager';
 import { ConfigManager } from '../config/ConfigManager';
 import { ApiBridge, PluginAPI } from './ApiBridge';
-import { PopupManager } from './PopupManager';
 import { ProcessManager, ProcessManagerConfig } from './ProcessManager';
 import { pluginLifecycleManager } from './PluginLifecycle';
 import { PluginUpdater } from './PluginUpdater';
@@ -111,7 +110,6 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
   private roomManager: RoomManager;
   private databaseManager: DatabaseManager;
   private configManager: ConfigManager;
-  private popupManager: PopupManager;
   private processManager: ProcessManager;
   private pluginUpdater: PluginUpdater;
   private memoryPoolManager: MemoryPoolManager;
@@ -135,7 +133,6 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
     this.databaseManager = opts.databaseManager;
     this.configManager = opts.configManager;
     this.tokenManager = opts.tokenManager;
-    this.popupManager = new PopupManager();
     this.processManager = new ProcessManager(opts.processManagerConfig);
     this.pluginsDir = path.join(app.getPath('userData'), 'plugins');
     this.pluginUpdater = new PluginUpdater(this.pluginsDir, {
@@ -1179,18 +1176,12 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
       roomManager: this.roomManager,
       databaseManager: this.databaseManager,
       configManager: this.configManager,
-      popupManager: this.popupManager,
       tokenManager: this.tokenManager,
       onPluginFault: (reason: string) => this.emit('plugin.suspended', { id: pluginId, reason })
     });
   }
 
-  /**
-   * 暴露 PopupManager 以便主进程转发弹窗事件到渲染层。
-   */
-  public getPopupManager(): PopupManager {
-    return this.popupManager;
-  }
+  // 弹窗能力已移除：不再暴露 PopupManager 或相关事件。
 
   /**
    * 供内部或测试用的路由注册代理（统一走 ApiServer）。

@@ -41,6 +41,7 @@ import { useRoomStore } from '../stores/room';
 import { useUiStore } from '../stores/ui';
 import { useRoleStore } from '../stores/role';
 import { useAccountStore } from '../stores/account';
+import { getApiBase } from '../utils/hosting';
 
 const pluginStore = usePluginStore();
 const route = useRoute();
@@ -132,22 +133,26 @@ function handleMessage(event: MessageEvent) {
   try {
     if (type === 'overlay-action') {
       const { overlayId, action, payload } = data as any;
-      window.electronApi?.overlay?.action?.(String(overlayId), String(action), payload);
+      const url = `/api/overlay/${encodeURIComponent(String(overlayId))}/action`;
+      void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: String(action), data: payload }) });
       return;
     }
     if (type === 'overlay-close') {
       const { overlayId } = data as any;
-      window.electronApi?.overlay?.close?.(String(overlayId));
+      const url = `/api/overlay/${encodeURIComponent(String(overlayId))}/action`;
+      void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'close' }) });
       return;
     }
     if (type === 'overlay-update') {
       const { overlayId, updates } = data as any;
-      window.electronApi?.overlay?.update?.(String(overlayId), updates);
+      const url = `/api/overlay/${encodeURIComponent(String(overlayId))}/action`;
+      void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', data: updates }) });
       return;
     }
     if (type === 'overlay-send') {
       const { overlayId, event: ev, payload } = data as any;
-      window.electronApi?.overlay?.send?.(String(overlayId), String(ev), payload);
+      const url = `/api/plugins/${encodeURIComponent(pluginId.value)}/overlay/messages`;
+      void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ overlayId: String(overlayId), event: String(ev), payload }) });
       return;
     }
   } catch (bridgeErr) {
@@ -167,6 +172,15 @@ function handleMessage(event: MessageEvent) {
     };
     (async () => {
       try {
+        if (command === 'get-api-base') {
+          try {
+            const base = getApiBase();
+            respond(true, { base });
+          } catch (e) {
+            respond(false, null, (e as Error).message);
+          }
+          return;
+        }
         if (command === 'get-config') {
           const res = await window.electronApi.plugin.getConfig(pluginId.value);
           if (res && 'success' in res && res.success) {
@@ -195,21 +209,25 @@ function handleMessage(event: MessageEvent) {
         if (command === 'overlay') {
           const act = (data as any)?.payload?.action;
           const args = (data as any)?.payload?.args || [];
-          let result: any = null;
           try {
-            const api = window.electronApi.overlay;
-            if (act === 'create') result = await api.create(args[0]);
-            else if (act === 'close') result = await api.close(args[0]);
-            else if (act === 'show') result = await api.show(args[0]);
-            else if (act === 'hide') result = await api.hide(args[0]);
-            else if (act === 'bringToFront') result = await api.bringToFront(args[0]);
-            else if (act === 'update') result = await api.update(args[0], args[1]);
-            else if (act === 'list') result = await api.list();
-            else if (act === 'send') result = await api.send(args[0], args[1], args[2]);
-            else result = await api.action(args[0], act, args[1]);
-            const ok = !!(result && 'success' in result ? result.success : true);
-            // 返回完整结果对象，供插件 UI 判断 result.success
-            respond(ok, result, result?.error);
+            if (act === 'send') {
+              const url = `/api/plugins/${encodeURIComponent(pluginId.value)}/overlay/messages`;
+              const body = { overlayId: String(args[0]), event: String(args[1]), payload: args[2] };
+              const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+              const json = await resp.json().catch(() => ({ success: resp.ok }));
+              const ok = !!(json && 'success' in json ? json.success : resp.ok);
+              respond(ok, json, json?.error);
+            } else if (act === 'action') {
+              const url = `/api/overlay/${encodeURIComponent(String(args[0]))}/action`;
+              const body = { action: String(args[1] || ''), data: args[2] };
+              const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+              const json = await resp.json().catch(() => ({ success: resp.ok }));
+              const ok = !!(json && 'success' in json ? json.success : resp.ok);
+              respond(ok, json, json?.error);
+            } else {
+              // 其余动作（create/close/show/hide/bringToFront/update/list）不再通过桥接提供
+              respond(false, null, 'Overlay manual controls are removed. Use messages or actions only.');
+            }
           } catch (e) {
             respond(false, null, (e as Error).message);
           }

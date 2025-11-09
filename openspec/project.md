@@ -39,7 +39,8 @@ ACFun Live Toolbox MKII is an Electron-based desktop application to assist ACFun
 - Loads from Vite dev server URL in dev, falls back to packaged `index.html` in production.
 
 ### Preload API Surface
-- Exposes `window.electronApi` with modules: `dialog`, `fs`, `login`, `window` (minimize/maximize/close), `system`, `overlay`, `plugin` (install/uninstall/enable/disable/devtools/popups), `room`, `account`, `http` (local API via `ACFRAME_API_PORT`), `console`, and generic `on`/`off` for events.
+- Exposes `window.electronApi` with modules: `dialog`, `fs`, `login`, `window` (minimize/maximize/close), `system`, `overlay`, `plugin` (install/uninstall/enable/disable/devtools), `room`, `account`, `http` (local API via `ACFRAME_API_PORT`), `console`, and generic `on`/`off` for events.
+- Plugin popup capability is not implemented; use `overlay` or in-app routing instead.
 - Renderer must call Preload APIs; direct Node/Electron access in renderer is disallowed.
 
 ### Local HTTP API Server

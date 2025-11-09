@@ -11,6 +11,8 @@ import { LogManager } from '../logging/LogManager';
 import { DiagnosticsService } from '../logging/DiagnosticsService';
 import * as fs from 'fs';
 import { pluginLifecycleManager } from '../plugins/PluginLifecycle';
+import { DataManager } from '../persistence/DataManager';
+import PluginPageStatusManager from '../persistence/PluginPageStatusManager';
 
 /**
  * Initializes all IPC handlers for the main process.
@@ -28,6 +30,9 @@ export function initializeIpcHandlers(
   diagnosticsService: DiagnosticsService
 ) {
   console.log('[IPC] Initializing IPC handlers...');
+  const dataManager = DataManager.getInstance();
+  const pageStatusManager = PluginPageStatusManager.getInstance();
+  const monitoringSubscriptions = new Map<number, Map<string, () => void>>();
 
   ipcMain.handle('add-room', (event, roomId: string) => {
     console.log(`[IPC] Received request to add room: ${roomId}`);
@@ -132,6 +137,54 @@ export function initializeIpcHandlers(
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error?.message || String(error) };
+    }
+  });
+
+  // --- Monitoring: Plugin Page Status ---
+  ipcMain.handle('monitoring.pageStatus.query', async (event, pluginId?: string) => {
+    try {
+      return { success: true, data: pageStatusManager.querySnapshot(pluginId) };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  ipcMain.handle('monitoring.pageStatus.listen', async (event, pluginIdRaw: string) => {
+    try {
+      const pluginId = String(pluginIdRaw || '').trim();
+      if (!pluginId) {
+        return { success: false, error: 'invalid_plugin_id' };
+      }
+      const wcId = event.sender.id;
+      let byPlugin = monitoringSubscriptions.get(wcId);
+      if (!byPlugin) { byPlugin = new Map(); monitoringSubscriptions.set(wcId, byPlugin); }
+      const existing = byPlugin.get(pluginId);
+      if (existing) { try { existing(); } catch {} byPlugin.delete(pluginId); }
+
+      const channel = `plugin:${pluginId}:page-status`;
+      const unsub = dataManager.subscribe(channel, (rec: any) => {
+        try { event.sender.send('monitoring.pageStatus.updated', { pluginId, record: rec }); } catch {}
+      }, undefined);
+      byPlugin.set(pluginId, unsub);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  });
+
+  ipcMain.handle('monitoring.pageStatus.unlisten', async (event, pluginIdRaw: string) => {
+    try {
+      const pluginId = String(pluginIdRaw || '').trim();
+      if (!pluginId) {
+        return { success: false, error: 'invalid_plugin_id' };
+      }
+      const wcId = event.sender.id;
+      const byPlugin = monitoringSubscriptions.get(wcId);
+      const unsub = byPlugin?.get(pluginId);
+      if (unsub) { try { unsub(); } catch {} byPlugin?.delete(pluginId); }
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
     }
   });
 
@@ -655,51 +708,7 @@ export function initializeIpcHandlers(
     }
   });
 
-  // --- Plugin Popup System ---
-  
-  // 创建插件弹窗
-  ipcMain.handle('plugin.popup.create', async (_event, pluginId: string, options: any) => {
-    try {
-      const api = pluginManager.getApi(pluginId);
-      const popupId = await api.popup.create(options);
-      return { success: true, data: { popupId } };
-    } catch (err: any) {
-      return { success: false, error: err?.message || String(err) };
-    }
-  });
-
-  // 关闭插件弹窗
-  ipcMain.handle('plugin.popup.close', async (_event, pluginId: string, popupId: string) => {
-    try {
-      const api = pluginManager.getApi(pluginId);
-      const result = await api.popup.close(popupId);
-      return { success: true, data: { closed: result } };
-    } catch (err: any) {
-      return { success: false, error: err?.message || String(err) };
-    }
-  });
-
-  // 处理插件弹窗动作
-  ipcMain.handle('plugin.popup.action', async (_event, pluginId: string, popupId: string, actionId: string) => {
-    try {
-      const api = pluginManager.getApi(pluginId);
-      const result = await api.popup.action(popupId, actionId);
-      return { success: true, data: { handled: result } };
-    } catch (err: any) {
-      return { success: false, error: err?.message || String(err) };
-    }
-  });
-
-  // 将插件弹窗置于前台
-  ipcMain.handle('plugin.popup.bringToFront', async (_event, pluginId: string, popupId: string) => {
-    try {
-      const api = pluginManager.getApi(pluginId);
-      const result = await api.popup.bringToFront(popupId);
-      return { success: true, data: { focused: result } };
-    } catch (err: any) {
-      return { success: false, error: err?.message || String(err) };
-    }
-  });
+  // --- Plugin Popup System 已移除 ---
 
   // --- Overlay System ---
 

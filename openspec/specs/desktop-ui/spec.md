@@ -145,6 +145,8 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **THEN** PluginFramePage component loads the specified plugin using Wujie micro-frontend
 - **AND** plugin operates in isolated environment with controlled API access
 - **AND** plugin popup and overlay functionality remains available
+ - **AND** plugin overlay functionality SHALL remain available
+ - **AND** plugin popup functionality SHALL NOT be implemented
 
 #### Scenario: Plugin navigation preservation
 - **WHEN** plugins require sub-routing or navigation
@@ -153,7 +155,7 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **AND** plugin state is preserved during navigation within plugin context
 
 ### Requirement: Home Right Pane 2×2 Card Grid
-首页右侧内容区域（不含左侧导航与头部外壳）必须在 792×704 视口下以 2×2 卡片栅格（A,B,C,D）呈现，且无纵向滚动。
+首页右侧内容区域（不含左侧导航与头部外壳）MUST 在 792×704 视口下以 2×2 卡片栅格（A,B,C,D）呈现，且无纵向滚动。
 
 #### Scenario: Fixed viewport layout
 - **WHEN** 用户在 792×704 视口查看首页
@@ -166,7 +168,7 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **THEN** 不存在右侧区域的持久化顶部快捷操作条
 
 ### Requirement: Card A — Welcome and Single Primary Action
-卡片 A 仅包含欢迎文案与一个“按角色”主行动按钮，点击后路由到对应页面。
+卡片 A MUST 仅包含欢迎文案与一个“按角色”主行动按钮，点击后路由到对应页面。
 
 #### Scenario: Role-based CTA routing
 - **WHEN** 用户点击卡片 A 的主行动按钮
@@ -175,7 +177,7 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **AND** 若角色为开发，路由至 `/debugger`
 
 ### Requirement: Card B — Account Information and Login/Logout
-卡片 B 展示账户信息；未登录时显示登录按钮；已登录时显示用户名、UID（可复制且有成功提示）、签名（两行截断）、粉丝数（紧凑格式）与退出登录按钮。
+卡片 B MUST 展示账户信息；未登录时显示登录按钮；已登录时显示用户名、UID（可复制且有成功提示）、签名（两行截断）、粉丝数（紧凑格式）与退出登录按钮。
 
 #### Scenario: Not logged in
 - **WHEN** `auth.isLoggedIn=false`
@@ -186,7 +188,7 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **THEN** 显示用户名、UID（可复制并提示成功）、签名（两行截断，空则显示“暂无签名”）、粉丝数（紧凑格式）与“退出登录”按钮
 
 ### Requirement: Card C — Role-Driven Overview with 7d/30d Toggle
-卡片 C 根据角色展示不同的历史概览，并提供 `7d/30d` 范围切换，仅影响 C 卡的数据加载。
+卡片 C MUST 根据角色展示不同的历史概览，并提供 `7d/30d` 范围切换，仅影响 C 卡的数据加载。
 
 #### Scenario: Anchor overview
 - **WHEN** 角色为主播
@@ -205,7 +207,7 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **THEN** 仅重新加载 C 卡对应范围的数据，不影响其他卡片
 
 ### Requirement: Card D — Docs Quicklinks
-卡片 D 展示文档列表的前 3 项，且提供“查看更多”链接。
+卡片 D MUST 展示文档列表的前 3 项，且提供“查看更多”链接。
 
 #### Scenario: Docs list and more
 - **WHEN** 成功获取文档列表
@@ -213,7 +215,7 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **AND** 提供“查看更多”链接到 `/docs`（或外部文档枢纽）
 
 ### Requirement: First Login Role Selection Dialog
-首次登录且无持久化角色时必须弹出角色选择对话框；确认后持久化并驱动右侧卡片重渲染。头像下拉菜单的角色切换同样驱动卡片重渲染。
+首次登录且无持久化角色时 MUST 弹出角色选择对话框；确认后 MUST 持久化并驱动右侧卡片重渲染。头像下拉菜单的角色切换同样驱动卡片重渲染。
 
 #### Scenario: First login role dialog
 - **WHEN** `GET_ROLE` 返回 `null`
@@ -224,7 +226,7 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **THEN** 更新 `role.current` 并触发 2×2 卡片区域重新渲染
 
 ### Requirement: Per-card Loading and Error Handling
-各卡片独立显示加载骨架与错误横幅，并提供重试，不互相阻塞。`401` 的处理在卡片 B 上显示登录按钮，其他卡片显示空态与单 CTA。
+各卡片 MUST 独立显示加载骨架与错误横幅，并提供重试，不互相阻塞。`401` 的处理在卡片 B 上显示登录按钮，其他卡片显示空态与单 CTA。
 
 #### Scenario: Card-specific loading and retry
 - **WHEN** 卡片数据加载中或失败
@@ -235,10 +237,103 @@ The system SHALL maintain plugin system compatibility through router-based acces
 - **THEN** 卡片 B 显示登录按钮；其他卡片显示空态与单一 CTA
 
 ### Requirement: Transport Selector (IPC → HTTP → Mock)
-优先使用主进程 IPC 通道；不可用时回退 HTTP；最后使用 Mock。各端点需遵循 `ui-main.json` 的 `request_transform`/`response_transform`。
+传输选择器 MUST 优先使用主进程 IPC 通道；不可用时 MUST 回退到 HTTP；最后 MUST 使用 Mock。各端点 MUST 遵循 `ui-main.json` 的 `request_transform`/`response_transform`。
 
 #### Scenario: Boot sequence and transport
 - **WHEN** 页面初始化
 - **THEN** 执行引导序列：`GET_ROLE → GET_USER → (按角色并行) GET_ANCHOR_STATS/GET_MOD_ROOMS/GET_DEV_METRICS → GET_DOCS`
 - **AND** 传输优先级按 IPC → HTTP → Mock 执行；字段映射遵循 transform 规则
 
+### Requirement: Desktop UI Does Not Provide Plugin Popups
+The desktop UI SHALL NOT provide plugin popup windows for plugins.
+
+#### Scenario: No popup creation entrypoints
+- **WHEN** a plugin attempts to create a popup window via UI entrypoints
+- **THEN** no such entrypoints exist in the desktop UI
+- **AND** attempts to trigger popup creation SHALL be ignored or surfaced as "not supported" in plugin APIs
+### Requirement: Renderer Frame Pass-through (Wujie eventBus)
+Renderer frames SHALL only relay store updates, lifecycle events, and inter-end messages to inner HTML via Wujie eventBus using namespaced event names.
+
+#### Scenario: Store update relay
+- WHEN main-process publishes a store update for `<pluginId>`,
+- THEN the frame receives it via IPC and `$emit('plugin:<pluginId>:store-update', payload)` to the inner page.
+
+#### Scenario: Lifecycle relay
+- WHEN main-process publishes a lifecycle event (start/login/begin-live/fetch-danmu/stop-live/logout/stop-danmu/exit) for `<pluginId>`,
+- THEN the frame `$emit('plugin:<pluginId>:lifecycle', payload)` to the inner page.
+
+#### Scenario: Inter-end message relay (UI/window → overlay)
+- WHEN UI/window sends a message via HTTP `POST /api/plugins/<pluginId>/overlay/messages`,
+- THEN the message center delivers it over SSE to the overlay frame,
+- AND the frame `$emit('plugin:<pluginId>:overlay-message', payload)` to the inner overlay HTML.
+
+### Requirement: Overlay Link and SSE Base Alignment
+UI SHALL build overlay links and SSE URLs using the ApiServer base from bridge (`get-api-base`).
+
+#### Scenario: Build overlay link
+- WHEN UI needs an overlay link for `<pluginId>`,
+- THEN it uses `/overlay-wrapper?plugin=<pluginId>&type=overlay` on the Api base,
+- AND copies the absolute URL for use in OBS browser source.
+
+#### Scenario: SSE subscription in frame
+- WHEN overlay frame subscribes to messages,
+- THEN it opens `GET /sse/plugins/<pluginId>/overlay` on the Api base and relies on SSE auto-reconnect with `Last-Event-ID`,
+- AND re-emits all incoming SSE messages to inner HTML via Wujie eventBus.
+
+### Requirement: Remove manual overlay controls in UI
+UI SHALL not expose manual overlay lifecycle controls (create/update/close/show/hide/bring-to-front/list).
+
+#### Scenario: Message-only controls
+- WHEN users interact with UI/window to send messages to overlay,
+- THEN the frame forwards a message request to the main-process via HTTP/IPC; no lifecycle controls are shown.
+- **WHEN** a user navigates the UI to open a plugin
+- **THEN** the system SHALL NOT open a separate BrowserWindow via a "plugin popup" mechanism.
+
+#### Scenario: Overlay remains available in UI
+- **WHEN** floating overlay behavior is needed
+- **THEN** the UI SHALL utilize overlay capabilities; popup windows are not implemented.
+
+### Requirement: Overlay Presence per Browser Source
+The desktop UI SHALL mount exactly one overlay per browser source. The UI MUST NOT implement overlay stacking, z-index layer management, or multi-overlay toggles.
+
+#### Scenario: Single overlay across navigation
+- **WHEN** the user navigates between plugin pages or toggles visibility
+- **THEN** the system SHALL keep one overlay instance for the source
+- **AND** MUST NOT create additional overlays nor expose stacking APIs
+
+### Requirement: Wujie Acceptance in Overlay
+The overlay context MUST accept UI/Window requests through Wujie. UI/Window MUST use HTTP endpoints to request overlay actions; reverse HTTP from Overlay to UI/Window MUST NOT exist.
+
+#### Scenario: UI → Overlay request path via Wujie
+- **WHEN** UI calls an overlay action through HTTP
+- **THEN** Wujie SHALL route the action into the overlay context
+- **AND** the overlay SHALL process it and MAY emit events via Wujie back to UI/Window
+
+### Requirement: Overlay Demo Panel Status Display
+The desktop UI MUST show the current registration status for the selected overlay (`registered` / `unregistered`). The status SHOULD update in real time.
+
+#### Scenario: Update status via SSE action
+- **WHEN** an SSE event with `eventType: 'action'` and `type: 'overlay-registered'` arrives
+- **THEN** the UI shows the overlay as `registered`
+- **AND WHEN** a subsequent event with `type: 'overlay-unregistered'` arrives
+- **THEN** the UI shows the overlay as `unregistered`
+
+#### Scenario: Fallback via IPC broadcast
+- **WHEN** SSE action forwarding is unavailable
+- **THEN** the UI subscribes to a main-process IPC broadcast `overlay.action`
+- **AND** mirrors status updates based on the broadcast payloads
+
+### Requirement: Message Input and Send
+The desktop UI MUST provide a text input and a send button to push messages to the overlay via `overlay.send(overlayId, 'demo-message', payload)` or `POST /api/overlay/:overlayId/send`.
+
+#### Scenario: Send message and overlay displays it
+- **WHEN** the user enters text and clicks the send button
+- **THEN** the UI calls `overlay.send(overlayId, 'demo-message', { text })`
+- **AND** the overlay messages pane displays the content via SSE `message`
+
+### Requirement: Overlay Link Generation and Copy
+The desktop UI MUST generate the overlay URL and provide copy-to-clipboard functionality, preserving required query parameters (e.g., room, token).
+
+#### Scenario: Copy URL to clipboard
+- **WHEN** the user clicks `Copy link`
+- **THEN** the overlay URL (with required params) is written to the clipboard

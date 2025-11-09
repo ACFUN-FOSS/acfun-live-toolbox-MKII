@@ -543,7 +543,7 @@
             "res": {
                 "ok": "boolean"
             },
-            "usage": "插件弹窗（弹幕/运营面板）"
+            "usage": "打开 Overlay 页面或跳转插件自路由（不提供独立弹窗）"
         }
     ],
     "http_contracts": [
@@ -563,7 +563,7 @@
     "plugin_integration": {
         "routing": "/plugins/:id/*（强制前缀）",
         "settings_entry": "由插件注册自身 settings 路由，非全局设置页托管",
-        "popup_window": "BrowserWindow（弹幕/Overlay/运营面板）",
+        "popup_window": "不实现插件弹窗；使用 Overlay 或插件自路由",
         "enable_fuse": "主进程插件熔断保护"
     },
     "overlay": {

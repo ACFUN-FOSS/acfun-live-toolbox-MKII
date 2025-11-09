@@ -200,6 +200,55 @@ await api.danmu.startDanmu(liverUID, (event) => {
 });
 ```
 
+## Overlay 集成（SSE 消息中心）
+
+### 架构与通道
+
+- 插件页（UI/Window）通过 HTTP 入队发送消息到 Overlay：`POST /api/plugins/:pluginId/overlay/messages`
+- Overlay 页面通过 SSE 订阅插件级消息中心：`GET /sse/plugins/:pluginId/overlay`（支持 `Last-Event-ID` 与心跳）
+- 预加载层仅暴露：`window.overlayApi.send(event, payload)` 与 `window.overlayApi.action(type, payload)`
+- Overlay 存在/心跳：加载完成与卸载前通过 `action('overlay-loaded'|'overlay-unloaded')` 上报；在线状态由 SSE 心跳维护。
+
+### 生成与分享链接（OBS 浏览器源）
+
+- 推荐链接：`GET /overlay-wrapper?plugin=<pluginId>&type=overlay`（宿主生成，注入 Wujie 兼容 props）
+- 历史兼容：`GET /overlay/:overlayId?room=:roomId&token=:token`
+
+### UI/Window → Overlay 发送示例
+
+```javascript
+// 优先使用预加载桥
+window.electronApi?.overlay?.send(overlayId, 'demo-message', { text: 'hello' });
+
+// 回退到 HTTP 入队
+await fetch(`/api/plugins/${pluginId}/overlay/messages`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ event: 'demo-message', payload: { text: 'hello' } })
+});
+```
+
+### Overlay 页面订阅 SSE 示例
+
+```javascript
+const es = new EventSource(`/sse/plugins/${pluginId}/overlay`);
+es.addEventListener('init', (ev) => { renderSnapshot(JSON.parse(ev.data)); });
+es.addEventListener('update', (ev) => { renderSnapshot(JSON.parse(ev.data)); });
+es.addEventListener('message', (ev) => { appendMessage(JSON.parse(ev.data)); });
+
+// 生命周期上报
+window.overlayApi.action('overlay-loaded', { overlayInstanceId });
+window.addEventListener('beforeunload', () => {
+  window.overlayApi.action('overlay-unloaded', { overlayInstanceId });
+});
+```
+
+### 约束与最佳实践
+
+- Overlay 不直接向 UI/Window 发起 HTTP；双向通信通过 SSE 与事件总线完成
+- 不使用 mock；使用真实 SSE/HTTP 通道进行端到端集成
+- 不在前端直接控制显示/隐藏/置顶/关闭；创建与生命周期由宿主按单实例策略管理
+
 ## 故障排除指南
 
 ### 常见问题

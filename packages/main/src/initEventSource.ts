@@ -27,8 +27,10 @@ export async function initEventSourceServices() {
 
     // 监听房间状态变化
     const dataManager = DataManager.getInstance();
-    dataManager.subscribe('room:change', 'eventSource', 'main', async (data: any) => {
-      const roomId = data.value;
+    // 订阅房间变化（统一消息中心签名：channel, subscriber, sinceId?）
+    dataManager.subscribe('room:change', async (record: { payload: any }) => {
+      const payload = record?.payload;
+      const roomId = (payload && (payload.roomId ?? payload.value)) ?? payload;
       logManager.addLog('eventSource', `Connecting to room ${roomId}`, 'info');
       try {
         await danmuEventSourceConnector.connectToRoom(roomId);

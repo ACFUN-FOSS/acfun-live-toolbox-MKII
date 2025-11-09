@@ -154,12 +154,7 @@ declare global {
         enableHotReload: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
         disableHotReload: (pluginId: string) => Promise<{ success: boolean; error?: string }>;
         testConnection: (config: any) => Promise<{ success: boolean; error?: string }>;
-        popup: {
-          create: (pluginId: string, options: any) => Promise<{ success: boolean; popupId?: string; error?: string }>;
-          close: (pluginId: string, popupId: string) => Promise<{ success: boolean; error?: string }>;
-          action: (pluginId: string, popupId: string, actionId: string) => Promise<{ success: boolean; error?: string }>;
-          bringToFront: (pluginId: string, popupId: string) => Promise<{ success: boolean; error?: string }>;
-        };
+        // 弹窗能力已移除：不再暴露 plugin.popup
       };
       wujie: {
         getUIConfig: (

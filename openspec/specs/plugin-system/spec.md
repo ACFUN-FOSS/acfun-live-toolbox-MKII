@@ -3,6 +3,19 @@
 ## Purpose
 TBD - created by archiving change add-a3-plugin-first-desktop-ui. Update Purpose after archive.
 ## Requirements
+### Requirement: Plugin Popup Capability Removal
+The system SHALL NOT implement plugin popup BrowserWindow capability. Plugins MUST host user interfaces via in-app router pages or Overlay windows.
+
+#### Scenario: No preload exposure and IPC channels
+- **WHEN** inspecting preload API exposure
+- **THEN** `window.electronApi.plugin.popup.*` MUST NOT be present
+- **AND** corresponding `plugin.popup.*` IPC channels MUST NOT exist in the main process
+
+#### Scenario: Overlay and router alternatives remain supported
+- **WHEN** plugins require UI surfaces
+- **THEN** overlay API via `window.electronApi.overlay.*` SHALL provide only `send` and `action` exposures
+- **AND** router-based plugin frames SHALL remain available via `/plugins/:id`
+
 ### Requirement: Plugin UI Integration
 The system SHALL integrate plugin user interfaces seamlessly into the main desktop application using micro-frontend technology.
 
@@ -141,3 +154,95 @@ The system SHALL provide comprehensive error handling and recovery mechanisms fo
 - WHEN 插件列表包含 `id/name/version/description/author/enabled/status/installedAt/manifest`
 - THEN 渲染层 SHALL 将 `enabled/active` 映射为 `active`，`installed/disabled/inactive` 映射为 `inactive`，错误态映射为 `error`
 
+### Requirement: Plugin Popup Capability Not Implemented
+The system SHALL NOT provide a BrowserWindow-based plugin popup capability.
+
+#### Scenario: No popup API exposed
+- **WHEN** a plugin attempts to access `window.electronApi.plugin.popup.*`
+- **THEN** such APIs SHALL NOT be present or SHALL respond with a standardized "not supported" indication.
+
+#### Scenario: No popup IPC channels
+- **WHEN** inspecting preload/main IPC handlers for `plugin.popup.*`
+- **THEN** no such channels SHALL exist in the implementation.
+
+#### Scenario: Overlay remains available
+- **WHEN** a plugin requires floating UI behavior
+- **THEN** the overlay capability remains available and SHALL be used as the recommended alternative.
+
+### Requirement: Wujie Event Bus Integration
+Wujie SHALL act as the framework event bus to bridge readonly store SSE updates and main-process lifecycle/event hooks into plugin contexts (UI, Overlay, Window). Plugins MUST consume a unified event envelope and MUST NOT mutate readonly data.
+
+#### Scenario: Store change SSE → plugin contexts
+- **WHEN** the readonly store emits a change via SSE
+- **THEN** Wujie re-emits an envelope `{ type: 'store-change', payload }` to UI, Overlay, and Window contexts
+- **AND** plugins SHALL handle the unified structure without direct SSE handling
+
+#### Scenario: Main lifecycle hook propagation
+- **WHEN** the main process emits lifecycle/event hooks
+- **THEN** Wujie broadcasts `{ type: 'main-lifecycle', hook, payload }` to all plugin contexts
+- **AND** plugins MUST receive consistently via Wujie event bus
+
+### Requirement: One-way UI/Window → Overlay communication
+UI/Window MUST send informational or control requests to Overlay via HTTP message endpoint; Overlay SHALL accept messages via SSE (from message center) and MAY emit acknowledgement via Wujie event bus. Overlay MUST NOT initiate direct HTTP requests to UI or Window.
+
+#### Scenario: UI triggers overlay effect via HTTP
+- **WHEN** UI performs `POST /api/plugins/<pluginId>/overlay/messages`
+- **THEN** DataManager enqueues the message and SSE routes it to Overlay; Overlay applies changes
+- **AND** Overlay MAY emit `{ type: 'overlay-ack', event, payload }` via Wujie, not HTTP
+
+### Requirement: Single Overlay Instance per Browser Source
+Each browser source MUST load exactly one Overlay instance. Overlay management SHALL be idempotent and MUST NOT expose creation/hide/remove/layer stacking operations.
+
+#### Scenario: Duplicate overlay creation request
+- **WHEN** a request attempts to create another overlay for the same browser source
+- **THEN** the system SHALL reuse the existing instance and MUST NOT create a second one
+- **AND** the system MAY return an idempotent success with the existing `overlayId`
+
+### Requirement: Example Overlay Demo Layout and Telemetry
+The example plugin overlay page MUST render a two-pane layout using shared theme CSS variables. The left pane MUST display the readonly-store overlay slice from SSE `init`/`update`, and the right pane MUST show a live message feed. The overlay MUST update the snapshot on `init`/`update` without reload and MUST append incoming `message` events with timestamps.
+
+#### Scenario: Render snapshots on init/update
+- **WHEN** an SSE `init` event is received
+- **THEN** the overlay renders the initial readonly-store overlay slice
+- **AND WHEN** an SSE `update` event is received
+- **THEN** the overlay updates the snapshot view without a full reload
+
+#### Scenario: Display messages pushed from UI
+- **WHEN** the desktop UI sends a payload via `POST /api/plugins/<pluginId>/overlay/messages`
+- **THEN** the overlay appends the payload to the messages pane with a timestamp
+
+### Requirement: Overlay Presence and Heartbeat
+The overlay MUST report presence lifecycle events to the main process via `POST /api/plugins/<pluginId>/overlay/action` using action types `overlay-loaded` and `overlay-unloaded`. Heartbeats SHALL be tracked via SSE connections.
+
+#### Scenario: Report presence on load
+- **WHEN** the overlay completes bootstrapping
+- **THEN** it POSTs an action `overlay-loaded` to `/api/plugins/<pluginId>/overlay/action` (including its `overlayInstanceId` in payload if applicable) and receives a 2xx response
+
+#### Scenario: Report offline on unload
+- **WHEN** the overlay is unloading (e.g., browser source removed or page closed)
+- **THEN** it POSTs an action `overlay-unloaded` to `/api/plugins/<pluginId>/overlay/action` and receives a 2xx response
+
+#### Scenario: SSE heartbeat updates presence
+- **WHEN** the SSE connection `GET /sse/plugins/<pluginId>/overlay` is active
+- **THEN** the server updates heartbeat timestamps and online status on each heartbeat event
+
+### Requirement: Message Handling Semantics
+The overlay MUST treat incoming messages as an append-only feed for the demo window and MUST not mutate the readonly-store snapshot in response to `message` events.
+
+#### Scenario: Keep snapshot immutable on message
+- **WHEN** a `message` event arrives with arbitrary payload
+- **THEN** the overlay updates only the messages pane and leaves the readonly snapshot unchanged
+
+### Requirement: Central Message Center for Plugin Overlay
+The system SHALL use a unified main-process message center (DataManager) to publish/subscribe plugin events: store updates, lifecycle notifications, and overlay messages.
+
+#### Scenario: UI sends message before overlay opens
+- **WHEN** a UI/window posts `POST /api/plugins/<pluginId>/overlay/messages` with a payload
+- **THEN** the main-process enqueues the message under `<pluginId>` with a unique `id` and `timestamp`
+- **AND WHEN** the overlay connects to `GET /sse/plugins/<pluginId>/overlay`
+- **THEN** the queued messages are delivered in order, at-least-once, with replay support
+
+#### Scenario: Overlay reconnects and resumes
+- **WHEN** an overlay reconnects using SSE with `Last-Event-ID`
+- **THEN** the server resumes delivery from the last acknowledged `id`
+- **AND** missing messages within the retention window SHALL be replayed

@@ -17,6 +17,7 @@
   storage: StorageAPI,    // 数据存储
   config: ConfigAPI,      // 配置管理
   ui: UIAPI,             // 用户界面
+  overlay: OverlayAPI,    // 叠加层消息中心
   http: HttpAPI,         // HTTP 请求
   utils: UtilsAPI,       // 工具函数
   auth: AuthAPI,         // 认证管理 (新增)
@@ -755,6 +756,69 @@ panel.hide();
 // 销毁面板
 panel.destroy();
 ```
+
+## OverlayAPI - 叠加层消息中心
+
+插件级 Overlay 使用“消息中心 + SSE”架构：UI/Window 端通过 HTTP 入队发送消息到 Overlay；Overlay 页面仅通过 SSE 订阅消息与状态，不再支持直接控制（显示/隐藏/置顶/关闭/更新）。
+
+### 方法
+
+#### `send(event, payload?, options?)`
+
+向当前插件的 Overlay 入队一条消息。宿主将通过 SSE 投递到 Overlay 页面。
+
+**参数:**
+- `event` (string): 事件名称（建议加语义前缀，如 `demo-message`）
+- `payload` (any, 可选): 事件负载（可序列化对象）
+- `options` (object, 可选): 发送选项
+  - `pluginId` (string, 可选): 目标插件 ID，默认当前插件
+
+**返回值:**
+- `Promise<{ id: string; queued: boolean; timestamp: number }>`: 入队确认
+
+**示例:**
+```javascript
+// 标准用法：抽象 API 自动选择预加载桥或 HTTP 入队
+await this.api.overlay.send('demo-message', { text: 'hello' });
+
+// 发送后可提示用户
+this.api.ui.showNotification({
+  title: 'Overlay 已入队',
+  message: '消息已发送到 Overlay',
+  type: 'info'
+});
+```
+
+#### `getLink(options?)`
+
+获取 OBS 浏览器源可用的 Overlay 包裹链接。
+
+**参数:**
+- `options` (object, 可选): 链接选项
+  - `pluginId` (string, 可选): 插件 ID，默认当前插件
+  - `params` (object, 可选): 额外查询参数（将附加到链接）
+
+**返回值:**
+- `string`: `GET /overlay-wrapper?plugin=<pluginId>&type=overlay` 形式的链接
+
+**示例:**
+```javascript
+const url = this.api.overlay.getLink();
+await this.api.storage.set('overlayLink', url);
+this.api.logger.info('Overlay 链接', { url });
+```
+
+### 废弃的 API（已移除）
+
+- `close()`、`update()`、`show()`、`hide()`、`bringToFront()`、`list()` 等直接控制方法
+
+这些能力现由宿主按“单实例策略”与状态中心统一管理，插件侧仅通过消息与 SSE 进行通信。
+
+### 行为约束
+
+- Overlay 页面不直接向 UI/Window 发起 HTTP 调用；双向通信通过 SSE 与事件总线完成
+- 不使用 mock；端到端集成以真实 SSE/HTTP 通道为准
+- 消息发送优先使用预加载桥；不可用时回退到 HTTP 入队
 
 ## HttpAPI - HTTP 请求
 

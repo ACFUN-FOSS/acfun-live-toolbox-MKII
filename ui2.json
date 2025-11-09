@@ -756,7 +756,7 @@
     "plugin_integration": {
         "routing": "/plugins/:id/*（强制前缀）",
         "settings_entry": "插件注册自身 settings 子路由，非全局 /settings 托管",
-        "popup_window": "BrowserWindow（弹幕/Overlay/运营面板）",
+        "popup_window": "不实现插件弹窗；使用 Overlay 或插件自路由",
         "enable_fuse": "主进程插件熔断保护；异常隔离",
         "messaging": "postMessage + IPC 代理高权限动作；渲染端与插件不可读 token"
     },

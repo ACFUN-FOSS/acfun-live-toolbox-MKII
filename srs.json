@@ -172,7 +172,7 @@
 ],
 "routeInjection": "/plugins/\:id/*（强制前缀）【message\_idx†source】",
 "overlayInjection": "/overlay/\:overlayId（express 托管静态 + 路由）【message\_idx†source】",
-"popupWindows": "插件可请求以弹出窗口形式打开（弹幕显示亦走插件）。【message\_idx†source】",
+"popupWindows": "不实现插件弹窗；使用 Overlay 或插件自路由承载（弹幕显示亦走插件）。【message\_idx†source】",
 "isolation": "插件间完全隔离，无法直接通信或共享状态"
 },
 "capabilities": {
@@ -219,7 +219,7 @@
 "citations": \["【message\_idx†source】","【message\_idx†source】","【message\_idx†source】"]
 },
 "uiUx": {
-"desktopLayout": "A3 插件优先版改造：左栏账号/房间/状态；中区插件列表与管理；顶部或底部仅显示最新一条弹幕；支持弹出式插件窗口（含弹幕显示插件）。【message\_idx†source】",
+"desktopLayout": "A3 插件优先版改造：左栏账号/房间/状态；中区插件列表与管理；顶部或底部仅显示最新一条弹幕；不提供插件弹窗；使用 Overlay 或插件自路由承载（含弹幕显示插件）。【message\_idx†source】",
 "webConsole": "同局域网访问 /console，提供轻量场控与插件入口。"
 }
 },
@@ -316,7 +316,7 @@
 "layout": "A3 插件优先",
 "leftPane": \["账号卡片+扫码登录","房间列表(≤3)及状态/速率","服务状态(WS/SQLite/HTTP port)"],
 "centerPane": \["插件卡片列表","插件管理（安装/启用/禁用/诊断）","Settings/Logs Tabs"],
-"banner": "最新一条弹幕（可展开最近20条；一键打开“弹幕显示插件”弹窗）",
+"banner": "最新一条弹幕（可展开最近20条；一键打开“弹幕显示插件”页面或复制 Overlay 链接）",
 "citations": \["【message\_idx†source】"]
 },
 "webConsole": {
@@ -428,7 +428,7 @@
 "按时间/房间导出 CSV 正确；包含默认字段且文件可被常见表格工具打开。"
 ],
 "uiUx": \[
-"A3 布局生效；插件弹出窗口可用；最新一条弹幕正常刷新。"
+"A3 布局生效；插件页面与 Overlay 可用；最新一条弹幕正常刷新。"
 ]
 },
 "risksAndMitigations": {

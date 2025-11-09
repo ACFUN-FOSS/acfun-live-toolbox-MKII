@@ -109,6 +109,18 @@ export class OverlayManager extends EventEmitter {
    */
   async createOverlay(options: OverlayOptions): Promise<OverlayCreateResult> {
     try {
+      // 单实例策略：同一插件 + 同类型（默认 default）只允许一个实例，幂等返回现有 ID
+      if (options.pluginId) {
+        const targetType = options.type || 'default';
+        const existing = Array.from(this.overlays.values()).find(
+          (o) => o.pluginId === options.pluginId && o.type === targetType
+        );
+        if (existing) {
+          // 返回已存在的 overlayId，避免重复创建
+          return { success: true, overlayId: existing.id };
+        }
+      }
+
       // 生成唯一ID
       const overlayId = options.id || uuidv4();
       
@@ -330,6 +342,12 @@ export class OverlayManager extends EventEmitter {
 
       const message: OverlayMessagePayload = { overlayId, event, payload };
       this.emit('overlay-message', message);
+      // 消息属于状态变化语义：刷新 updatedAt 并广播更新
+      try {
+        const updated: OverlayState = { ...overlay, updatedAt: Date.now() };
+        this.overlays.set(overlayId, updated);
+        this.emit('overlay-updated', updated);
+      } catch {}
       return { success: true };
     } catch (error: any) {
       return {
@@ -359,6 +377,13 @@ export class OverlayManager extends EventEmitter {
         data,
         overlay
       });
+
+      // 所有动作均视为状态接触：刷新 updatedAt 并广播更新（避免丢失时间戳）
+      try {
+        const updated: OverlayState = { ...overlay, updatedAt: Date.now() };
+        this.overlays.set(overlayId, updated);
+        this.emit('overlay-updated', updated);
+      } catch {}
 
       return { success: true };
     } catch (error: any) {

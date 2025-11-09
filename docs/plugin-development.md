@@ -4,6 +4,8 @@
 
 AcFun Live Toolbox 提供了一个强大的插件系统，允许开发者扩展应用的功能。本文档将指导您如何开发、测试和发布插件。
 
+> 迁移提示：当前版本不实现“插件弹窗”（独立 BrowserWindow）。请使用 Overlay 或应用内路由承载插件 UI。原 `plugin.popup.*` 相关预加载 API 与 IPC 通道不再提供。
+
 ## 插件结构
 
 ### 基本目录结构
@@ -60,7 +62,7 @@ your-plugin/
 
 #### 统一静态托管（UI/Window/Overlay）
 
-为便于托管插件的前端页面和资源，支持在 `manifest.json` 中为 `ui`、`window`、`overlay` 声明统一的静态托管字段：
+为便于托管插件的前端页面和资源，支持在 `manifest.json` 中为 `ui`、`window`、`overlay` 声明统一的静态托管字段（注意：`window` 仅作为内嵌页面路由使用，不对应独立弹窗窗口）：
 
 ```json
 {
@@ -93,10 +95,36 @@ your-plugin/
 - `wujie`: 兼容历史字段，用于声明 Wujie 微前端入口；`url` 可与上述 `route` 对齐。
 
 托管后的访问路由：
-- `GET /plugins/:id/ui[/*]`、`/plugins/:id/window[/*]`、`/plugins/:id/overlay[/*]`
+- `GET /plugins/:id/ui[/*]`、`/plugins/:id/window[/*]`（内嵌页面）、`/plugins/:id/overlay[/*]`
 - 直接入口：`GET /plugins/:id/ui.html`、`/plugins/:id/window.html`、`/plugins/:id/overlay.html`
 
 若非 SPA（`spa:false`），`/plugins/:id/<type>/<path>` 将按静态资源路径映射到插件安装目录（带安全路径校验）。
+
+#### 迁移指引：不再提供插件弹窗
+
+本版本移除了插件弹窗（独立 BrowserWindow）能力。迁移建议如下：
+
+- 打开插件页面：在应用内导航到 `/plugins/:id/*` 或插件自行注册的子路由。
+- 使用 Overlay 承载浮层：保留并使用 `api.overlay.*` 能力在 OBS 或跨设备场景中显示弹幕/运营面板。
+- 共享 Overlay 链接：遵循模式 `GET /overlay/:overlayId?room=:roomId&token=:token`（token 不过期），将链接复制到 OBS 浏览器源。
+- 清单中的 `window` 字段：仅用于声明内嵌页面路由（`/plugins/:id/window[/*]`），不再创建独立 BrowserWindow。
+- UI 行为变更：在「插件列表」中使用“打开/设置”将跳转到插件路由或设置页，不会弹出独立窗口。
+
+示例：生成并展示 Overlay 链接
+
+```javascript
+const overlayId = 'your-plugin-overlay';
+const roomId = currentRoomId;
+const token = await api.auth.getOverlayToken();
+
+// 在设置或帮助面板中展示给用户使用 OBS 复制
+const url = `/overlay/${overlayId}?room=${roomId}&token=${token}`;
+this.api.ui.showNotification({
+  title: 'Overlay 链接已生成',
+  message: url,
+  type: 'success'
+});
+```
 
 #### 权限系统
 
@@ -259,66 +287,37 @@ this.api.ui.createSettingsPanel({
 
 #### Overlay 系统 (api.overlay)
 
-Overlay 系统允许插件创建浮层窗口，支持文本、HTML 和 Vue 组件内容：
+Overlay 系统用于在浏览器源/跨端场景中承载浮层页面。当前架构采用“统一消息中心 + SSE”的通信模型，并对宿主/预加载暴露进行了收敛：
+
+- 预加载层（`window.overlayApi`）仅保留：`send(event, payload)` 与 `action(type, payload)`；不再暴露创建/显示/隐藏/置顶/关闭等操作。
+- Overlay 页面仅通过 SSE 订阅插件级消息中心：`GET /sse/plugins/:pluginId/overlay`（支持 `Last-Event-ID` 与心跳）；接收事件：`init`、`update`、`message`、`closed`。
+- UI/Window → Overlay 为单向通道：统一使用 HTTP 入队消息：`POST /api/plugins/:pluginId/overlay/messages`；Overlay 可通过事件总线（Wujie）发出确认/遥测，不直接向 UI/Window 发起 HTTP。
+- Overlay 存在与心跳：通过加载/卸载动作上报，以及 SSE 心跳维护在线状态。
+
+示例（UI 或 Window 触发 Overlay 行为）：
+```javascript
+// 发送业务消息到 Overlay（推荐使用宿主封装 API，如存在）
+await this.api.overlay.send('your-overlay-id', 'set-theme', { color: '#fff' });
+
+// 或使用通用 HTTP 接口
+await this.api.http.post(`/api/plugins/${this.id}/overlay/messages`, {
+  event: 'set-theme',
+  payload: { color: '#fff' }
+});
+```
 
 ```javascript
-// 创建文本 overlay
-const textOverlay = await this.api.overlay.create({
-  type: 'text',
-  content: '这是一个文本 overlay',
-  position: { x: 100, y: 100 },
-  size: { width: 300, height: 100 },
-  style: {
-    backgroundColor: 'rgba(0, 123, 255, 0.9)',
-    color: 'white',
-    fontSize: '16px',
-    padding: '10px',
-    borderRadius: '8px'
-  },
-  pluginId: this.id
-});
-
-// 创建 HTML overlay
-const htmlOverlay = await this.api.overlay.create({
-  type: 'html',
-  content: `
-    <div style="padding: 20px; background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: white;">
-      <h3>HTML Overlay</h3>
-      <p>这是一个 HTML 内容的 overlay</p>
-      <button onclick="window.overlayApi.action('test', {message: 'Hello!'})">
-        点击测试
-      </button>
-    </div>
-  `,
-  position: { x: 200, y: 150 },
-  size: { width: 350, height: 200 },
-  pluginId: this.id
-});
-
-// 创建组件 overlay
-const componentOverlay = await this.api.overlay.create({
+// 生成 Overlay 链接（宿主侧可能提供的封装；具体字段依插件而定）
+const overlayLink = await this.api.overlay.create({
   type: 'component',
-  content: 'MyOverlayComponent', // 组件名称
-  props: {
-    title: '组件 Overlay',
-    message: '这是一个 Vue 组件 overlay',
-    data: { key: 'value' }
-  },
-  position: { x: 300, y: 200 },
-  size: { width: 400, height: 250 },
-  style: {
-    borderRadius: '12px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-  },
+  content: 'MyOverlayComponent',
+  props: { title: '组件 Overlay', data: { key: 'value' } },
   pluginId: this.id
 });
+// 注意：创建由宿主统一管理为单实例策略，前端不直接控制显示/隐藏/置顶/关闭。
 
-// 更新 overlay
-await this.api.overlay.update(overlayId, {
-  content: '更新后的内容',
-  position: { x: 150, y: 150 },
-  props: { title: '新标题' }
-});
+// 发送业务消息到 Overlay（单向）
+await this.api.overlay.send('your-overlay-id', 'update-data', { key: 'value' });
 
 // 显示/隐藏 overlay
 await this.api.overlay.show(overlayId);
@@ -399,35 +398,169 @@ const overlayOptions = {
 
 ##### Overlay 内部 API
 
-在 HTML 和组件 overlay 中，可以使用 `window.overlayApi` 对象：
+在 HTML/组件 Overlay 页面中，预加载桥仅暴露以下方法：
 
 ```javascript
-// 在 HTML overlay 中
-window.overlayApi.close();                    // 关闭当前 overlay
-window.overlayApi.action('test', data);       // 发送动作到插件
-window.overlayApi.update({ content: '...' }); // 更新 overlay
+// 发送业务消息（UI/Window → Overlay 单向链路由主进程转发）
+window.overlayApi.send('event-name', { /* payload */ });
 
-// 在 Vue 组件中
-export default {
-  methods: {
-    closeOverlay() {
-      window.overlayApi.close();
-    },
-    
-    sendAction() {
-      window.overlayApi.action('button-click', {
-        timestamp: Date.now(),
-        data: this.componentData
-      });
-    },
-    
-    updateOverlay() {
-      window.overlayApi.update({
-        props: { ...this.$props, updated: true }
-      });
+// 上报动作（Overlay → 主进程，用于存在/心跳与生命周期）
+window.overlayApi.action('overlay-loaded', { overlayInstanceId });
+window.overlayApi.action('overlay-unloaded', { overlayInstanceId });
+```
+
+说明：不再提供 `close/update/show/hide/bringToFront/list` 等直接控制方法；这些能力由宿主统一管理，并通过只读快照与消息中心体现状态。
+
+##### Wujie 微前端 Overlay 与事件总线
+
+当在清单的 `overlay.wujie` 字段声明入口后，宿主会以 Wujie 子应用方式承载 Overlay 页面，并提供以下运行期集成能力：
+
+- Props 注入（子应用通过框架 props 接收）：
+  - `overlayId`、`pluginId`、`version`
+  - `room`、`token`
+  - `api`: `{ close(overlayId), action(action, data), update(updates) }`
+  - `initialRoute`: 当 `wujie.spa` 为 `true` 时提供初始路由
+- 共享对象：`window.__WUJIE_SHARED.readonlyStore`
+  - `readonlyStore.overlay`: 覆盖层只读快照（来自 SSE `init` 与 `update` 事件）
+- 事件总线：通过 Wujie 全局总线接收统一信封
+  - 频道：`overlay-event`
+  - 负载结构：
+    ```json
+    {
+      "type": "overlay-event",
+      "overlayId": "...",
+      "eventType": "readonly-store-init | overlay-updated | overlay-message | overlay-closed",
+      "event": "message | overlay-update | readonly-store-init | overlay-closed",
+      "payload": {}
     }
+    ```
+  - 子应用监听示例：
+    ```js
+    const bus = (window.__WUJIE && window.__WUJIE.bus) || (window.wujie && window.wujie.bus);
+    bus?.$on?.('overlay-event', (msg) => {
+      if (msg.eventType === 'readonly-store-init') {
+        // 初始化只读快照
+        const snapshot = window.__WUJIE_SHARED?.readonlyStore;
+        // ...消费 snapshot
+      } else if (msg.eventType === 'overlay-message') {
+        // 业务自定义消息
+        // msg.event / msg.payload
+      } else if (msg.eventType === 'overlay-updated') {
+        // 覆盖层数据变更
+      } else if (msg.eventType === 'overlay-closed') {
+        // 清理资源、结束订阅
+      }
+    });
+    ```
+
+##### SSE/HTTP 通道（UI/Window → Overlay 单向）
+
+- 推荐订阅：`GET /sse/plugins/:pluginId/overlay`（支持 `Last-Event-ID` 与心跳）
+  - 事件：`init`（只读快照初始值）、`update`（只读快照更新）、`message`（UI/Window 入队的业务消息）、`closed`（移除）
+- 推送业务消息（UI/Window 入队）：`POST /api/plugins/:pluginId/overlay/messages`
+  - 请求体：`{ "event": string, "payload"?: any }`
+  - 等效桥接：`electronApi.overlay.send(overlayId, event, payload)` 或 `this.api.overlay.send(overlayId, event, payload)`
+- 动作转发（Overlay → 主进程）：通过 `window.overlayApi.action(type, payload)` 封装；历史端点 `POST /api/overlay/:overlayId/action` 兼容存在，但不推荐直接调用。
+
+约束：Overlay 不允许对 UI/Window 发起直接 HTTP 调用。UI/Window → Overlay 统一通过消息中心单向推送；Overlay → 主进程通过 `action` 或事件总线进行遥测/确认。
+
+##### 单实例策略（默认类型）
+
+为避免在同一浏览器源中堆叠多个浮层，宿主对 `type: 'default'` 的 Overlay 执行按插件幂等的单实例策略：
+
+- 若同一 `pluginId + type` 已存在 Overlay，则再次 `create` 返回既有 `overlayId`，不重复创建。
+- 推荐做法：在生成 OBS 链接或打开运营面板时复用已有实例。
+- 说明：其他类型（`text`、`html`、`component`）不受此策略限制，仍按调用创建。
+
+#### 示例：Overlay 演示两栏布局与通信（示例插件 base-example）
+
+示例插件的 Overlay 演示页与 UI 页展示了端到端通信的最佳实践（基于插件级消息中心）：
+
+- 两栏布局（Overlay 页）：左侧显示只读仓库快照（来自 SSE `init`/`update`），右侧为消息日志（显示 UI 推送的业务消息）。
+- 状态显示（UI 页）：通过 Wujie 事件总线接收生命周期事件（如 `overlay-loaded`/`overlay-unloaded`），并在 UI 中展示在线状态。
+- 文本输入与发送（UI 页）：输入文本并点击“发送”，优先调用 `electronApi.overlay.send(overlayId, 'demo-message', { text })`，如不可用则回退 `POST /api/plugins/:pluginId/overlay/messages`。
+- 链接生成与复制（UI 页）：生成 `GET /overlay-wrapper?plugin=:pluginId&type=overlay` 或历史 `GET /overlay/:overlayId?room=:room&token=:token` 链接并写入剪贴板，供 OBS 浏览器源使用。
+
+参考代码片段（UI 页，消息发送与状态订阅）：
+
+```html
+<!-- 输入与发送按钮 -->
+<input id="msg-input" placeholder="输入文本" />
+<button id="btn-send">发送</button>
+<div id="status-bar">未注册</div>
+
+<script>
+  const overlayId = 'base-example-overlay';
+  const input = document.getElementById('msg-input');
+  const statusBar = document.getElementById('status-bar');
+
+  // 统一发送通道
+  async function sendMessage(text) {
+    const api = window.electronApi?.overlay;
+    const payload = { text, timestamp: Date.now() };
+    if (api?.send) return api.send(overlayId, 'demo-message', payload);
+    await fetch(`/api/plugins/${pluginId}/overlay/messages`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'demo-message', payload })
+    });
   }
-}
+
+  document.getElementById('btn-send')?.addEventListener('click', () => {
+    const text = input.value.trim();
+    if (text) sendMessage(text);
+  });
+
+  // 订阅只读快照与消息（插件级消息中心）
+  const es = new EventSource(`/sse/plugins/${pluginId}/overlay`);
+  es.addEventListener('update', (ev) => {
+    try {
+      const snapshot = JSON.parse(ev.data);
+      statusBar.textContent = snapshot?.online ? '在线' : '离线';
+    } catch {}
+  });
+</script>
+```
+
+参考代码片段（Overlay 页，快照渲染与消息日志）：
+
+```html
+<div class="pane">
+  <pre id="snapshot">{}</pre>
+  <ul id="messages"></ul>
+</div>
+<script>
+  const overlayId = new URL(location.href).pathname.split('/').pop();
+  const snapshotEl = document.getElementById('snapshot');
+  const messagesEl = document.getElementById('messages');
+
+  // SSE 订阅：只读快照与消息
+  const es = new EventSource(`/sse/plugins/${pluginId}/overlay`);
+  function renderSnapshot(obj) { snapshotEl.textContent = JSON.stringify(obj, null, 2); }
+  function appendMessage(payload) {
+    const li = document.createElement('li');
+    li.textContent = `${new Date().toLocaleTimeString()} - ${JSON.stringify(payload)}`;
+    messagesEl.appendChild(li);
+  }
+  es.addEventListener('init', (ev) => { renderSnapshot(JSON.parse(ev.data)); });
+  es.addEventListener('update', (ev) => { renderSnapshot(JSON.parse(ev.data)); });
+  es.addEventListener('message', (ev) => { appendMessage(JSON.parse(ev.data)); });
+
+  // 生命周期上报
+  window.addEventListener('load', () => {
+    fetch(`/api/overlay/${overlayId}/action`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'overlay-registered' })
+    });
+  });
+  window.addEventListener('beforeunload', () => {
+    navigator.sendBeacon(`/api/overlay/${overlayId}/action`, JSON.stringify({ action: 'overlay-unregistered' }));
+  });
+</script>
+```
+
+注意事项：
+- 不引入 mock，演示依赖真实 SSE/HTTP 与桥接能力。
+- 不启动渲染进程开发服务器，建议使用静态预览进行视觉验证。
 ```
 
 ## 事件系统

@@ -138,7 +138,7 @@ interface PluginInfoLite {
 const route = useRoute()
 const overlayData = ref<OverlayData | null>(null)
 const error = ref<ErrorInfo | null>(null)
-let websocket: WebSocket | null = null
+let eventSource: EventSource | null = null
 
 // Wujie 相关状态
 const pluginInfo = ref<PluginInfoLite | null>(null)
@@ -148,6 +148,8 @@ const wujieUrl = ref('')
 const wujieName = ref('')
 const pluginKey = ref('')
 const wujieProps = ref<Record<string, any>>({})
+let lastEventId: string | null = null
+let seenIds: Set<string> = new Set()
 
 const fetchOverlayData = async () => {
   try {
@@ -174,7 +176,11 @@ const fetchOverlayData = async () => {
       const result = await response.json()
       if (result.success) {
         overlayData.value = result.data
-        connectWebSocket(result.data.websocket_endpoint)
+
+        // 使用插件级 SSE 订阅事件并转发到 Wujie 总线
+        const oid = String((route.params.overlayId as string) || (route.query.overlayId as string) || '')
+        const pid = String(overlayData.value?.overlay?.pluginId || '')
+        connectSSE(pid, oid)
 
         // 根据 overlay.pluginId 加载插件清单，判断是否启用 Wujie Overlay
         await resolveWujieConfig()
@@ -234,10 +240,15 @@ const resolveWujieConfig = async () => {
           room: overlayData.value?.room,
           token: overlayData.value?.token,
           api: {
-            // 透传必要能力，可视需要扩展
-            close: () => window.electronApi.overlay.close(String(oid)),
-            action: (action: string, data?: any) => window.electronApi.overlay.action(String(oid), action, data),
-            update: (updates: any) => window.electronApi.overlay.update(String(oid), updates)
+            // 统一通过 HTTP：仅保留 action/send 能力
+            action: (action: string, data?: any) => {
+              const url = `/api/overlay/${encodeURIComponent(String(oid))}/action`
+              return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: String(action), data }) })
+            },
+            send: (event: string, payload?: any) => {
+              const url = `/api/plugins/${encodeURIComponent(String(pluginId))}/overlay/messages`
+              return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ overlayId: String(oid), event: String(event), payload }) })
+            }
           },
           // SPA 初始路由支持
           initialRoute: w.spa ? (w.route || '/') : undefined
@@ -255,44 +266,94 @@ const resolveWujieConfig = async () => {
   }
 }
 
-const connectWebSocket = (endpoint: string) => {
+// 初始化共享对象供 Wujie 子应用读取（与 overlay-wrapper 保持一致）
+;(window as any).__WUJIE_SHARED = (window as any).__WUJIE_SHARED || {}
+;(window as any).__WUJIE_SHARED.readonlyStore = (window as any).__WUJIE_SHARED.readonlyStore || {}
+
+const emitOverlayEvent = (payload: any) => {
   try {
-    websocket = new WebSocket(endpoint)
-    
-    websocket.onopen = () => {
-      // WebSocket connected successfully
-    }
-    
-    websocket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        handleWebSocketMessage(data)
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err)
-      }
-    }
-    
-    websocket.onclose = () => {
-      // WebSocket disconnected, attempting to reconnect
-      setTimeout(() => {
-        if (overlayData.value) {
-          connectWebSocket(overlayData.value.websocket_endpoint)
-        }
-      }, 5000)
-    }
-    
-    websocket.onerror = (err) => {
-      console.error('WebSocket error:', err)
-    }
-  } catch (err) {
-    console.error('Failed to connect WebSocket:', err)
+    // 统一通过 Wujie 全局事件总线转发到子应用（插件前缀）
+    const pid = String(overlayData.value?.overlay?.pluginId || '')
+    const eventName = `plugin:${pid}:overlay-message`
+    ;(WujieVue as any)?.bus?.$emit?.(eventName, payload)
+  } catch (e) {
+    // 总线可能尚未初始化，忽略错误
+    console.warn('[Overlay] emit overlay-event failed:', e)
   }
 }
 
-const handleWebSocketMessage = (_data: any) => {
-  // 处理 WebSocket 消息，可以根据需要更新 overlay 内容
-  // 这里可以根据消息类型更新 overlay 显示
-  // 例如：弹幕、礼物、关注等事件
+const connectSSE = (pluginId: string, overlayId: string) => {
+  try {
+    // 订阅插件级 Overlay 消息中心（支持 Last-Event-ID）
+    const query = lastEventId ? `?lastEventId=${encodeURIComponent(lastEventId)}` : ''
+    const url = `/sse/plugins/${encodeURIComponent(pluginId)}/overlay${query}`
+    eventSource = new EventSource(url)
+
+    eventSource.addEventListener('init', (ev: MessageEvent) => {
+      try {
+        const payload = JSON.parse(ev.data)
+        const overlays = Array.isArray(payload?.overlays) ? payload.overlays : []
+        const ov = overlays.find((o: any) => String(o?.id) === String(overlayId)) || null
+        ;(window as any).__WUJIE_SHARED.readonlyStore.overlay = ov || {}
+        emitOverlayEvent({ type: 'overlay-event', overlayId, eventType: 'overlay-message', event: 'readonly-store-init', payload: (window as any).__WUJIE_SHARED.readonlyStore })
+      } catch (err) {
+        console.warn('[Overlay] SSE init parse failed:', err)
+      }
+    })
+
+    eventSource.addEventListener('update', (ev: MessageEvent) => {
+      try {
+        const rec = JSON.parse(ev.data)
+        if (rec && typeof rec.id === 'string') {
+          if (seenIds.has(rec.id)) return
+          seenIds.add(rec.id)
+          lastEventId = rec.id
+        }
+        if (String(rec?.overlayId) !== String(overlayId)) return
+        const ov = rec?.payload || {}
+        ;(window as any).__WUJIE_SHARED.readonlyStore.overlay = ov
+        emitOverlayEvent({ type: 'overlay-event', overlayId, eventType: 'overlay-updated', event: 'overlay-update', payload: ov })
+      } catch (err) {
+        console.warn('[Overlay] SSE update parse failed:', err)
+      }
+    })
+
+    eventSource.addEventListener('message', (ev: MessageEvent) => {
+      try {
+        const rec = JSON.parse(ev.data)
+        if (rec && typeof rec.id === 'string') {
+          if (seenIds.has(rec.id)) return
+          seenIds.add(rec.id)
+          lastEventId = rec.id
+        }
+        if (String(rec?.overlayId) !== String(overlayId)) return
+        emitOverlayEvent({ type: 'overlay-event', overlayId, eventType: 'overlay-message', event: rec?.event || 'message', payload: rec?.payload })
+      } catch (err) {
+        console.warn('[Overlay] SSE message parse failed:', err)
+      }
+    })
+
+    eventSource.addEventListener('closed', (_ev: MessageEvent) => {
+      emitOverlayEvent({
+        type: 'overlay-event',
+        overlayId,
+        eventType: 'overlay-closed',
+        event: 'overlay-closed',
+        payload: null,
+      })
+    })
+
+    eventSource.onerror = (err: any) => {
+      console.warn('[Overlay] SSE error:', err)
+      // 断线后尝试重连
+      try {
+        eventSource?.close()
+      } catch {}
+      setTimeout(() => connectSSE(pluginId, overlayId), 3000)
+    }
+  } catch (err) {
+    console.error('Failed to connect SSE:', err)
+  }
 }
 
 const getTextStyle = (overlay: OverlayConfig) => {
@@ -329,12 +390,28 @@ const getComponent = (componentName: string) => {
 
 onMounted(() => {
   fetchOverlayData()
+  // 上报加载事件
+  try {
+    const oid = String((route.params.overlayId as string) || (route.query.overlayId as string) || '')
+    if (oid) {
+      const url = `/api/overlay/${encodeURIComponent(oid)}/action`
+      void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'loaded' }) })
+    }
+  } catch {}
 })
 
 onUnmounted(() => {
-  if (websocket) {
-    websocket.close()
+  if (eventSource) {
+    try { eventSource.close() } catch {}
   }
+  // 上报卸载事件
+  try {
+    const oid = String((route.params.overlayId as string) || (route.query.overlayId as string) || '')
+    if (oid) {
+      const url = `/api/overlay/${encodeURIComponent(oid)}/action`
+      void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'unloaded' }) })
+    }
+  } catch {}
 })
 
 // Wujie 生命周期事件（保持与 CentralPluginContainer 一致的钩子结构）

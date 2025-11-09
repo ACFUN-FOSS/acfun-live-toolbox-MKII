@@ -231,23 +231,8 @@ async function openPlugin(plugin: DynamicPlugin) {
       return;
     }
     if (primary.type === 'window') {
-      // 创建新窗口加载 window 页
-      const popupId = `${plugin.id}-${Date.now()}`;
-      try {
-        await (window as any)?.electronApi?.plugin?.popup?.create?.(plugin.id, {
-          id: popupId,
-          pluginId: plugin.id,
-          title: plugin.name,
-          width: '640px',
-          height: '480px',
-          mode: 'modeless',
-          closeOnOverlayClick: true,
-          closeOnEscKeydown: true,
-          showOverlay: true,
-        });
-      } catch (ipcErr) {
-        console.error('[sidebar] 创建插件窗口失败:', ipcErr);
-      }
+      // 弹窗能力不再实现：回退到 UI 路由
+      router.push(`/plugins/${plugin.id}`);
       return;
     }
   } catch (err) {

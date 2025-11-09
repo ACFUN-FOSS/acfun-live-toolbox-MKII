@@ -42,7 +42,7 @@
 "layers": \[
 "主进程（Core）：acfundanmu.js 连接管理（≤3路）、事件标准化与总线、写库、HTTP/WS 服务、插件生命周期、日志与熔断【message\_idx†source】",
 "渲染进程（Shell）：A3 插件优先布局（中心为插件壳/管理），仅保留“最新一条弹幕”小条展示【message\_idx†source】",
-"插件运行时：Web 插件（wujie/iframe）+ 可选 Node Worker（由主进程托管），允许弹出窗口（弹幕显示亦作为插件弹窗）【message\_idx†source】",
+"插件运行时：Web 插件（wujie/iframe）+ 可选 Node Worker（由主进程托管）；不提供插件弹窗，使用 Overlay 或插件自路由承载【message\_idx†source】",
 "本地服务：Express 托管 /console、/api/*、/plugins/\:id/*、/overlay/\:overlayId 路由；Overlay 以 query token 访问且不过期【message\_idx†source】",
 "数据层：SQLite 单表 events；CSV 导出（按房间/时间过滤）；插件需要的自有表通过主进程『写入服务』代写，插件不得直连数据库【message\_idx†source】"
 ],
@@ -130,7 +130,7 @@
 "content": {
 "executionModel": {
 "types": \[
-"Web 插件（wujie/iframe 承载前端路由/设置页，可开弹窗）【message\_idx†source】",
+"Web 插件（wujie/iframe 承载前端路由/设置页）【message\_idx†source】",
 "可选 Node Worker（重任务/系统能力由主进程托管）【message\_idx†source】"
 ],
 "routeInjection": "/plugins/\:id/*（强制前缀）【message\_idx†source】",
@@ -164,7 +164,7 @@
 ],
 "scope": "插件可适配移动端显示，但主进程不做移动端适配"
 },
-"popupWindows": "插件可请求创建独立 BrowserWindow（弹幕显示亦走此机制）【message\_idx†source】",
+"popupWindows": "不实现插件弹窗；通过 Overlay 或插件自路由承载弹幕/运营面板【message\_idx†source】",
 "installFlow": "zip/tgz → 校验 manifest → 解包到 plugins/<id>/ → 注册路由/设置/overlay → 可选拉起 Node Worker【message\_idx†source】"
 },
 "flowcharts": \[
@@ -348,8 +348,8 @@
 "style": "A3 插件优先版（默认）【message\_idx†source】",
 "leftPane": \["账号信息+扫码登录","房间列表(≤3)及状态/速率","服务状态(WS/SQLite/HTTP port)"],
 "centerPane": \["插件卡片列表","插件管理（本地安装/启用/禁用/诊断，无依赖、无签名、无在线市场）","Settings/Logs Tabs"],
-"banner": "最新一条弹幕（可展开最近20条；一键打开“弹幕显示插件”弹窗）【message\_idx†source】",
-"popupWindows": "插件可创建独立弹窗（BrowserWindow），用于弹幕显示/运营面板等【message\_idx†source】"
+"banner": "最新一条弹幕（可展开最近20条；一键打开“弹幕显示插件”页面或复制 Overlay 链接）【message\_idx†source】",
+"popupWindows": "不提供插件弹窗；通过 Overlay 或内嵌路由承载弹幕/运营面板【message\_idx†source】"
 },
 "webConsole": {
 "path": "/console",
@@ -468,7 +468,7 @@
 "按时间/房间导出 CSV 正确，字段齐全，可被常见表格工具打开【message\_idx†source】"
 ],
 "uiUx": \[
-"A3 布局可用；插件弹出窗口可用；最新一条弹幕正常刷新【message\_idx†source】"
+"A3 布局可用；插件页面与 Overlay 可用；最新一条弹幕正常刷新【message\_idx†source】"
 ]
 }
 },

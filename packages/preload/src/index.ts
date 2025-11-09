@@ -46,13 +46,7 @@ const api = {
   },
   // Overlay API bridging
   overlay: {
-    create: (options: any) => ipcRenderer.invoke('overlay.create', options),
-    update: (overlayId: string, updates: any) => ipcRenderer.invoke('overlay.update', overlayId, updates),
-    close: (overlayId: string) => ipcRenderer.invoke('overlay.close', overlayId),
-    show: (overlayId: string) => ipcRenderer.invoke('overlay.show', overlayId),
-    hide: (overlayId: string) => ipcRenderer.invoke('overlay.hide', overlayId),
-    bringToFront: (overlayId: string) => ipcRenderer.invoke('overlay.bringToFront', overlayId),
-    list: () => ipcRenderer.invoke('overlay.list'),
+    send: (overlayId: string, event: string, payload?: any) => ipcRenderer.invoke('overlay.send', overlayId, event, payload),
     action: (overlayId: string, action: string, data?: any) => ipcRenderer.invoke('overlay.action', overlayId, action, data)
   },
   // Plugin API bridging
@@ -79,12 +73,7 @@ const api = {
     enableHotReload: (pluginId: string) => ipcRenderer.invoke('plugin.devtools.enableHotReload', pluginId),
     disableHotReload: (pluginId: string) => ipcRenderer.invoke('plugin.devtools.disableHotReload', pluginId),
     testConnection: (config: any) => ipcRenderer.invoke('plugin.devtools.testConnection', config),
-    popup: {
-      create: (pluginId: string, options: any) => ipcRenderer.invoke('plugin.popup.create', pluginId, options),
-      close: (pluginId: string, popupId: string) => ipcRenderer.invoke('plugin.popup.close', pluginId, popupId),
-      action: (pluginId: string, popupId: string, actionId: string) => ipcRenderer.invoke('plugin.popup.action', pluginId, popupId, actionId),
-      bringToFront: (pluginId: string, popupId: string) => ipcRenderer.invoke('plugin.popup.bringToFront', pluginId, popupId)
-    }
+    // 弹窗能力已移除：不再暴露 plugin.popup.*
   },
   // Wujie helper bridging
   wujie: {
@@ -157,6 +146,28 @@ const api = {
         return res.json();
       }
       return res.text();
+    }
+  },
+  // Monitoring API bridging (read-only)
+  monitoring: {
+    queryPageStatus: (pluginId?: string) => ipcRenderer.invoke('monitoring.pageStatus.query', pluginId),
+    subscribePageStatus: async (pluginId: string, listener: (update: any) => void) => {
+      const channel = 'monitoring.pageStatus.updated';
+      const wrapped = (event: Electron.IpcRendererEvent, msg: any) => {
+        try {
+          if (msg && msg.pluginId === pluginId) {
+            listener(msg);
+          }
+        } catch {}
+      };
+      ipcRenderer.on(channel, wrapped);
+      await ipcRenderer.invoke('monitoring.pageStatus.listen', pluginId);
+      return {
+        unsubscribe: async () => {
+          try { ipcRenderer.removeListener(channel, wrapped); } catch {}
+          try { await ipcRenderer.invoke('monitoring.pageStatus.unlisten', pluginId); } catch {}
+        }
+      };
     }
   },
   // Console API bridging (note: uses colon channels)
