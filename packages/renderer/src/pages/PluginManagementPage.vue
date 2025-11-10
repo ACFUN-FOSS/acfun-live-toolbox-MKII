@@ -411,6 +411,10 @@ const preloadOverlayForVisible = async () => {
 };
 
 const canViewPlugin = (pluginId: string) => {
+  const plugin = pluginStore.plugins.find(p => p.id === pluginId);
+  if (!plugin || !plugin.enabled || plugin.status !== 'active') {
+    return false;
+  }
   // 未解析时尝试触发解析；避免阻塞渲染
   if (!(pluginId in primaryHostingMap.value)) {
     // 异步填充，首次渲染可能暂时不显示“查看”按钮
@@ -421,6 +425,10 @@ const canViewPlugin = (pluginId: string) => {
 };
 
 const canCopyOverlay = (pluginId: string) => {
+  const plugin = pluginStore.plugins.find(p => p.id === pluginId);
+  if (!plugin || !plugin.enabled || plugin.status !== 'active') {
+    return false;
+  }
   if (!(pluginId in overlayUrlMap.value)) {
     void loadOverlayUrlFor(pluginId);
     return false;
@@ -430,6 +438,10 @@ const canCopyOverlay = (pluginId: string) => {
 
 const viewPlugin = async (plugin: PluginInfo) => {
   try {
+    if (!plugin.enabled || plugin.status !== 'active') {
+      console.warn('[plugin-view] 插件处于禁用或非活动状态，禁止查看:', plugin.id);
+      return;
+    }
     const primary = await resolvePrimaryHostingType(plugin.id);
     if (!primary.type) {
       console.warn('[plugin-view] 插件无 ui/window 托管入口，无法查看:', plugin.id);
@@ -452,6 +464,10 @@ const viewPlugin = async (plugin: PluginInfo) => {
 
 const copyOverlayLink = async (plugin: PluginInfo) => {
   try {
+    if (!plugin.enabled || plugin.status !== 'active') {
+      console.warn('[plugin-overlay] 插件处于禁用或非活动状态，禁止复制链接:', plugin.id);
+      return;
+    }
     // 直接构建外部包装页基础链接（插件级消息中心）
     const finalUrl = buildOverlayWrapperBase(plugin.id);
     await copyText(finalUrl);

@@ -109,6 +109,14 @@ export class OverlayManager extends EventEmitter {
    */
   async createOverlay(options: OverlayOptions): Promise<OverlayCreateResult> {
     try {
+      console.log('[OverlayManager#createOverlay] called with options:', {
+        pluginId: options.pluginId,
+        type: options.type,
+        id: options.id,
+        style: options.style,
+        position: options.position,
+        size: options.size,
+      });
       // 单实例策略：同一插件 + 同类型（默认 default）只允许一个实例，幂等返回现有 ID
       if (options.pluginId) {
         const targetType = options.type || 'default';
@@ -116,6 +124,7 @@ export class OverlayManager extends EventEmitter {
           (o) => o.pluginId === options.pluginId && o.type === targetType
         );
         if (existing) {
+          console.log('[OverlayManager#createOverlay] singleton hit, return existing overlayId:', existing.id);
           // 返回已存在的 overlayId，避免重复创建
           return { success: true, overlayId: existing.id };
         }
@@ -162,6 +171,14 @@ export class OverlayManager extends EventEmitter {
       this.overlays.set(overlayId, overlayState);
 
       // 发送事件到渲染进程
+      console.log('[OverlayManager#createOverlay] overlay created:', {
+        overlayId,
+        pluginId: overlayState.pluginId,
+        type: overlayState.type,
+        visible: overlayState.visible,
+        style: overlayState.style,
+        zIndex: overlayState.zIndex,
+      });
       this.emit('overlay-created', overlayState);
 
       // 在创建后触发生命周期钩子（afterOverlayOpen）
@@ -184,6 +201,7 @@ export class OverlayManager extends EventEmitter {
         overlayId
       };
     } catch (error: any) {
+      console.error('[OverlayManager#createOverlay] failed:', error instanceof Error ? error.message : error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -196,8 +214,10 @@ export class OverlayManager extends EventEmitter {
    */
   async updateOverlay(overlayId: string, updates: Partial<OverlayState>): Promise<OverlayActionResult> {
     try {
+      console.log('[OverlayManager#updateOverlay] called:', { overlayId, updates });
       const overlay = this.overlays.get(overlayId);
       if (!overlay) {
+        console.warn('[OverlayManager#updateOverlay] not found:', overlayId);
         return {
           success: false,
           error: `Overlay with ID '${overlayId}' not found`
@@ -215,10 +235,19 @@ export class OverlayManager extends EventEmitter {
       this.overlays.set(overlayId, updatedOverlay);
 
       // 发送事件到渲染进程
+      console.log('[OverlayManager#updateOverlay] emitting overlay-updated:', {
+        overlayId,
+        pluginId: updatedOverlay.pluginId,
+        type: updatedOverlay.type,
+        visible: updatedOverlay.visible,
+        style: updatedOverlay.style,
+        updatedAt: updatedOverlay.updatedAt,
+      });
       this.emit('overlay-updated', updatedOverlay);
 
       return { success: true };
     } catch (error: any) {
+      console.error('[OverlayManager#updateOverlay] failed:', error instanceof Error ? error.message : error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -231,8 +260,10 @@ export class OverlayManager extends EventEmitter {
    */
   async closeOverlay(overlayId: string): Promise<OverlayActionResult> {
     try {
+      console.log('[OverlayManager#closeOverlay] called:', { overlayId });
       const overlay = this.overlays.get(overlayId);
       if (!overlay) {
+        console.warn('[OverlayManager#closeOverlay] not found:', overlayId);
         return {
           success: false,
           error: `Overlay with ID '${overlayId}' not found`
@@ -243,6 +274,7 @@ export class OverlayManager extends EventEmitter {
       this.overlays.delete(overlayId);
 
       // 发送事件到渲染进程
+      console.log('[OverlayManager#closeOverlay] emitting overlay-closed:', { overlayId });
       this.emit('overlay-closed', overlayId);
 
       // 触发生命周期钩子（overlayClosed）
@@ -262,6 +294,7 @@ export class OverlayManager extends EventEmitter {
 
       return { success: true };
     } catch (error: any) {
+      console.error('[OverlayManager#closeOverlay] failed:', error instanceof Error ? error.message : error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -273,6 +306,7 @@ export class OverlayManager extends EventEmitter {
    * 显示overlay
    */
   async showOverlay(overlayId: string): Promise<OverlayActionResult> {
+    console.log('[OverlayManager#showOverlay] called:', { overlayId });
     return this.updateOverlay(overlayId, { visible: true });
   }
 
@@ -280,6 +314,7 @@ export class OverlayManager extends EventEmitter {
    * 隐藏overlay
    */
   async hideOverlay(overlayId: string): Promise<OverlayActionResult> {
+    console.log('[OverlayManager#hideOverlay] called:', { overlayId });
     return this.updateOverlay(overlayId, { visible: false });
   }
 
@@ -288,8 +323,10 @@ export class OverlayManager extends EventEmitter {
    */
   async bringToFront(overlayId: string): Promise<OverlayActionResult> {
     try {
+      console.log('[OverlayManager#bringToFront] called:', { overlayId });
       const overlay = this.overlays.get(overlayId);
       if (!overlay) {
+        console.warn('[OverlayManager#bringToFront] not found:', overlayId);
         return {
           success: false,
           error: `Overlay with ID '${overlayId}' not found`
@@ -304,6 +341,7 @@ export class OverlayManager extends EventEmitter {
         }
       });
     } catch (error: any) {
+      console.error('[OverlayManager#bringToFront] failed:', error instanceof Error ? error.message : error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -323,6 +361,7 @@ export class OverlayManager extends EventEmitter {
       pluginId: overlay.pluginId,
       roomId: overlay.roomId
     }));
+    console.log('[OverlayManager#listOverlays] overlays:', overlays);
 
     return { overlays };
   }
@@ -332,8 +371,10 @@ export class OverlayManager extends EventEmitter {
    */
   async sendMessage(overlayId: string, event: string, payload?: any): Promise<OverlayActionResult> {
     try {
+      console.log('[OverlayManager#sendMessage] called:', { overlayId, event, hasPayload: payload !== undefined });
       const overlay = this.overlays.get(overlayId);
       if (!overlay) {
+        console.warn('[OverlayManager#sendMessage] not found:', overlayId);
         return {
           success: false,
           error: `Overlay with ID '${overlayId}' not found`
@@ -341,15 +382,18 @@ export class OverlayManager extends EventEmitter {
       }
 
       const message: OverlayMessagePayload = { overlayId, event, payload };
+      console.log('[OverlayManager#sendMessage] emitting overlay-message:', message);
       this.emit('overlay-message', message);
       // 消息属于状态变化语义：刷新 updatedAt 并广播更新
       try {
         const updated: OverlayState = { ...overlay, updatedAt: Date.now() };
         this.overlays.set(overlayId, updated);
+        console.log('[OverlayManager#sendMessage] emitting overlay-updated due to message:', { overlayId, updatedAt: updated.updatedAt });
         this.emit('overlay-updated', updated);
       } catch {}
       return { success: true };
     } catch (error: any) {
+      console.error('[OverlayManager#sendMessage] failed:', error instanceof Error ? error.message : error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -362,8 +406,10 @@ export class OverlayManager extends EventEmitter {
    */
   async handleOverlayAction(overlayId: string, action: string, data?: any): Promise<OverlayActionResult> {
     try {
+      console.log('[OverlayManager#handleOverlayAction] called:', { overlayId, action, data });
       const overlay = this.overlays.get(overlayId);
       if (!overlay) {
+        console.warn('[OverlayManager#handleOverlayAction] not found:', overlayId);
         return {
           success: false,
           error: `Overlay with ID '${overlayId}' not found`
@@ -377,16 +423,44 @@ export class OverlayManager extends EventEmitter {
         data,
         overlay
       });
+      console.log('[OverlayManager#handleOverlayAction] emitted overlay-action:', { overlayId, action });
 
-      // 所有动作均视为状态接触：刷新 updatedAt 并广播更新（避免丢失时间戳）
+      // 动作语义处理：对已知控制动作执行实际状态更新；其余动作保持原语义（仅更新时间戳）
+      const normalize = String(action || '').toLowerCase();
+      if (normalize === 'update') {
+        console.log('[OverlayManager#handleOverlayAction] normalized to update, applying updates');
+        // 合并更新（样式/位置/尺寸/可见性等），并广播 overlay-updated
+        const updates: Partial<OverlayState> = (data && typeof data === 'object') ? data : {};
+        return await this.updateOverlay(overlayId, updates);
+      }
+      if (normalize === 'close') {
+        console.log('[OverlayManager#handleOverlayAction] normalized to close');
+        return await this.closeOverlay(overlayId);
+      }
+      if (normalize === 'show') {
+        console.log('[OverlayManager#handleOverlayAction] normalized to show');
+        return await this.showOverlay(overlayId);
+      }
+      if (normalize === 'hide') {
+        console.log('[OverlayManager#handleOverlayAction] normalized to hide');
+        return await this.hideOverlay(overlayId);
+      }
+      if (normalize === 'bringtofront' || normalize === 'front' || normalize === 'top') {
+        console.log('[OverlayManager#handleOverlayAction] normalized to bringToFront');
+        return await this.bringToFront(overlayId);
+      }
+
+      // 兜底：未知动作仅刷新时间戳以维持更新节奏
       try {
         const updated: OverlayState = { ...overlay, updatedAt: Date.now() };
         this.overlays.set(overlayId, updated);
+        console.log('[OverlayManager#handleOverlayAction] unknown action, emitting overlay-updated:', { overlayId, updatedAt: updated.updatedAt });
         this.emit('overlay-updated', updated);
       } catch {}
 
       return { success: true };
     } catch (error: any) {
+      console.error('[OverlayManager#handleOverlayAction] failed:', error instanceof Error ? error.message : error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'

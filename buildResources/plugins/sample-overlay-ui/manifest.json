@@ -1,0 +1,29 @@
+{
+  "id": "sample-overlay-ui",
+  "name": "示例插件：Overlay+UI",
+  "version": "0.1.0",
+  "description": "提供示例 UI 页面与 Overlay 页面托管，演示配置读取与事件桥接。",
+  "author": "Acfun Toolbox Team",
+  "main": "index.js",
+  "permissions": ["overlay"],
+  "config": {
+    "uiBgColor": {
+      "type": "text",
+      "label": "UI页面背景色",
+      "description": "用于示例UI页面背景色；例如 #2b2b2b。",
+      "placeholder": "#f4f4f4",
+      "default": "#f4f4f4"
+    }
+  },
+  "ui": {
+    "name": "示例UI",
+    "description": "通过插件管理器打开的UI页面",
+    "spa": false,
+    "html": "ui.html"
+  },
+  "overlay": {
+    "spa": false,
+    "html": "overlay.html"
+  }
+}
+

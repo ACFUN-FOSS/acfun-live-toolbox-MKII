@@ -1,0 +1,45 @@
+## 1. Proposal
+- [x] 1.1 创建 proposal.md 与 specs 增量，对齐 AGENTS 流程
+
+## 2. Implementation
+- [x] 2.1 在 `buildResources/plugins/sample-overlay-ui` 创建示例插件目录
+- [x] 2.2 编写 `manifest.json`，声明 `ui` 与 `overlay` 托管字段及权限
+- [x] 2.3 实现 `ui.html`：居中显示「这个是ui页面」，背景色读取配置
+- [x] 2.4 实现 `overlay.html`：居中显示「这个是overlay页面」，背景色读取配置
+- [x] 2.5 通过配置管理读写 `ui页面背景色`（含默认值与校验）
+- [x] 2.6 在渲染层验证路由：`/plugins/:id/ui[/*]` 与 `/plugins/:id/overlay[/*]`
+- [x] 2.7 在插件目录添加使用说明 `README.md`
+- [x] 2.8 添加主入口 `index.js` 与 `ui/icon.svg`，确保启用与图标加载正常
+- [x] 2.9 修复：禁用插件不可访问 UI/overlay，前端按钮不可见
+- [x] 2.10 修复：持久化 overlay-update 更新并广播，刷新后颜色同步
+- [x] 2.11 增强：主进程在插件配置更新后同步 Overlay 样式（背景色）
+- [x] 2.12 修改示例 overlay.html：接受配置更新事件并应用最新背景色
+- [x] 2.13 调试：overlay.html 打印并展示接收到的配置（style/updatedAt/ids）
+- [x] 2.14 兼容：overlay.html 同时处理事件名 `overlay-update` 与 `overlay-updated`
+- [x] 2.15 修复：overlay 初始加载样式与配置对齐（背景色）
+- [x] 2.16 兼容：overlay-wrapper 同步转发 `overlay-update` 与 `overlay-updated`
+- [x] 2.17 修复：overlay-wrapper 增加初始化快照回退（避免 SSE init 丢失）
+- [x] 2.18 修复：overlay-wrapper SSE `update` 处理过滤错误（按 `record.overlayId`/`payload.id` 对齐），确保配置更新后 Overlay 同步刷新
+- [x] 2.19 跟进：用户反馈“未生效”，安排运行时日志与环境验证（SSE连接、overlayId匹配、插件启用状态）
+ - [x] 2.20 修复：overlay-wrapper 解析嵌套载荷（`payload.overlayId`/`payload.payload.id`），确保 update 正确转发
+ - [x] 2.21 增强：插件通道静默时自动回退订阅到 `/sse/overlay/:overlayId`，并增加 `onopen/heartbeat` 日志
+ - [x] 2.22 增强：`/sse/overlay/:overlayId` 增加 15s 心跳，提升可观测性与连接稳定性
+ - [x] 2.23 优化：overlay-wrapper 在获得 overlayId 后立即连接 `/sse/overlay/:overlayId`，并保留插件通道用于生命周期事件
+ - [x] 2.24 修复：overlay-wrapper 依据 `websocket_endpoint` 推断 ApiServer 基址（端口），以绝对地址连接 SSE（避免跨端口导致的无事件/无 open/heartbeat）
+ - [x] 2.25 优化：overlay-wrapper HTML 响应添加 `Cache-Control: no-cache` 等头与 SSE 连接时间戳参数，确保脚本与事件不被缓存；加强错误日志（打印 `EventSource.onerror` 事件对象）
+ - [x] 2.26 修复：移除包装页内联脚本中的 TS cast（`as any`），解决浏览器 `Unexpected identifier 'as'` 语法错误，确保初始化快照与 API 基址解析正常运行
+ - [x] 2.27 修复：将正则 `.test` 与 `/\/$/` 去除，改用字符串切片与解析，提升旧运行环境（CEF/OBS 等）兼容性，解决 `Unexpected token '.'` 报错
+ - [x] 2.28 增强：当 `/sse/overlay/:overlayId` 返回 `closed`（overlay 不存在）或发生错误时，自动创建新的 overlay、重新注入 props/快照，并重连两路 SSE（plugin 与 overlay），确保客户端重开后可恢复连接
+ - [x] 2.29 修复：去重防重复，确保 `injectProps`、`initSnapshot` 与 `readonly-store-init` 仅执行一次；在 `overlayId` 更新时复位标记，消除双倍日志与事件
+ - [x] 2.30 增强：overlay-wrapper 打印服务端心跳（`SSE heartbeat(plugin)` 与 `SSE heartbeat(overlay)`），便于定位连接与消息通道问题
+- [x] 2.31 修复：禁用 SSE 压缩并在路由中 flush 响应头与发送初始注释，确保浏览器触发 onopen 与心跳可见
+- [x] 2.32 修复：overlay-wrapper 跨通道去重（overlayId+updatedAt），同一更新仅转发一次
+ - [x] 2.33 修复：统一事件名，仅转发 overlay-updated；移除 overlay-update 转发
+ - [x] 2.34 设计调整：删除 overlay 路由回退逻辑，保留单一插件 SSE 连接
+ - [ ] 2.35 优化：UI 页面三栏布局（机制介绍 / 渲染进程 store / 发送输入区）
+ - [ ] 2.36 实现：UI 页面订阅并展示渲染进程的 store（同步渲染）
+ - [ ] 2.37 实现：UI 文本输入与发送按钮（默认“点我发送”），点击发送到 overlay 页面
+ - [ ] 2.38 优化：Overlay 页面三栏布局（机制介绍 / 渲染进程 store / 消息展示区）
+ - [ ] 2.39 实现：Overlay 页面订阅并展示渲染进程 store（同步渲染）
+ - [ ] 2.40 实现：Overlay 消息展示区固定高度；每接受一行在首行新增；超出显示滚动条
+ - [ ] 2.41 设计：定义并实现 UI→Overlay 文本消息协议与转发路径（与 overlay-wrapper 对齐）

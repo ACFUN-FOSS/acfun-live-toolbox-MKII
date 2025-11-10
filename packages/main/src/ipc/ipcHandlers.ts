@@ -549,6 +549,34 @@ export function initializeIpcHandlers(
       const current = (configManager.get(`plugins.${id}.config`, {}) || {}) as Record<string, any>;
       const merged = { ...current, ...newConfig };
       configManager.set(`plugins.${id}.config`, merged);
+
+      // 配置更新后，同步该插件的 Overlay 样式（例如背景色）到运行时状态
+      try {
+        const bg = merged && typeof merged.uiBgColor === 'string' ? merged.uiBgColor : undefined;
+        if (bg) {
+          const overlays = overlayManager.getAllOverlays().filter(o => o.pluginId === id);
+          await Promise.all(
+            overlays.map(o => overlayManager.updateOverlay(o.id, {
+              style: { ...(o.style || {}), backgroundColor: bg }
+            }))
+          );
+        }
+      } catch (syncErr) {
+        console.warn('[IPC] plugin.updateConfig overlay sync failed:', syncErr);
+      }
+
+      // 发布生命周期事件：配置已更新（供 overlay-wrapper 通过 SSE 订阅）
+      try {
+        const channel = `plugin:${id}:overlay`;
+        dataManager.publish(
+          channel,
+          { event: 'config-updated', payload: { config: merged } },
+          { ttlMs: 5 * 60 * 1000, persist: true, meta: { kind: 'lifecycle' } },
+        );
+      } catch (pubErr) {
+        console.warn('[IPC] plugin.updateConfig lifecycle publish failed:', pubErr);
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };

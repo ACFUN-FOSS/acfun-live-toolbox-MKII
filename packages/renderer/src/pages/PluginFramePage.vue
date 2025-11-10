@@ -84,35 +84,28 @@ const initialPayload = computed(() => {
   } as Record<string, any>;
 });
 
-function postInitMessage() {
+async function postInitMessage() {
   const target = uiIframe.value?.contentWindow || baseIframe.value?.contentWindow;
   if (!target) return;
   try {
-    // 保证 postMessage 负载为可结构化克隆数据，避免 Vue/Pinia 代理与函数导致 DataCloneError
-    const safe = (() => {
-      const seen = new WeakSet();
-      const clone = (value: any): any => {
-        if (value == null) return value;
-        const t = typeof value;
-        if (t === 'function' || t === 'symbol' || t === 'bigint') return undefined;
-        if (t !== 'object') return value;
-        if (value instanceof Date) return value.toISOString();
-        if (Array.isArray(value)) return value.map(clone);
-        if (seen.has(value)) return undefined;
-        seen.add(value);
-        if (value instanceof Map) {
-          const obj: Record<string, any> = {};
-          for (const [k, v] of value.entries()) obj[String(k)] = clone(v);
-          return obj;
-        }
-        if (value instanceof Set) return Array.from(value).map(clone);
-        const out: Record<string, any> = {};
-        for (const key of Object.keys(value)) out[key] = clone((value as any)[key]);
-        return out;
-      };
-      return clone(initialPayload.value);
-    })();
-    target.postMessage(safe, '*');
+    // 发送时覆盖 config 为主进程已保存配置，避免 UI 初始显示默认值
+    let savedConfig: Record<string, any> = {};
+    try {
+      const res = await window.electronApi.plugin.getConfig(pluginId.value);
+      if (res && 'success' in res && res.success) {
+        savedConfig = (res.data as Record<string, any>) || {};
+      }
+    } catch {}
+    const plugin = pluginStore.plugins.find(p => p.id === pluginId.value);
+    const payload = {
+      type: 'plugin-init',
+      pluginId: pluginId.value,
+      manifest: plugin?.manifest,
+      config: savedConfig,
+      routeQuery: route.query,
+    } as Record<string, any>;
+    try { console.log('[PluginFramePage] postInitMessage', { pluginId: pluginId.value, configKeys: Object.keys(savedConfig || {}) }); } catch {}
+    target.postMessage(safeClone(payload), '*');
   } catch (err) {
     console.warn('[PluginFramePage] postMessage failed:', err);
   }
@@ -134,24 +127,28 @@ function handleMessage(event: MessageEvent) {
     if (type === 'overlay-action') {
       const { overlayId, action, payload } = data as any;
       const url = `/api/overlay/${encodeURIComponent(String(overlayId))}/action`;
+      try { console.log('[PluginFramePage] forward overlay-action', { overlayId: String(overlayId), action: String(action) }); } catch {}
       void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: String(action), data: payload }) });
       return;
     }
     if (type === 'overlay-close') {
       const { overlayId } = data as any;
       const url = `/api/overlay/${encodeURIComponent(String(overlayId))}/action`;
+      try { console.log('[PluginFramePage] forward overlay-close', { overlayId: String(overlayId) }); } catch {}
       void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'close' }) });
       return;
     }
     if (type === 'overlay-update') {
       const { overlayId, updates } = data as any;
       const url = `/api/overlay/${encodeURIComponent(String(overlayId))}/action`;
+      try { console.log('[PluginFramePage] forward overlay-update', { overlayId: String(overlayId), keys: Object.keys(updates || {}) }); } catch {}
       void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', data: updates }) });
       return;
     }
     if (type === 'overlay-send') {
       const { overlayId, event: ev, payload } = data as any;
       const url = `/api/plugins/${encodeURIComponent(pluginId.value)}/overlay/messages`;
+      try { console.log('[PluginFramePage] forward overlay-send', { overlayId: String(overlayId), event: String(ev) }); } catch {}
       void fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ overlayId: String(overlayId), event: String(ev), payload }) });
       return;
     }
@@ -175,6 +172,7 @@ function handleMessage(event: MessageEvent) {
         if (command === 'get-api-base') {
           try {
             const base = getApiBase();
+            try { console.log('[PluginFramePage] bridge get-api-base', { base }); } catch {}
             respond(true, { base });
           } catch (e) {
             respond(false, null, (e as Error).message);
@@ -189,8 +187,10 @@ function handleMessage(event: MessageEvent) {
             if (cfg && typeof cfg === 'object' && 'token' in cfg) {
               try { delete (cfg as any).token; } catch (_) {}
             }
+            try { console.log('[PluginFramePage] bridge get-config success', { pluginId: pluginId.value, keys: Object.keys(cfg || {}) }); } catch {}
             respond(true, cfg);
           } else {
+            try { console.warn('[PluginFramePage] bridge get-config failed', { pluginId: pluginId.value, error: (res as any)?.error }); } catch {}
             respond(false, null, (res as any)?.error || 'Failed to get config');
           }
           return;
@@ -199,6 +199,7 @@ function handleMessage(event: MessageEvent) {
           const nextCfg = (data as any)?.payload?.config || {};
           try {
             await pluginStore.updatePluginConfig(pluginId.value, nextCfg);
+            try { console.log('[PluginFramePage] bridge set-config', { pluginId: pluginId.value, keys: Object.keys(nextCfg || {}) }); } catch {}
             respond(true, { success: true });
             sendLifecycleEvent('config-updated');
           } catch (e) {
@@ -213,6 +214,7 @@ function handleMessage(event: MessageEvent) {
             if (act === 'send') {
               const url = `/api/plugins/${encodeURIComponent(pluginId.value)}/overlay/messages`;
               const body = { overlayId: String(args[0]), event: String(args[1]), payload: args[2] };
+              try { console.log('[PluginFramePage] bridge overlay send', { overlayId: String(args[0]), event: String(args[1]) }); } catch {}
               const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
               const json = await resp.json().catch(() => ({ success: resp.ok }));
               const ok = !!(json && 'success' in json ? json.success : resp.ok);
@@ -220,6 +222,7 @@ function handleMessage(event: MessageEvent) {
             } else if (act === 'action') {
               const url = `/api/overlay/${encodeURIComponent(String(args[0]))}/action`;
               const body = { action: String(args[1] || ''), data: args[2] };
+              try { console.log('[PluginFramePage] bridge overlay action', { overlayId: String(args[0]), action: String(args[1] || '') }); } catch {}
               const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
               const json = await resp.json().catch(() => ({ success: resp.ok }));
               const ok = !!(json && 'success' in json ? json.success : resp.ok);
@@ -242,9 +245,10 @@ function handleMessage(event: MessageEvent) {
 }
 
 onMounted(() => {
+  try { console.log('[PluginFramePage] mounted', { pluginId: pluginId.value }); } catch {}
   const el = isBaseExample.value ? baseIframe.value : uiIframe.value;
   if (el) {
-    const onLoad = () => postInitMessage();
+    const onLoad = () => { try { console.log('[PluginFramePage] iframe onLoad -> postInitMessage'); } catch {} postInitMessage(); };
     el.addEventListener('load', onLoad);
     (el as any).__onLoad = onLoad;
   }

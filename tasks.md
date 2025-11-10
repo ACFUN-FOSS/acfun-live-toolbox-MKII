@@ -1,5 +1,21 @@
 # Workspace Tasks Log
 
+## 2025-11-09
+- Fix: Overlay lifecycle and payload bridging for config updates
+  - Change: In `packages/renderer/src/pages/Overlay.vue`, forward SSE `lifecycle` as `plugin-event` and wrap `update` payload as `{ overlay }` to match example `overlay.html`.
+  - Change: In `packages/main/src/server/ApiServer.ts` overlay-wrapper, forward `lifecycle` events as `plugin-event` and wrap `update` payload as `{ overlay }`.
+  - Validation: `pnpm -C packages/renderer typecheck ; pnpm -C packages/main typecheck` passed. No dev server started per workspace rules.
+  - Notes: Ensures UI config changes (e.g., `uiBgColor`) propagate to browser overlay without mocks; maintains SSE channel consistency.
+ - Fix: Sample UI applies saved config on init and syncs input value
+   - Change: In `buildResources/plugins/sample-overlay-ui/ui.html`, apply `plugin-init.config` immediately, and after `get-config` responses update the input `#bg` value alongside `applyBg`, preventing default `#f4f4f4` from misleading users.
+   - Validation: `pnpm -r run typecheck` passed; UI preview not started per workspace rules.
+
+- Debug: Overlay update chain diagnostics logging across layers
+  - Change: Inserted detailed logs in `packages/main/src/server/ApiServer.ts` for SSE routes (`/sse/overlay/:overlayId`, `/sse/plugins/:pluginId/overlay`) and the `overlay-wrapper` template to trace connect/send/forward/cleanup.
+  - Change: Added comprehensive logs in `packages/renderer/src/pages/Overlay.vue` for SSE connect/init/update/message/lifecycle/closed and Wujie bus emissions.
+  - Validation: `pnpm -C packages/main typecheck ; pnpm -C packages/preload typecheck ; pnpm -C packages/renderer typecheck` passed; adhered to rules (no dev server, no tests).
+  - Notes: Aids pinpointing breakpoints in the overlay update chain, especially config style propagation (e.g., `uiBgColor`).
+
 ## 2025-11-08
 - Base Example UI：只读仓库动态刷新与展示
   - Change: 在 `PluginFramePage.vue` 周期性（10 秒）获取 `room.list()` 并派发 `readonly-store-update`；在 `ui/index.html/main.js` 展示完整 JSON，不再输出摘要文本（移除 `Readonly store (init event): ...`）。
@@ -10,6 +26,12 @@
   - Validation: 类型检查通过；UI 预览遵循工作区规则暂不启动。
   - Files: `buildResources/plugins/base-example/ui/index.html`、`buildResources/plugins/base-example/ui/main.js`。
 - Change tracking: 更新 `openspec/changes/archive/2025-11-06-update-overlay-and-plugin-wujie-loading/tasks.md`，新增“只读仓库动态刷新”与“Overlay 控件简化”两项并标记完成。
+
+## 2025-11-09
+- 修复：Overlay SSE 记录解析（renderer 与包装页）
+  - Change: 统一在渲染层 `Overlay.vue` 与主进程 `overlay-wrapper` 中按 `record.payload || record` 解析消息；校验并使用其中的 `overlayId`、`event` 与 `payload` 字段；`closed` 事件按 `overlay-closed` 规范转发；移除包装页重复的 `lifecycle` 监听；服务器端 `sendRecord` 日志同步显示 `payload.overlayId/event`。
+  - Validation: `pnpm -C packages/main typecheck ; pnpm -C packages/renderer typecheck` 通过；遵循工作区规则（不启动渲染进程开发服务器；不编写/运行测试，测试仅限静态走查与类型检查）。
+  - Files: `packages/renderer/src/pages/Overlay.vue`、`packages/main/src/server/ApiServer.ts`（overlay-wrapper 与 SSE 日志）。
 
 ## 2025-11-07
 - UI: 插件管理页添加“添加调试插件”按钮与开发工具对话框
@@ -23,6 +45,7 @@
   - Notes: 该更新仅调整变更的任务清单；后续实施将按清单逐项推进并在完成时勾选对应项。
 
 - Change tracking: 更新 `openspec/changes/update-plugin-install-and-icons-ui/tasks.md`，新增第 9–17 项实现与验证任务
+ - Change tracking: 更新 `openspec/changes/add-sample-plugin-overlay-ui/tasks.md`，新增并勾选“修复 SSE update 过滤逻辑，保障 Overlay 配置更新实时同步”。
   - Items: 移除错误管理分栏；日志分栏单行布局与“更多”弹框；ui/window 互斥但 overlay 可共存；卡片“查看”与“复制链接”按钮行为；“三点”菜单增加“在侧边栏显示”；侧边栏默认展开；排查修复 topbar 两项问题。
   - Validation: 文档更新；遵循工作区规则与 AGENTS.md；待实施与勾选。
   - Notes: 与第 4–8 项保持同一变更串联，分批推进。
@@ -206,3 +229,15 @@
   - Scope: 修复示例插件图标加载；统一安装/刷新/插件目录图标与文字垂直对齐；移除在线安装与插件商店标签页，仅保留本地文件安装。
   - Files: `openspec/changes/update-plugin-install-and-icons-ui/proposal.md`, `openspec/changes/update-plugin-install-and-icons-ui/tasks.md`
   - Notes: 按 `openspec/AGENTS.md` 创建变更；后续实施将遵循“仅静态走查与typecheck、不启动渲染进程”的工作区约束。
+
+- Fix: overlay-wrapper 兼容事件转发（overlay-updated 与 overlay-update）
+  - Files: `packages/main/src/server/ApiServer.ts`
+  - Change: 在 SSE `update` 处理里，除原有 `overlay-updated` 转发外，同时发送 `overlay-update`，并统一 `payload` 结构为 `{ overlay }`，与示例 `sample-overlay-ui/overlay.html` 解析方式对齐。
+  - Validation: `pnpm -C packages/main typecheck; pnpm -C packages/preload typecheck; pnpm -C packages/renderer typecheck` 全部通过；不启动渲染进程；不创建或运行测试用例（遵守工作区约束）。
+- Notes: 该改动仅影响事件名称兼容性与负载包裹方式，不改变业务语义；如需视觉验证，请在运行应用后观察 overlay 页面日志与背景色变化。
+
+- Fix: overlay-wrapper 添加初始化快照回退，避免 SSE init 丢失
+  - Files: `packages/main/src/server/ApiServer.ts`
+  - Change: 在确保 `overlayId` 后，主动 `GET /api/overlay/:id` 获取快照，更新共享只读仓库并立即发送 `readonly-store-init`（`payload: { overlay }`）；同时在 `SSE connect` 触发一次回退，统一 `readonly-store-init` 负载结构。
+  - Validation: `pnpm -C packages/main typecheck; pnpm -C packages/preload typecheck; pnpm -C packages/renderer typecheck` 通过；不启动渲染进程；不创建/运行测试用例。
+  - Notes: 解决因事件监听注册竞态导致的初始配置缺失问题；不改变后续 `update/lifecycle` 行为。

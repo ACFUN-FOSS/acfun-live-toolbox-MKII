@@ -18,6 +18,7 @@
   - “只读仓库快照”窗口：实时渲染只读切片（通过宿主转发的 SSE 事件）（已完成）
   - “消息接收窗口”：实时显示 UI 通过 `overlay.send` 推送的消息（已完成）
   - 加载/卸载时上报注册状态：`POST /api/overlay/:overlayId/action`（已完成）
+  - 修复：宿主转发 SSE `lifecycle` 事件为 `plugin-event`，并在 `update` 事件中统一 `payload` 结构为 `{ overlay }`（已完成）
  - [x] 2.3 改造示例插件 UI 页面（位于 `buildResources/plugins/base-example/ui/`）
   - 移除旧演示元素，改为专栏式演示区（已完成）
  - “状态显示栏”：实时显示 Overlay 注册状态（SSE `action` 订阅）（已完成）
@@ -28,19 +29,20 @@
  - [x] 2.4 事件与通道对齐
   - UI→Overlay：统一使用 `overlay.send` 或 `POST /api/overlay/:overlayId/send`（已完成）
   - Overlay→主进程：使用 `POST /api/overlay/:overlayId/action` 上报注册状态（已完成）
-  - UI 订阅注册状态：优先 SSE `eventType: 'action'`（如未扩展则用 IPC 广播）（已完成）
+ - UI 订阅注册状态：优先 SSE `eventType: 'action'`（如未扩展则用 IPC 广播）（已完成）
  - 注：SSE 订阅 URL 使用绝对地址；静态预览环境显示断开属预期，应用内正常
 - [x] 2.5 可选增强：扩展 ApiServer SSE 转发 `overlay-action` 为统一信封（兼容式，不破坏现有消费者）
  - [x] 2.6 类型检查：`pnpm -r run typecheck`（不运行测试；测试仅限静态走查与 typecheck）
 - [x] 2.7 视觉验证：调用预览以检查 UI 改动（调用预览工具，遵循“UI 改动需预览”的要求；不启动渲染进程开发服务器）
  - [x] 2.8 文档增量（如需）：在 `docs/plugin-development.md` 或相关文档补充“分栏布局与消息演示”的说明
-- [x] 2.9 修复：应用内桥接判定（iframe+overlay.send）、UI 初始化创建 Overlay 并以真实 overlayId 生成链接与订阅 SSE（避免无 overlayId 和 SSE closed）
+ - [x] 2.9 修复：应用内桥接判定（iframe+overlay.send）、UI 初始化创建 Overlay 并以真实 overlayId 生成链接与订阅 SSE（避免无 overlayId 和 SSE closed）
  - [x] 2.10 修复：等待宿主 `plugin-init` 握手完成后再创建 Overlay，避免父窗口消息监听未就绪导致 `bridge-request` 丢失（链接卡“生成中”、SSE未连接、发送指向默认ID）
  - [x] 2.11 调试：在示例 UI 的桥接、创建、发送与 SSE 关键路径插入详细 console.log 日志，用于定位“链接生成中/发送失败/SSE未连接”等问题的真实原因
  - [x] 2.13 修复：将 `overlayBridgeAvailable` 提升到模块作用域，确保页面加载时能正确监听 `plugin-init` 并触发 `overlay.create`（解决不点击“发送”就一直“未连接/生成中”的问题）
  - [x] 2.14 增强：为“复制链接”增加剪贴板回退（`execCommand('copy')`），在 `navigator.clipboard` 不可用时仍能复制成功（解决“点击复制实际上没复制”问题）
  - [x] 2.15 增强：渲染器增加桥接命令 `get-api-base`，向插件 UI 返回 ApiServer 基址（用于生成链接与订阅 SSE）
  - [x] 2.16 修复：示例 UI 使用 ApiServer 基址生成 `/overlay-wrapper` 链接和 `/sse/overlay/:id` 订阅，避免 `location.origin` 在应用内误判导致“链接生成中/未连接”
+ - [x] 2.17 修复：示例 UI 在接收 `plugin-init` 时直接应用初始化 `config`，并在每次 `get-config` 后同步输入框显示为当前值，避免默认值误导或闪屏（`buildResources/plugins/sample-overlay-ui/ui.html`）
 
 ## Stage 3 — Completion & Archive
 - [x] 3.1 更新任务清单：如实将已完成任务标记为 `[x]`

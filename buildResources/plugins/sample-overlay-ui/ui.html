@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>示例插件 UI</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; align-items: center; justify-content: center; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    .card { background: rgba(255,255,255,0.85); padding: 24px 28px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.12); }
+    .title { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    input[type=text] { padding: 8px 10px; border: 1px solid #ccc; border-radius: 6px; min-width: 220px; }
+    button { padding: 8px 12px; border: 0; background: #2b78e4; color: #fff; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #225fb5; }
+    .hint { color: #666; font-size: 12px; margin-top: 6px; }
+  </style>
+  <script>
+    (function(){
+      var cfg = { uiBgColor: '#f4f4f4' };
+      var pending = {};
+      var reqSeq = 0;
+      var waiters = new Map();
+
+      function applyBg(color){
+        try { document.body.style.background = color || '#f4f4f4'; } catch(e) {}
+      }
+
+      function post(msg){ try { window.parent && window.parent.postMessage(msg, '*'); } catch(e){} }
+      function request(command, payload){
+        return new Promise(function(resolve, reject){
+          var id = 'req-' + (++reqSeq) + '-' + Date.now();
+          waiters.set(id, { resolve, reject, command });
+          post({ type: 'bridge-request', requestId: id, command: command, payload: payload || {} });
+          setTimeout(function(){ if(waiters.has(id)){ waiters.delete(id); reject(new Error('Timeout for '+command)); } }, 15000);
+        });
+      }
+
+      window.addEventListener('message', function(ev){
+        var data = ev && ev.data || {}; if(!data || typeof data !== 'object') return;
+        // 初始化与生命周期
+        if(data.type === 'plugin-init'){
+          var initCfg = data && data.config;
+          if (initCfg && typeof initCfg === 'object') {
+            try {
+              Object.assign(cfg, initCfg);
+              applyBg(cfg.uiBgColor);
+              var input0 = document.getElementById('bg');
+              if (input0) input0.value = cfg.uiBgColor;
+            } catch(e){}
+          }
+          // 读取已保存配置以确保与主进程持久化一致
+          request('get-config').then(function(resp){
+            try {
+              Object.assign(cfg, resp || {});
+              applyBg(cfg.uiBgColor);
+              var input1 = document.getElementById('bg');
+              if (input1) input1.value = cfg.uiBgColor;
+            } catch(e){}
+          });
+          return;
+        }
+        if(data.type === 'plugin-event' && data.eventType === 'lifecycle' && data.event === 'ready'){
+          // 尝试获取配置以确保初始一致
+          request('get-config').then(function(resp){
+            try {
+              Object.assign(cfg, resp || {});
+              applyBg(cfg.uiBgColor);
+              var input2 = document.getElementById('bg');
+              if (input2) input2.value = cfg.uiBgColor;
+            } catch(e){}
+          });
+          return;
+        }
+        if(data.type === 'plugin-event' && data.eventType === 'lifecycle' && data.event === 'config-updated'){
+          request('get-config').then(function(resp){
+            try {
+              Object.assign(cfg, resp || {});
+              applyBg(cfg.uiBgColor);
+              var input3 = document.getElementById('bg');
+              if (input3) input3.value = cfg.uiBgColor;
+            } catch(e){}
+          });
+          return;
+        }
+        // 桥接响应
+        if(data.type === 'bridge-response'){
+          var w = waiters.get(data.requestId);
+          if(!w) return;
+          waiters.delete(data.requestId);
+          if(data.success) w.resolve(data.data); else w.reject(new Error(data.error||('Failed '+String(w.command))));
+        }
+      });
+
+      function isHexColor(str){ return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(str||'')); }
+      function saveBg(){
+        var val = (document.getElementById('bg')||{}).value || '';
+        if(!val || !isHexColor(val)) { alert('请输入合法的十六进制颜色值，如 #2b2b2b'); return; }
+        request('set-config', { config: { uiBgColor: val } }).then(function(){ cfg.uiBgColor = val; applyBg(val); }).catch(function(e){ console.warn('set-config failed:', e); });
+      }
+
+      window.addEventListener('DOMContentLoaded', function(){
+        // 通知宿主 UI 已就绪，促使发送 plugin-init
+        post({ type: 'ui-ready' });
+        applyBg(cfg.uiBgColor);
+        var input = document.getElementById('bg');
+        if(input) input.value = cfg.uiBgColor;
+        var btn = document.getElementById('save');
+        if(btn) btn.addEventListener('click', saveBg);
+      });
+    })();
+  </script>
+</head>
+<body>
+  <div class="card">
+    <div class="title">这个是ui页面</div>
+    <div class="row">
+      <label for="bg">背景色：</label>
+      <input id="bg" type="text" placeholder="#f4f4f4" />
+      <button id="save">保存</button>
+    </div>
+    <div class="hint">通过配置管理读写：字段为“UI页面背景色”（示例值如 #2b2b2b）。</div>
+  </div>
+</body>
+</html>

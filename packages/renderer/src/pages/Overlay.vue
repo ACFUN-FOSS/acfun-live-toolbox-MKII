@@ -275,6 +275,7 @@ const emitOverlayEvent = (payload: any) => {
     // 统一通过 Wujie 全局事件总线转发到子应用（插件前缀）
     const pid = String(overlayData.value?.overlay?.pluginId || '')
     const eventName = `plugin:${pid}:overlay-message`
+    try { console.log('[Overlay.vue] bus emit', { eventName, type: String(payload?.type || ''), event: String(payload?.event || ''), overlayId: String((payload as any)?.overlayId || '') }) } catch {}
     ;(WujieVue as any)?.bus?.$emit?.(eventName, payload)
   } catch (e) {
     // 总线可能尚未初始化，忽略错误
@@ -288,12 +289,14 @@ const connectSSE = (pluginId: string, overlayId: string) => {
     const query = lastEventId ? `?lastEventId=${encodeURIComponent(lastEventId)}` : ''
     const url = `/sse/plugins/${encodeURIComponent(pluginId)}/overlay${query}`
     eventSource = new EventSource(url)
+    try { console.log('[Overlay.vue] SSE connect', { pluginId: String(pluginId), overlayId: String(overlayId), lastEventId: lastEventId || null }) } catch {}
 
     eventSource.addEventListener('init', (ev: MessageEvent) => {
       try {
         const payload = JSON.parse(ev.data)
         const overlays = Array.isArray(payload?.overlays) ? payload.overlays : []
         const ov = overlays.find((o: any) => String(o?.id) === String(overlayId)) || null
+        try { console.log('[Overlay.vue] SSE init', { overlays: overlays.length, overlayId: String(overlayId), found: !!ov }) } catch {}
         ;(window as any).__WUJIE_SHARED.readonlyStore.overlay = ov || {}
         emitOverlayEvent({ type: 'overlay-event', overlayId, eventType: 'overlay-message', event: 'readonly-store-init', payload: (window as any).__WUJIE_SHARED.readonlyStore })
       } catch (err) {
@@ -309,10 +312,13 @@ const connectSSE = (pluginId: string, overlayId: string) => {
           seenIds.add(rec.id)
           lastEventId = rec.id
         }
-        if (String(rec?.overlayId) !== String(overlayId)) return
-        const ov = rec?.payload || {}
+        const msg = rec?.payload || rec
+        if (String(msg?.overlayId) !== String(overlayId)) return
+        const ov = msg?.payload || {}
+        try { console.log('[Overlay.vue] SSE update', { overlayId: String(overlayId), keys: Object.keys(ov || {}), recId: String(rec?.id || '') }) } catch {}
         ;(window as any).__WUJIE_SHARED.readonlyStore.overlay = ov
-        emitOverlayEvent({ type: 'overlay-event', overlayId, eventType: 'overlay-updated', event: 'overlay-update', payload: ov })
+        // 与示例 overlay.html 的读取方式保持一致：payload 中包含 overlay 字段
+        emitOverlayEvent({ type: 'overlay-event', overlayId, eventType: 'overlay-updated', event: 'overlay-updated', payload: { overlay: ov } })
       } catch (err) {
         console.warn('[Overlay] SSE update parse failed:', err)
       }
@@ -326,14 +332,40 @@ const connectSSE = (pluginId: string, overlayId: string) => {
           seenIds.add(rec.id)
           lastEventId = rec.id
         }
-        if (String(rec?.overlayId) !== String(overlayId)) return
-        emitOverlayEvent({ type: 'overlay-event', overlayId, eventType: 'overlay-message', event: rec?.event || 'message', payload: rec?.payload })
+        const msg = rec?.payload || rec
+        if (String(msg?.overlayId) !== String(overlayId)) return
+        try { console.log('[Overlay.vue] SSE message', { overlayId: String(overlayId), event: String(msg?.event || 'message') }) } catch {}
+        emitOverlayEvent({ type: 'overlay-event', overlayId, eventType: 'overlay-message', event: msg?.event || 'message', payload: msg?.payload })
       } catch (err) {
         console.warn('[Overlay] SSE message parse failed:', err)
       }
     })
 
-    eventSource.addEventListener('closed', (_ev: MessageEvent) => {
+    // 补充订阅生命周期事件：用于接收 config-updated 等更新并转发为 plugin-event
+    eventSource.addEventListener('lifecycle', (ev: MessageEvent) => {
+      try {
+        const rec = JSON.parse(ev.data)
+        if (rec && typeof rec.id === 'string') {
+          if (seenIds.has(rec.id)) return
+          seenIds.add(rec.id)
+          lastEventId = rec.id
+        }
+        const msg = rec?.payload || rec
+        // lifecycle 事件通常不携带 overlayId，按插件维度透传
+        try { console.log('[Overlay.vue] SSE lifecycle', { event: String(msg?.event || 'lifecycle') }) } catch {}
+        emitOverlayEvent({ type: 'plugin-event', eventType: 'lifecycle', event: msg?.event || 'lifecycle', payload: msg?.payload })
+      } catch (err) {
+        console.warn('[Overlay] SSE lifecycle parse failed:', err)
+      }
+    })
+
+    eventSource.addEventListener('closed', (ev: MessageEvent) => {
+      try {
+        const rec = JSON.parse(ev.data)
+        const msg = rec?.payload || rec
+        if (String(msg?.overlayId) !== String(overlayId)) return
+      } catch {}
+      try { console.log('[Overlay.vue] SSE closed', { overlayId: String(overlayId) }) } catch {}
       emitOverlayEvent({
         type: 'overlay-event',
         overlayId,
@@ -349,6 +381,7 @@ const connectSSE = (pluginId: string, overlayId: string) => {
       try {
         eventSource?.close()
       } catch {}
+      try { console.log('[Overlay.vue] SSE reconnect', { pluginId: String(pluginId), overlayId: String(overlayId), lastEventId: lastEventId || null }) } catch {}
       setTimeout(() => connectSSE(pluginId, overlayId), 3000)
     }
   } catch (err) {

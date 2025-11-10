@@ -406,38 +406,64 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
   }
 
   /**
-   * 将内置示例插件复制到用户数据目录（仅当缺失时）。
-   * 示例位于打包资源或工作目录下的 buildResources/plugins/base-example。
+   * 将内置插件复制到用户数据目录（仅当缺失时）。
+   * 插件位于打包资源或工作目录下的 buildResources/plugins 或 resources/plugins。
    */
   private installBundledExamplesIfMissing(): void {
-    const id = 'base-example';
-    const dest = path.join(this.pluginsDir, id);
-    const manifestPath = path.join(dest, 'manifest.json');
-    // 已存在则不复制，不做任何就地刷新，加载阶段会进行合并
-    if (fs.existsSync(dest) && fs.existsSync(manifestPath)) {
-      return; // 已存在，无需复制
-    }
-
-    const candidates = [
-      path.join(process.cwd(), 'buildResources', 'plugins', id),
-      path.join(process.resourcesPath || process.cwd(), 'plugins', id)
+    const sources = [
+      path.join(process.cwd(), 'buildResources', 'plugins'),
+      path.join(process.resourcesPath || process.cwd(), 'plugins')
     ];
-    const src = candidates.find(p => fs.existsSync(p));
-    if (!src) {
-      return; // 无内置示例
+
+    const pluginIds = new Set<string>();
+    for (const root of sources) {
+      try {
+        if (!fs.existsSync(root)) continue;
+        const dirs = fs.readdirSync(root, { withFileTypes: true }).filter(d => d.isDirectory());
+        for (const d of dirs) { pluginIds.add(d.name); }
+      } catch {/* noop */}
     }
 
-    fs.mkdirSync(dest, { recursive: true });
-    fs.cpSync(src, dest, { recursive: true });
+    for (const id of pluginIds) {
+      const dest = path.join(this.pluginsDir, id);
+      const manifestPath = path.join(dest, 'manifest.json');
+      const exists = fs.existsSync(dest) && fs.existsSync(manifestPath);
 
-    // 默认不启用，后续由启动流程显式启用以触发进程创建
-    const configKey = `plugins.${id}`;
-    this.configManager.set(configKey, {
-      enabled: false,
-      installedAt: Date.now()
-    });
+      const candidates = [
+        path.join(process.cwd(), 'buildResources', 'plugins', id),
+        path.join(process.resourcesPath || process.cwd(), 'plugins', id)
+      ];
+      const src = candidates.find(p => fs.existsSync(p));
+      if (!src) { continue; }
 
-    pluginLogger.info('Bundled example plugin installed', id, { from: src, to: dest });
+      // 安装缺失的插件目录
+      if (!exists) {
+        fs.mkdirSync(dest, { recursive: true });
+        fs.cpSync(src, dest, { recursive: true });
+      } else {
+        // 轻量就地修复：确保主入口文件存在（manifest.main）
+        try {
+          const manifestText = fs.readFileSync(manifestPath, 'utf-8');
+          const manifestJson = JSON.parse(manifestText) as any;
+          const mainFile = typeof manifestJson.main === 'string' ? manifestJson.main : 'index.js';
+          const destMain = path.join(dest, mainFile);
+          const srcMain = path.join(src, mainFile);
+          if (!fs.existsSync(destMain) && fs.existsSync(srcMain)) {
+            fs.cpSync(srcMain, destMain, { recursive: false });
+            pluginLogger.info('Recovered missing plugin main file', id, { file: mainFile });
+          }
+        } catch (repairErr) {
+          pluginLogger.warn('Failed to repair plugin main file', id, repairErr as Error);
+        }
+      }
+
+      // 默认不启用，后续由启动流程显式启用以触发进程创建
+      const configKey = `plugins.${id}`;
+      const existing = this.configManager.get(configKey, undefined as any);
+      this.configManager.set(configKey, Object.assign({ enabled: false, installedAt: Date.now() }, existing || {}));
+
+      pluginLogger.info('Bundled plugin installed', id, { from: src, to: dest });
+    }
   }
 
   private loadInstalledPlugins(): void {
@@ -569,6 +595,16 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
    * 获取所有已安装的插件信息
    */
   public getInstalledPlugins(): PluginInfo[] {
+    // 轻量同步：若安装目录缺失，将插件标记为禁用并错误状态，避免 UI 显示“启用中”假象
+    for (const plugin of this.plugins.values()) {
+      if (!plugin.installPath || !fs.existsSync(plugin.installPath)) {
+        if (plugin.enabled) {
+          plugin.enabled = false;
+        }
+        plugin.status = 'error';
+        plugin.lastError = '插件安装目录不存在或已被删除';
+      }
+    }
     return Array.from(this.plugins.values());
   }
 
@@ -745,8 +781,24 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
    */
   public async uninstallPlugin(pluginId: string): Promise<void> {
     const plugin = this.plugins.get(pluginId);
+    // 当插件未在内存中（例如用户手动删除了目录），执行幂等卸载清理
     if (!plugin) {
-      throw new Error(`插件 ${pluginId} 不存在`);
+      const installPath = path.join(this.pluginsDir, pluginId);
+      try {
+        if (fs.existsSync(installPath)) {
+          fs.rmSync(installPath, { recursive: true, force: true });
+        }
+      } catch (fsErr) {
+        pluginLogger.warn('卸载缺失插件时删除目录失败', pluginId, fsErr as Error);
+      }
+
+      // 删除插件配置
+      const configKey = `plugins.${pluginId}`;
+      this.configManager.delete(configKey);
+
+      // 保守触发事件，供前端刷新状态
+      this.emit('plugin.uninstalled', { id: pluginId });
+      return; // 幂等卸载完成
     }
 
     try {
@@ -765,8 +817,12 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
       }
 
       // 删除插件文件
-      if (fs.existsSync(plugin.installPath)) {
-        fs.rmSync(plugin.installPath, { recursive: true, force: true });
+      try {
+        if (fs.existsSync(plugin.installPath)) {
+          fs.rmSync(plugin.installPath, { recursive: true, force: true });
+        }
+      } catch (fsErr) {
+        pluginLogger.warn('删除插件目录失败', pluginId, fsErr as Error);
       }
 
       // 删除插件配置
@@ -864,6 +920,24 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
 
       // 启动插件进程
       const pluginMainPath = path.join(plugin.installPath, plugin.manifest.main);
+      if (!fs.existsSync(pluginMainPath)) {
+        try {
+          const candidates = [
+            path.join(process.cwd(), 'buildResources', 'plugins', pluginId, plugin.manifest.main),
+            path.join(process.resourcesPath || process.cwd(), 'plugins', pluginId, plugin.manifest.main)
+          ];
+          const srcMain = candidates.find(p => fs.existsSync(p));
+          if (srcMain) {
+            fs.mkdirSync(path.dirname(pluginMainPath), { recursive: true });
+            fs.cpSync(srcMain, pluginMainPath, { recursive: false });
+            pluginLogger.info('启用前修复缺失的主入口文件', pluginId, { file: plugin.manifest.main });
+          } else {
+            throw new Error(`插件主入口缺失且无法修复: ${pluginMainPath}`);
+          }
+        } catch (repairErr) {
+          throw repairErr instanceof Error ? repairErr : new Error(String(repairErr));
+        }
+      }
       await this.processManager.startPluginProcess(pluginId, pluginMainPath);
 
       // 更新状态
@@ -975,14 +1049,19 @@ export class PluginManager extends TypedEventEmitter<PluginManagerEvents> {
         context: { action: 'disable' }
       });
 
-      // 停止插件进程
-      try {
-        await this.processManager.stopPluginProcess(pluginId);
-        pluginLogger.info(`插件进程已停止: ${pluginId}`);
-      } catch (processError) {
-        const processErrorMessage = processError instanceof Error ? processError.message : '未知进程错误';
-        pluginLogger.warn(`停止插件进程时出错: ${pluginId} - ${processErrorMessage}`);
-        await pluginErrorHandler.handleError(pluginId, ErrorType.RUNTIME_ERROR, processErrorMessage, new Error(processErrorMessage));
+      // 停止插件进程（若存在）
+      const running = this.processManager.getProcessInfo(pluginId);
+      if (running) {
+        try {
+          await this.processManager.stopPluginProcess(pluginId);
+          pluginLogger.info(`插件进程已停止: ${pluginId}`);
+        } catch (processError) {
+          const processErrorMessage = processError instanceof Error ? processError.message : '未知进程错误';
+          pluginLogger.warn(`停止插件进程时出错: ${pluginId} - ${processErrorMessage}`);
+          await pluginErrorHandler.handleError(pluginId, ErrorType.RUNTIME_ERROR, processErrorMessage, new Error(processErrorMessage));
+        }
+      } else {
+        pluginLogger.info(`插件进程不存在，跳过停止步骤: ${pluginId}`);
       }
 
       // 停止性能监控

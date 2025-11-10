@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>示例插件 Overlay</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; align-items: center; justify-content: center; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    .wrapper { color: #111; background: transparent; }
+    .badge { background: rgba(255,255,255,0.85); padding: 10px 14px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.12); font-weight: 600; }
+    .debug { position: fixed; left: 8px; bottom: 8px; background: rgba(0,0,0,0.6); color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 12px; max-width: 40vw; max-height: 30vh; overflow: auto; white-space: pre-wrap; }
+  </style>
+  <script>
+    (function(){
+      function resolveInitialBg(){
+        try {
+          var shared = (window.__WUJIE_PROPS__ && window.__WUJIE_PROPS__.shared) || (window.__WUJIE_SHARED__ || {});
+          var store = shared && shared.readonlyStore || {};
+          var ov = store.overlay || {};
+          var style = ov.style || {};
+          return style.backgroundColor || '#eeeeee';
+        } catch(e) { return '#eeeeee'; }
+      }
+      function applyBg(color){ try { document.body.style.background = color || '#eeeeee'; } catch(e){} }
+      function showConfig(cfg){ try { var el = document.getElementById('cfg'); if (el) { el.textContent = JSON.stringify(cfg, null, 2); } } catch(e){} }
+      function onMessage(ev){
+        var data = ev && ev.data || {}; if(!data || typeof data !== 'object') return;
+        // Overlay 事件桥接：可能经由 wrapper 注入
+        if(data.type === 'overlay-event'){
+          var evt = data.event;
+          if(evt === 'readonly-store-init'){
+            var payload = data.payload || {}; var ov = (payload.overlay||{}); var style = ov.style||{};
+            applyBg(style.backgroundColor||resolveInitialBg());
+            var cfg = { overlayId: ov.id, pluginId: ov.pluginId, updatedAt: ov.updatedAt, style: style };
+            console.log('[overlay.html] readonly-store-init received config:', cfg);
+            showConfig(cfg);
+          } else if(evt === 'overlay-updated' || evt === 'overlay-update'){
+            var payload = data.payload || {}; var ov = (payload.overlay||{}); var style = ov.style||{};
+            // 如果主进程在更新时附带了配置更新时间，可在此使用；否则直接应用只读仓库中的样式
+            var color = style.backgroundColor || resolveInitialBg();
+            applyBg(color);
+            var cfg = { overlayId: ov.id, pluginId: ov.pluginId, updatedAt: ov.updatedAt, style: style };
+            console.log('[overlay.html] overlay-updated received config:', cfg);
+            showConfig(cfg);
+          } else {
+            // 其他 overlay 事件也打印，便于排查
+            try { console.log('[overlay.html] overlay-event received:', { event: evt, payload: data.payload }); } catch(e){}
+          }
+        } else if (data.type === 'plugin-event' && data.eventType === 'lifecycle') {
+          // 当宿主在生命周期事件中透传了 config-updated 时，优先使用载荷中的配置颜色
+          if (data.event === 'config-updated') {
+            var payload = data.payload || {};
+            var cfg = (payload.config || {});
+            var color = typeof cfg.uiBgColor === 'string' && cfg.uiBgColor.trim() ? cfg.uiBgColor.trim() : resolveInitialBg();
+            applyBg(color);
+            try { console.log('[overlay.html] lifecycle config-updated', { uiBgColor: cfg.uiBgColor, applied: color }); } catch(e){}
+            // 更新右下角调试信息，包含最新配置值
+            showConfig({ style: { backgroundColor: color }, config: cfg });
+          }
+        }
+      }
+      window.addEventListener('message', onMessage);
+      window.addEventListener('DOMContentLoaded', function(){ applyBg(resolveInitialBg()); showConfig({ style: { backgroundColor: resolveInitialBg() }, note: 'waiting for events...' }); });
+    })();
+  </script>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="badge">这个是overlay页面</div>
+  </div>
+  <div class="debug"><div style="font-weight:600;margin-bottom:4px;">Received config</div><pre id="cfg"></pre></div>
+</body>
+</html>
